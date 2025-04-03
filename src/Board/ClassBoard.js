@@ -87,24 +87,24 @@ function ClassBoard() {
   );
 
   return (
-      <div className="reactflow-wrapper" ref={reactFlowWrapper}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onConnectEnd={onConnectEnd}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          defaultEdgeOptions={defaultEdgeOptions}
-          // defaultNodeOptions={defaultNodeOptions}
-          fitView
-          connectionLineStyle={{ stroke: "#000" }}
-          connectionLineType="bezier"
-          nodeOrigin={[0.5, 0.5]} // 노드 중앙 기준
-        />
-      </div>
+    <div className="reactflow-wrapper" ref={reactFlowWrapper}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
+        // defaultNodeOptions={defaultNodeOptions}
+        fitView
+        connectionLineStyle={{ stroke: "#000" }}
+        connectionLineType="bezier"
+        nodeOrigin={[0.5, 0.5]} // 노드 중앙 기준
+      />
+    </div>
   );
 }
 

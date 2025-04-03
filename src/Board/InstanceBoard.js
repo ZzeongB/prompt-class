@@ -63,7 +63,8 @@ function InstanceBoard() {
         type: "resizable", // 너가 사용하는 노드 타입
         position: {
           x: position.x,
-          y: position.y + 30,},  // Resizable 노드는 아래에 위치},
+          y: position.y + 30,
+        }, // Resizable 노드는 아래에 위치},
         data: { label, type, sharedId }, // 👈 여기에 type 정보도 포함!
       };
 
@@ -76,39 +77,45 @@ function InstanceBoard() {
     [screenToFlowPosition, type]
   );
 
-  const handleNodesChange = useCallback((changes) => {
-    onNodesChange(changes); // 1️⃣ ReactFlow 내부 상태 반영
-  
-    setNodes((prevNodes) => {
-      let updated = [...prevNodes];
-  
-      changes.forEach((change) => {
-        if (change.type === "position" && change.position) {
-          const movedNode = updated.find((n) => n.id === change.id);
-          if (!movedNode?.data?.sharedId) return;
-  
-          const sharedId = movedNode.data.sharedId;
-  
-          updated = updated.map((node) => {
-            if (node.data?.sharedId === sharedId && node.id !== movedNode.id) {
-              const isResizable = node.id.endsWith("resizable");
-              return {
-                ...node,
-                position: {
-                  x: change.position.x,
-                  y: change.position.y + (isResizable ? 30 : -30),
-                },
-              };
-            }
-            return node;
-          });
-        }
+  const handleNodesChange = useCallback(
+    (changes) => {
+      onNodesChange(changes); // 1️⃣ ReactFlow 내부 상태 반영
+
+      setNodes((prevNodes) => {
+        let updated = [...prevNodes];
+
+        changes.forEach((change) => {
+          if (change.type === "position" && change.position) {
+            const movedNode = updated.find((n) => n.id === change.id);
+            if (!movedNode?.data?.sharedId) return;
+
+            const sharedId = movedNode.data.sharedId;
+
+            updated = updated.map((node) => {
+              if (
+                node.data?.sharedId === sharedId &&
+                node.id !== movedNode.id
+              ) {
+                const isResizable = node.id.endsWith("resizable");
+                return {
+                  ...node,
+                  position: {
+                    x: change.position.x,
+                    y: change.position.y + (isResizable ? 30 : -30),
+                  },
+                };
+              }
+              return node;
+            });
+          }
+        });
+
+        return updated;
       });
-  
-      return updated;
-    });
-  }, [onNodesChange]);
-  
+    },
+    [onNodesChange]
+  );
+
   return (
     <div className="reactflow-wrapper" onMouseUp={onMouseUp}>
       <ReactFlow

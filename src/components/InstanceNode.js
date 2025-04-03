@@ -1,9 +1,5 @@
 import React, { memo } from "react";
-import {
-  Handle,
-  Position,
-  useConnection,
-} from "@xyflow/react";
+import { Handle, Position, useConnection } from "@xyflow/react";
 import { getInstanceNodeStyle } from "../utils/nodeStyleUtil";
 
 function InstanceNode({ id, data, selected }) {
