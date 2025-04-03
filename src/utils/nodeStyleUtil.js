@@ -35,14 +35,13 @@ export function getClassNodeStyle(type, options = {}) {
 export function getInstanceNodeStyle(type, options = {}) {
   const base = {
     border: "2px solid",
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 4,
+    padding: 5,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     background: BACKGROUND_COLOR,
-    top: -20,
-    // position: "absolute",
+    fontSize: 12,
   };
 
   if (type === "attribute") {

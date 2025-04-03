@@ -3,11 +3,8 @@ import {
   Handle,
   Position,
   useConnection,
-  NodeResizer,
-  NodeToolbar,
 } from "@xyflow/react";
 import { getInstanceNodeStyle } from "../utils/nodeStyleUtil";
-import { OBJ_COLOR, ATTR_COLOR, REL_COLOR } from "../utils/constants";
 
 function InstanceNode({ id, data, selected }) {
   const connection = useConnection();
@@ -18,25 +15,7 @@ function InstanceNode({ id, data, selected }) {
 
   return (
     <div>
-      {/* <NodeToolbar isVisible={selected} position={data.toolbarPosition}>
-        <div style={style}>{label}</div>
-      </NodeToolbar> */}
-      {/* {(
-        <NodeResizer
-          color={
-            data.type === "object"
-              ? OBJ_COLOR
-              : data.type === "attribute"
-              ? ATTR_COLOR
-              : REL_COLOR
-          }
-          // isVisible={selected}
-          minWidth={30}
-          minHeight={30}
-        />
-      )} */}
       <div style={style}>{label}</div>
-
       {!connection.inProgress && (
         <Handle
           className="classHandle"

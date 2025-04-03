@@ -7,6 +7,7 @@ import {
   MarkerType,
   ReactFlowProvider,
   Controls,
+  useStore,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { v4 as uuidv4 } from "uuid";
@@ -21,7 +22,7 @@ const edgeTypes = {
 const nodeTypes = {
   class: InstanceNode,
   instance: InstanceNode,
-  ResizableNode: ResizableNode,
+  resizable: ResizableNode,
 };
 
 const defaultEdgeOptions = {
@@ -39,16 +40,9 @@ function InstanceBoard() {
   const [type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
   const getId = useCallback(() => `randomnode_${uuidv4()}`, []);
 
-  useEffect(() => {
-    console.log("nodes", nodes);
-    console.log("edges", edges);
-  }, [nodes, edges]);
-
   const onMouseUp = useCallback(
     (event) => {
       event.preventDefault();
-
-      console.log("onMouseUp", type, ghostPos);
 
       if (!type) return;
 
@@ -57,14 +51,23 @@ function InstanceBoard() {
         y: event.clientY,
       });
 
-      const newNode = {
-        id: getId(),
+      const sharedId = getId();
+      const newNode_data = {
+        id: `${sharedId}-data`,
         type: "instance", // 너가 사용하는 노드 타입
         position,
-        data: { label, type }, // 👈 여기에 type 정보도 포함!
+        data: { label, type, sharedId }, // 👈 여기에 type 정보도 포함!
+      };
+      const newNode_resizable = {
+        id: `${sharedId}-resizable`,
+        type: "resizable", // 너가 사용하는 노드 타입
+        position: {
+          x: position.x,
+          y: position.y + 30,},  // Resizable 노드는 아래에 위치},
+        data: { label, type, sharedId }, // 👈 여기에 type 정보도 포함!
       };
 
-      setNodes((nds) => nds.concat(newNode));
+      setNodes((nds) => [...nds, newNode_data, newNode_resizable]);
 
       setType(null);
       setLabel(null);
@@ -73,12 +76,45 @@ function InstanceBoard() {
     [screenToFlowPosition, type]
   );
 
+  const handleNodesChange = useCallback((changes) => {
+    onNodesChange(changes); // 1️⃣ ReactFlow 내부 상태 반영
+  
+    setNodes((prevNodes) => {
+      let updated = [...prevNodes];
+  
+      changes.forEach((change) => {
+        if (change.type === "position" && change.position) {
+          const movedNode = updated.find((n) => n.id === change.id);
+          if (!movedNode?.data?.sharedId) return;
+  
+          const sharedId = movedNode.data.sharedId;
+  
+          updated = updated.map((node) => {
+            if (node.data?.sharedId === sharedId && node.id !== movedNode.id) {
+              const isResizable = node.id.endsWith("resizable");
+              return {
+                ...node,
+                position: {
+                  x: change.position.x,
+                  y: change.position.y + (isResizable ? 30 : -30),
+                },
+              };
+            }
+            return node;
+          });
+        }
+      });
+  
+      return updated;
+    });
+  }, [onNodesChange]);
+  
   return (
     <div className="reactflow-wrapper" onMouseUp={onMouseUp}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -86,7 +122,6 @@ function InstanceBoard() {
       >
         <Controls />
       </ReactFlow>
-
     </div>
   );
 }
