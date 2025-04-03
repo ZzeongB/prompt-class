@@ -11,3 +11,37 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+
+.customNodeBody {
+  width: 150px;
+  height: 80px;
+  position: relative;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+}
+ 
+div.classHandle {
+  position: absolute;
+  background-color: "black";
+  border-radius: 50%;
+  border-width: 0px;
+}
+
+.drag-handle__custom {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-color: teal;
+  margin-left: 15px;
+  border-radius: 50%;
+  border-width: 0px;
+}
+
+.reactflow-wrapper {
+  flex-grow: 1;
+  height: 100%;
+}
