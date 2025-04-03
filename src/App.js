@@ -1,13 +1,7 @@
-import React, {useEffect} from "react";
-import { ReactFlowProvider } from "@xyflow/react";
+import React, { useEffect } from "react";
 import "@xyflow/react/dist/style.css";
-import ClassBoard from "./Board/ClassBoard";
-import InstanceBoard from "./Board/InstanceBoard";
 import GhostNode from "./components/GhostNode";
 import { DnDProvider } from "./hooks/useDnD";
-import { useNodesState, useEdgesState } from "@xyflow/react";
-import { classToFlow } from "./utils/flowUtils";
-import classSample from "./classSample";
 import ClassBoardWithProvider from "./Board/ClassBoard";
 import InstanceBoardWithProvider from "./Board/InstanceBoard";
 
@@ -29,7 +23,7 @@ export default function App() {
       }
     };
     window.addEventListener("error", errorHandler);
-  
+
     return () => {
       window.removeEventListener("error", errorHandler);
     };
