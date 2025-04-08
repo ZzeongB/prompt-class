@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
 import "@xyflow/react/dist/style.css";
 import GhostNode from "./components/GhostNode";
-import { DnDProvider } from "./hooks/useDnD";
 import ClassBoardWithProvider from "./Board/ClassBoard";
 import InstanceBoardWithProvider from "./Board/InstanceBoard";
+import { ClassGraphProvider } from "./context/ClassGraphContext";
+import { DnDProvider } from "./context/DragAndDropContext";
 
 export default function App() {
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function App() {
   }, []);
   return (
     <div style={{ display: "flex" }}>
+      <ClassGraphProvider>
       <DnDProvider>
         <div style={{ width: "500px", height: "500px" }}>
           <ClassBoardWithProvider />
@@ -39,6 +41,7 @@ export default function App() {
         </div>
         <GhostNode />
       </DnDProvider>
+      </ClassGraphProvider>
     </div>
   );
 }

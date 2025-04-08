@@ -11,11 +11,14 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { v4 as uuidv4 } from "uuid";
-import { useDnD } from "../hooks/useDnD";
+import { useDnD } from "../context/DragAndDropContext";
 import DefaultEdge from "../components/DefaultEdge";
 import InstanceNode from "../components/InstanceNode";
 import ResizableNode from "../components/ResizableNode";
 import { handleConnect, handleConnectEnd } from "../utils/nodeConnectHandlers";
+import { useClassGraph } from "../context/ClassGraphContext";
+import { createInstanceWithAttributes } from "../utils/instanceBuilder";
+import { syncMovedNodePositions } from "../utils/syncNodePositions";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -39,49 +42,44 @@ function InstanceBoard() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition } = useReactFlow();
   const [type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
-  // const getId = useCallback(() => `${uuidv4()}`, []);
+  const { classNodes, classEdges } = useClassGraph();
 
   const onMouseUp = useCallback(
     (event) => {
       event.preventDefault();
-
-      if (!type) return;
+      if (!type || !label) return;
 
       const position = screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
       });
 
-      const sharedId = `instance-${label}-${nodes.length}`;
-      const newNode_data = {
-        id: `${sharedId}-data`,
-        type: "instance", // 너가 사용하는 노드 타입
+      const { newNodes, newEdges } = createInstanceWithAttributes({
+        label,
+        type,
         position,
-        data: { label, type, sharedId }, // 👈 여기에 type 정보도 포함!
-      };
-      const newNode_resizable = {
-        id: `${sharedId}-resizable`,
-        type: "resizable", // 너가 사용하는 노드 타입
-        position: {
-          x: position.x,
-          y: position.y + 30,
-        }, // Resizable 노드는 아래에 위치},
-        data: { label, type, sharedId }, // 👈 여기에 type 정보도 포함!
-      };
+        classNodes,
+        classEdges,
+        currentNodeCount: nodes.length,
+      });
 
-      setNodes((nds) => [...nds, newNode_data, newNode_resizable]);
+      setNodes((nds) => [...nds, ...newNodes]);
+      setEdges((eds) => [...eds, ...newEdges]);
 
       setType(null);
       setLabel(null);
       setGhostPos({ x: 0, y: 0 });
     },
-    [screenToFlowPosition, type]
+    [screenToFlowPosition, type, label, classNodes, classEdges, nodes]
   );
 
   const onConnect = useCallback(
     (params) => handleConnect({ params, nodes, setNodes, setEdges }),
     [nodes, setNodes, setEdges]
   );
+
+  console.log("nodes", nodes);
+  console.log("edges", edges);
 
   const onConnectEnd = useCallback(
     (event, connectionState) =>
@@ -99,41 +97,17 @@ function InstanceBoard() {
 
   const handleNodesChange = useCallback(
     (changes) => {
-      onNodesChange(changes); // 1️⃣ ReactFlow 내부 상태 반영
+      setNodes((prevNodes) =>
+        syncMovedNodePositions({
+          changes,
+          prevNodes,
+          edges,
+        })
+      );
 
-      setNodes((prevNodes) => {
-        let updated = [...prevNodes];
-
-        changes.forEach((change) => {
-          if (change.type === "position" && change.position) {
-            const movedNode = updated.find((n) => n.id === change.id);
-            if (!movedNode?.data?.sharedId) return;
-
-            const sharedId = movedNode.data.sharedId;
-
-            updated = updated.map((node) => {
-              if (
-                node.data?.sharedId === sharedId &&
-                node.id !== movedNode.id
-              ) {
-                const isResizable = node.id.endsWith("resizable");
-                return {
-                  ...node,
-                  position: {
-                    x: change.position.x,
-                    y: change.position.y + (isResizable ? 30 : -30),
-                  },
-                };
-              }
-              return node;
-            });
-          }
-        });
-
-        return updated;
-      });
+      onNodesChange(changes);
     },
-    [onNodesChange]
+    [onNodesChange, edges]
   );
 
   return (

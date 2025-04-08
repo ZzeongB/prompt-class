@@ -1,6 +1,6 @@
 import { Handle, Position, useConnection } from "@xyflow/react";
-import { getClassNodeStyle } from "../utils/nodeStyleUtil";
-import { useDnD } from "../hooks/useDnD";
+import { getClassNodeStyle } from "../utils/nodeStyleUtils";
+import { useDnD } from "../context/DragAndDropContext";
 
 export default function ClassNode({ id, data }) {
   const connection = useConnection();

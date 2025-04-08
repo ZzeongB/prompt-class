@@ -1,5 +1,5 @@
 import React from "react";
-import { useDnD } from "../hooks/useDnD";
+import { useDnD } from "../context/DragAndDropContext";
 const GhostNode = () => {
   const [type, , position, , label, ] = useDnD();
 

@@ -13,8 +13,11 @@ import { classToFlow, flowToClass } from "../utils/flowUtils";
 import classSample from "../classSample";
 import DefaultEdge from "../components/DefaultEdge";
 import ClassNode from "../components/ClassNode";
-import { useDnD } from "../hooks/useDnD";
+import { useDnD } from "../context/DragAndDropContext";
 import { handleConnect, handleConnectEnd } from "../utils/nodeConnectHandlers";
+import { useClassGraph } from "../context/ClassGraphContext";
+import { createNewObjectNode } from "../utils/nodeCreateUtils";
+
 const edgeTypes = {
   main: DefaultEdge,
 };
@@ -35,11 +38,17 @@ const defaultEdgeOptions = {
 function ClassBoard() {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
+  const { setClassNodes, setClassEdges } = useClassGraph();
 
   const { nodes: initialNodes, edges: initialEdges } = classToFlow(classSample);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  useEffect(() => {
+    setClassNodes(nodes);
+    setClassEdges(edges);
+  }, [nodes, edges, setClassNodes, setClassEdges]);
 
   const onConnect = useCallback(
     (params) => handleConnect({ params, nodes, setNodes, setEdges }),
@@ -60,6 +69,27 @@ function ClassBoard() {
     [nodes, setNodes, setEdges, screenToFlowPosition]
   );
 
+  const handlePaneClick = useCallback(
+    (event) => {
+      if (event.button !== 0) return;
+
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      const newNode = createNewObjectNode({
+        position,
+        currentNodeCount: nodes.length,
+      });
+
+      if (newNode) {
+        setNodes((nds) => [...nds, newNode]);
+      }
+    },
+    [screenToFlowPosition, nodes.length, setNodes]
+  );
+
   return (
     <div className="reactflow-wrapper" ref={reactFlowWrapper}>
       <ReactFlow
@@ -69,6 +99,7 @@ function ClassBoard() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
+        onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}

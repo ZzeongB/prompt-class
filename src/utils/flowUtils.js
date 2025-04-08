@@ -1,4 +1,4 @@
-import { getPosition } from "./nodeStyleUtil";
+import { getPosition } from "./nodeStyleUtils";
 
 export function classToFlow(classDefs) {
   const nodes = [];
