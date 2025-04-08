@@ -14,7 +14,7 @@ import classSample from "../classSample";
 import DefaultEdge from "../components/DefaultEdge";
 import ClassNode from "../components/ClassNode";
 import { useDnD } from "../hooks/useDnD";
-
+import { handleConnect, handleConnectEnd } from "../utils/nodeConnectHandlers";
 const edgeTypes = {
   main: DefaultEdge,
 };
@@ -41,49 +41,23 @@ function ClassBoard() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  useEffect(() => {
-    console.log("nodes", nodes);
-    console.log("edges", edges);
-  }, [nodes, edges]);
   const onConnect = useCallback(
-    (params) => {
-      setEdges((eds) => addEdge({ ...params, label: "property" }, eds));
-    },
-    [setEdges]
+    (params) => handleConnect({ params, nodes, setNodes, setEdges }),
+    [nodes, setNodes, setEdges]
   );
+
   const onConnectEnd = useCallback(
-    (event, connectionState) => {
-      // when a connection is dropped on the pane it's not valid
-      if (!connectionState.isValid && connectionState.fromNode) {
-        // we need to remove the wrapper bounds, in order to get the correct position
-        const { clientX, clientY } =
-          "changedTouches" in event ? event.changedTouches[0] : event;
-
-        if (connectionState.fromNode.data.type !== "object") {
-          console.warn(
-            `'${connectionState.fromNode.data.type}' 타입에서는 연결된 노드를 만들 수 없습니다.`
-          );
-          return;
-        }
-        const id = `${connectionState.fromNode.data.label}-attr-${nodes.length}`;
-        const newNode = {
-          id: id,
-          position: screenToFlowPosition({
-            x: clientX,
-            y: clientY,
-          }),
-          type: "class",
-          data: { label: `${id}`, type: "attribute", hasValue: true },
-          origin: [0.5, 0.0],
-        };
-
-        setNodes((nds) => nds.concat(newNode));
-        setEdges((eds) =>
-          eds.concat({ id, source: connectionState.fromNode.id, target: id })
-        );
-      }
-    },
-    [screenToFlowPosition]
+    (event, connectionState) =>
+      handleConnectEnd({
+        event,
+        connectionState,
+        type: "class",
+        nodes,
+        setNodes,
+        setEdges,
+        screenToFlowPosition,
+      }),
+    [nodes, setNodes, setEdges, screenToFlowPosition]
   );
 
   return (

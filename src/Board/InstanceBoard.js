@@ -7,7 +7,7 @@ import {
   MarkerType,
   ReactFlowProvider,
   Controls,
-  useStore,
+  addEdge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { v4 as uuidv4 } from "uuid";
@@ -15,6 +15,7 @@ import { useDnD } from "../hooks/useDnD";
 import DefaultEdge from "../components/DefaultEdge";
 import InstanceNode from "../components/InstanceNode";
 import ResizableNode from "../components/ResizableNode";
+import { handleConnect, handleConnectEnd } from "../utils/nodeConnectHandlers";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -38,7 +39,7 @@ function InstanceBoard() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition } = useReactFlow();
   const [type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
-  const getId = useCallback(() => `randomnode_${uuidv4()}`, []);
+  // const getId = useCallback(() => `${uuidv4()}`, []);
 
   const onMouseUp = useCallback(
     (event) => {
@@ -51,7 +52,7 @@ function InstanceBoard() {
         y: event.clientY,
       });
 
-      const sharedId = getId();
+      const sharedId = `instance-${label}-${nodes.length}`;
       const newNode_data = {
         id: `${sharedId}-data`,
         type: "instance", // 너가 사용하는 노드 타입
@@ -75,6 +76,25 @@ function InstanceBoard() {
       setGhostPos({ x: 0, y: 0 });
     },
     [screenToFlowPosition, type]
+  );
+
+  const onConnect = useCallback(
+    (params) => handleConnect({ params, nodes, setNodes, setEdges }),
+    [nodes, setNodes, setEdges]
+  );
+
+  const onConnectEnd = useCallback(
+    (event, connectionState) =>
+      handleConnectEnd({
+        event,
+        connectionState,
+        type: "instance",
+        nodes,
+        setNodes,
+        setEdges,
+        screenToFlowPosition,
+      }),
+    [nodes, setNodes, setEdges, screenToFlowPosition]
   );
 
   const handleNodesChange = useCallback(
@@ -123,6 +143,8 @@ function InstanceBoard() {
         edges={edges}
         onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
