@@ -29,6 +29,7 @@ export default function App() {
       window.removeEventListener("error", errorHandler);
     };
   }, []);
+
   return (
     <div style={{ display: "flex" }}>
       <ClassGraphProvider>

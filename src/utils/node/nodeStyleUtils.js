@@ -1,4 +1,4 @@
-import { OBJ_COLOR, ATTR_COLOR, REL_COLOR, BORDER_COLOR, EDGE_COLOR, BACKGROUND_COLOR } from "./constants";
+import { OBJ_COLOR, ATTR_COLOR, REL_COLOR, BORDER_COLOR, EDGE_COLOR, BACKGROUND_COLOR } from "../constants";
 
 // styleUtils.js
 export function getClassNodeStyle(type, options = {}) {

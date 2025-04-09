@@ -15,10 +15,15 @@ import { useDnD } from "../context/DragAndDropContext";
 import DefaultEdge from "../components/DefaultEdge";
 import InstanceNode from "../components/InstanceNode";
 import ResizableNode from "../components/ResizableNode";
-import { handleConnect, handleConnectEnd } from "../utils/nodeConnectHandlers";
+import {
+  handleConnect,
+  handleConnectEnd,
+} from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { createInstanceWithAttributes } from "../utils/instanceBuilder";
-import { syncMovedNodePositions } from "../utils/syncNodePositions";
+import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
+import { extractSentencesAndBoxes } from "../utils/instanceExtractor";
+import { generateImageFromInstanceData } from "../api/generateImage";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -41,7 +46,7 @@ function InstanceBoard() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition } = useReactFlow();
-  const [type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
+  const [id, setId, type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges } = useClassGraph();
 
   const onMouseUp = useCallback(
@@ -55,6 +60,7 @@ function InstanceBoard() {
       });
 
       const { newNodes, newEdges } = createInstanceWithAttributes({
+        id,
         label,
         type,
         position,
@@ -77,9 +83,6 @@ function InstanceBoard() {
     (params) => handleConnect({ params, nodes, setNodes, setEdges }),
     [nodes, setNodes, setEdges]
   );
-
-  console.log("nodes", nodes);
-  console.log("edges", edges);
 
   const onConnectEnd = useCallback(
     (event, connectionState) =>
@@ -110,8 +113,33 @@ function InstanceBoard() {
     [onNodesChange, edges]
   );
 
+  const handleClick = () => {
+    const result = extractSentencesAndBoxes(nodes, edges, {nodes: classNodes, edges: classEdges});
+    console.log(result.sentences);
+    console.log(result.boxes);
+
+    const imageData = generateImageFromInstanceData(result.sentences, result.boxes);
+    console.log(imageData);
+    
+  };
+
   return (
     <div className="reactflow-wrapper" onMouseUp={onMouseUp}>
+      <div>
+        <button
+          onClick={handleClick}
+          style={{
+            padding: "10px 20px",
+            fontSize: "16px",
+            cursor: "pointer",
+            borderRadius: "8px",
+            border: "1px solid #ccc",
+            backgroundColor: "#f0f0f0",
+          }}
+        >
+          이미지 만들기
+        </button>
+      </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -130,7 +158,7 @@ function InstanceBoard() {
 }
 
 function InstanceBoardWithProvider() {
-  const [type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
+  const [id, setId, type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
 
   return (
     <ReactFlowProvider debounce={200}>

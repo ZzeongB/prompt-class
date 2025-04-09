@@ -1,5 +1,5 @@
 import { Handle, Position, useConnection } from "@xyflow/react";
-import { getClassNodeStyle } from "../utils/nodeStyleUtils";
+import { getClassNodeStyle } from "../utils/node/nodeStyleUtils";
 import { useDnD } from "../context/DragAndDropContext";
 
 export default function ClassNode({ id, data }) {
@@ -10,7 +10,7 @@ export default function ClassNode({ id, data }) {
   const label = data.label;
 
 
-  const [, setType, , setPosition, , setLabel] = useDnD();
+  const [, setId, , setType, , setPosition, , setLabel] = useDnD();
 
 const onDragStart = (e, data) => {
   if (e.target.closest('.classHandle')) {
@@ -20,6 +20,7 @@ const onDragStart = (e, data) => {
   console.log("onDragStart", data);
   setType(data.type);
   setLabel(data.label);  
+  setId(id);
 
   const onMouseMove = (e) => {
     setPosition({ x: e.clientX, y: e.clientY });

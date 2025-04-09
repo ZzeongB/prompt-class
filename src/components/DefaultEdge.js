@@ -1,5 +1,5 @@
 import { getStraightPath, useInternalNode } from '@xyflow/react';
-import { getEdgeParams } from '../utils/nodePositionUtils';
+import { getEdgeParams } from '../utils/node/nodePositionUtils';
 import { EDGE_COLOR } from '../utils/constants';
 
 function DefaultEdge({ id, source, target, markerEnd, style }) {

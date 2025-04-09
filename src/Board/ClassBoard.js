@@ -9,14 +9,14 @@ import {
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { classToFlow, flowToClass } from "../utils/flowUtils";
+import { classToFlow } from "../utils/flowUtils";
 import classSample from "../classSample";
 import DefaultEdge from "../components/DefaultEdge";
 import ClassNode from "../components/ClassNode";
 import { useDnD } from "../context/DragAndDropContext";
-import { handleConnect, handleConnectEnd } from "../utils/nodeConnectHandlers";
+import { handleConnect, handleConnectEnd } from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
-import { createNewObjectNode } from "../utils/nodeCreateUtils";
+import { createNewObjectNode } from "../utils/node/nodeCreateUtils";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -114,7 +114,7 @@ function ClassBoard() {
 }
 
 function ClassBoardWithProvider() {
-  const [type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
+  const [id, setId, type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
 
   return (
     <ReactFlowProvider>

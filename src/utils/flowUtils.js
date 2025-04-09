@@ -1,4 +1,4 @@
-import { getPosition } from "./nodeStyleUtils";
+import { getPosition } from "./node/nodeStyleUtils";
 
 export function classToFlow(classDefs) {
   const nodes = [];
@@ -11,13 +11,14 @@ export function classToFlow(classDefs) {
       data: { label: cls.name, type: 'object' },
       position: getPosition('object', classIndex),
       type: 'class',
+      classId: classId,
     });
 
     cls.attributes.forEach((attr, attrIndex) => {
       const attrId = `${classId}-attr-${attrIndex}`;
       nodes.push({
         id: attrId,
-        data: { label: attr.name, type: 'attribute', hasValue: attr.value },
+        data: { label: attr.name, type: 'attribute', hasValue: attr.value, },
         position: getPosition('attribute', classIndex, attrIndex),
         type: 'class',
       });
