@@ -8,7 +8,7 @@ export function createInstanceWithAttributes({
   classEdges,
   currentNodeCount,
 }) {
-  const sharedId = `instance-${id.split("-")[1]}`;
+  const sharedId = `instance-${id.split("-")[1]}-${currentNodeCount}`;
 
   const newNode_data = {
     id: `${sharedId}`,
