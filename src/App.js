@@ -37,7 +37,7 @@ export default function App() {
         <div style={{ width: "500px", height: "500px" }}>
           <ClassBoardWithProvider />
         </div>
-        <div style={{ width: "500px", height: "500px" }}>
+        <div style={{ width: "500px", height: "500px", border: "1px solid #333" }}>
           <InstanceBoardWithProvider />
         </div>
         <GhostNode />

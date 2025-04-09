@@ -3,11 +3,14 @@ export function extractSentencesAndBoxes(
   instanceEdges,
   classGraph
 ) {
+  console.log("instanceNodes", instanceNodes);
   const objectNodes = instanceNodes.filter(
     (n) => n.type === "instance" && n.data.type === "object"
   );
-  console.log("objectNodes", objectNodes);
-  console.log("classGraph", classGraph);
+  const resizableNodes = instanceNodes.filter(
+    (n) => n.type === "resizable" && n.data.type === "object"
+  );
+  console.log("resizableNodes", resizableNodes);
   const classGraphEdges = classGraph.edges;
   const classGraphNodes = classGraph.nodes;
 
@@ -68,7 +71,6 @@ export function extractSentencesAndBoxes(
     linkedAttrNodes.forEach((attrNode) => {
       const isDefinedInClass = classAttrIds.includes(attrNode.data.classId);
       if (!isDefinedInClass) {
-        console.log("attrNode", attrNode);
         objectSentences.push(
           `${objNode.data.label} has ${attrNode.data.label.split(":")[0]}${
             attrNode.data.label.split(":")[1]
@@ -78,12 +80,17 @@ export function extractSentencesAndBoxes(
     });
 
     sentences.push(objectSentences.join(", "));
-    // 4. 좌표
-    const { x, y } = objNode.position;
-    const width = objNode.width || 100;
-    const height = objNode.height || 100;
 
-    boxes.push([x, y, x + width, y + height]);
+    // 4. 좌표
+    const resizableNode = resizableNodes.find(
+      (n) => n.id.split("-resizable")[0] === objNode.id
+    );
+    console.log("resizableNode", resizableNode);
+    const { x, y } = resizableNode.position;
+    const width = resizableNode.measured.width || 100;
+    const height = resizableNode.measured.height || 100;
+
+    boxes.push([x / 500, y / 500, (x + width) / 500, (y + height) / 500]);
   });
 
   return { sentences, boxes };

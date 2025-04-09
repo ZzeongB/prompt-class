@@ -9,8 +9,8 @@ export async function generateImageFromInstanceData(sentences, boxes) {
       },
       mode: "cors", // CORS 모드 명시
       body: JSON.stringify({
-        sentences: sentences,
-        boxes: boxes,
+        region_caption_list: sentences,
+        region_bboxes_list: boxes,
       }),
     });
 
