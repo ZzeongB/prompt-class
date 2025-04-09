@@ -1,7 +1,11 @@
-import axios from "axios";
+import { generateGlobalCaption } from "./generateGlobalCaption";
 
 export async function generateImageFromInstanceData(sentences, boxes) {
   try {
+    const { refinedCaptions, globalCaption } = await generateGlobalCaption(sentences);
+    console.log("Global caption:", globalCaption);
+    console.log("Refined captions:", refinedCaptions);
+
     const response = await fetch("http://127.0.0.1:5000/generate", {
       method: "POST",
       headers: {
@@ -9,7 +13,8 @@ export async function generateImageFromInstanceData(sentences, boxes) {
       },
       mode: "cors", // CORS 모드 명시
       body: JSON.stringify({
-        region_caption_list: sentences,
+        global_caption: globalCaption,
+        region_caption_list: refinedCaptions || sentences,
         region_bboxes_list: boxes,
       }),
     });

@@ -9,6 +9,7 @@
     "@testing-library/user-event": "^13.5.0",
     "@xyflow/react": "^12.5.4",
     "axios": "^1.8.4",
+    "openai": "^4.93.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-rnd": "^10.5.2",
