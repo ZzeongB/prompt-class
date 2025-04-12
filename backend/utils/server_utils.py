@@ -1,17 +1,21 @@
 import os
 import re
 
-import openai
+from openai import OpenAI
 import torch
 from dotenv import load_dotenv
+
+import base64
+from io import BytesIO
 
 from src.models.transformer_sd3_SiamLayout import SiamLayoutSD3Transformer2DModel
 from src.pipeline.pipeline_sd3_CreatiLayout import CreatiLayoutSD3Pipeline
 from src.pipeline.pipeline_sd3_CreatiLayout import CreatiLayoutSD3Pipeline
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
+client = OpenAI(
+  api_key=os.environ['OPENAI_API_KEY'],  # this is also the default, it can be omitted
+)
 
 def load_model(device):
     model_path = "stabilityai/stable-diffusion-3-medium-diffusers"
@@ -30,7 +34,13 @@ def load_model(device):
     return pipe
 
 
+def encode_image(image):
+    buffered = BytesIO()
+    image.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
+
 def generate_global_caption_and_refinements(sentences):
+    # 프롬프트 구성
     prompt = f"""The following are region-level descriptions of objects in an image. 
 
 1. Please correct each sentence to be grammatically correct and natural, without adding extra details.
@@ -49,12 +59,16 @@ Corrected region descriptions:
 Global image description:
 ..."""
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4",  # 또는 gpt-3.5-turbo / gpt-4o 등 사용 가능
-        messages=[{"role": "user", "content": prompt}],
+    # GPT 호출 (Chat Completion)
+    response = client.chat.completions.create(
+        model="gpt-4",  # 또는 "gpt-4o", "gpt-3.5-turbo"
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
     )
 
-    response_text = response["choices"][0]["message"]["content"]
+    # 응답 텍스트 추출
+    response_text = response.choices[0].message.content
 
     # 지역 설명 파싱
     region_matches = re.findall(r"^\d+\.\s(.+)", response_text, re.MULTILINE)
@@ -63,4 +77,31 @@ Global image description:
     global_match = re.search(r"Global image description:\s*([\s\S]+)", response_text)
     global_caption = global_match.group(1).strip() if global_match else ""
 
-    return {"refined_captions": region_matches, "global_caption": global_caption}
+    return {
+        "refined_captions": region_matches,
+        "global_caption": global_caption
+    }
+
+def generate_description(region, global_caption):
+    # OpenAI Vision API 호출 (gpt-4-vision)
+    response = client.responses.create(
+        model="gpt-4o-mini",
+        input=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "input_text", "text": f"Describe this part of the image. {global_caption}"},
+                    {
+                        "type": "input_image",
+                        "image_url": "data:image/png;base64," + encode_image(region),
+                    },
+                ],
+            }
+        ],
+    )
+    
+    # 응답 텍스트 추출
+    response_text = response.output_text
+    # 응답에서 설명 추출
+    print("Response from OpenAI:", response_text)
+    return response_text

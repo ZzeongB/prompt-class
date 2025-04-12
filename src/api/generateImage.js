@@ -25,7 +25,10 @@ export async function generateImageFromInstanceData(sentences, boxes) {
 
     // 응답 JSON으로 파싱
     const data = await response.json();
-    console.log("data", data);
+    return {
+      image: `data:image/png;base64,${data.image}`,
+      globalCaption: globalCaption,
+    };
   } catch (error) {
     console.error("Error generating image:", error);
     throw error;

@@ -3,14 +3,12 @@ export function extractSentencesAndBoxes(
   instanceEdges,
   classGraph
 ) {
-  console.log("instanceNodes", instanceNodes);
   const objectNodes = instanceNodes.filter(
     (n) => n.type === "instance" && n.data.type === "object"
   );
   const resizableNodes = instanceNodes.filter(
     (n) => n.type === "resizable" && n.data.type === "object"
   );
-  console.log("resizableNodes", resizableNodes);
   const classGraphEdges = classGraph.edges;
   const classGraphNodes = classGraph.nodes;
 
@@ -59,7 +57,6 @@ export function extractSentencesAndBoxes(
           (n) => n.data.classId === classAttr.id
         );
         if (matchedInstanceAttr) {
-          console.log("matchedInstanceAttr", matchedInstanceAttr);
           objectSentences.push(
             `${objNode.data.label} has ${matchedInstanceAttr.label}`
           );
@@ -85,7 +82,6 @@ export function extractSentencesAndBoxes(
     const resizableNode = resizableNodes.find(
       (n) => n.id.split("-resizable")[0] === objNode.id
     );
-    console.log("resizableNode", resizableNode);
     const { x, y } = resizableNode.position;
     const width = resizableNode.measured.width || 100;
     const height = resizableNode.measured.height || 100;

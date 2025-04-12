@@ -10,3 +10,5 @@ prodigyopt
 opencv-python
 beautifulsoup4
 gradio
+openai
+dotenv

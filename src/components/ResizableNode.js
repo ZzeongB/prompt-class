@@ -2,7 +2,7 @@ import React, { memo } from "react";
 import { NodeResizer } from "@xyflow/react";
 import { OBJ_COLOR, ATTR_COLOR, REL_COLOR } from "../utils/constants";
 
-function ResizableNode({ id, data, selected, width, height }) {
+function ResizableNode({ data  }) {
   return (
     <div>
       <NodeResizer

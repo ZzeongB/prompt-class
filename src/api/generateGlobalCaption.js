@@ -4,6 +4,7 @@ export async function generateGlobalCaption(sentences) {
     headers: {
       "Content-Type": "application/json",
     },
+    mode: "cors", // CORS 모드 명시
     body: JSON.stringify({ sentences }),
   });
 

@@ -11,7 +11,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from PIL import Image
 from utils.bbox_visualization import bbox_visualization, scale_boxes
-from utils.server_utils import generate_global_caption_and_refinements, load_model
+from utils.server_utils import generate_global_caption_and_refinements, load_model, encode_image, generate_description
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
@@ -67,7 +67,9 @@ def generate():
     images = images.images
 
     print("Sucessfully generated images")
-
+    
+    img_base64 = encode_image(images[0])
+    
     for j, image in enumerate(images):
         image.save(os.path.join(img_save_root, f"{filename}_{j}.png"))
 
@@ -93,13 +95,34 @@ def generate():
         new_image.save(img_with_layout_save_name)
 
     print("Sucessfully saved images")
-    # generate 함수 안 마지막 부분
-    img_io = BytesIO()
-    new_image.save(img_io, format="PNG")
-    img_io.seek(0)
-    img_base64 = base64.b64encode(img_io.read()).decode("utf-8")
 
-    return jsonify({"image": img_base64})
+    return jsonify({"image": img_base64, "globalCaption": global_caption})
+
+
+@app.route("/describe", methods=["POST"])
+def describe_region():
+    data = request.get_json()
+    base64_image = data.get("image", "")
+    crop_box = data.get("crop_box", [])
+    global_caption = data.get("global_caption", "")
+    print("Sucessfully received data", crop_box, global_caption)
+
+    # decode base64 image
+    image_bytes = base64.b64decode(base64_image)
+    full_image = Image.open(BytesIO(image_bytes)).convert("RGB")
+
+    # crop region
+    region = full_image.crop(crop_box)
+    
+    # save region image
+    region_path = os.path.join(img_save_root, "_region.png")
+    region.save(region_path)
+    print("Sucessfully saved region image")
+
+    response_text = generate_description(region, global_caption)
+    print("Response from OpenAI:", response_text)
+
+    return jsonify({"description": response_text})
 
 
 if __name__ == "__main__":

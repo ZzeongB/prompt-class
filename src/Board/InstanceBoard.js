@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ReactFlow,
   useNodesState,
@@ -7,19 +7,19 @@ import {
   MarkerType,
   ReactFlowProvider,
   Controls,
-  addEdge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { v4 as uuidv4 } from "uuid";
 import { useDnD } from "../context/DragAndDropContext";
 import DefaultEdge from "../components/DefaultEdge";
 import InstanceNode from "../components/InstanceNode";
 import ResizableNode from "../components/ResizableNode";
+import TempResizableNode from "../components/TempResizableNode";
 import {
   handleConnect,
   handleConnectEnd,
 } from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
+import { useImage } from "../context/ImageContext";
 import { createInstanceWithAttributes } from "../utils/instanceBuilder";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
 import { extractSentencesAndBoxes } from "../utils/instanceExtractor";
@@ -32,6 +32,7 @@ const nodeTypes = {
   class: InstanceNode,
   instance: InstanceNode,
   resizable: ResizableNode,
+  tmpResizable: TempResizableNode,
 };
 
 const defaultEdgeOptions = {
@@ -42,16 +43,79 @@ const defaultEdgeOptions = {
   },
 };
 
-function InstanceBoard() {
+function InstanceBoard({ onImageGenerated }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition } = useReactFlow();
-  const [id, setId, type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
+  const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges } = useClassGraph();
+  const { image, setImage, globalCaption, setGlobalCaption } = useImage();
+
+  const [isDraggingToCreate, setIsDraggingToCreate] = useState(false);
+  const [dragStart, setDragStart] = useState(null);
+  const [dragRect, setDragRect] = useState(null);
+
+  const onMouseDown = (e) => {
+    // pan 막고, left click일 때만 실행
+    if (e.button !== 0) return;
+    if (isDraggingToCreate) {
+      setIsDraggingToCreate(false);
+      setDragStart(null);
+      setDragRect(null);
+      return;
+    }
+
+    const start = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    setIsDraggingToCreate(true);
+    setDragStart(start);
+    setDragRect(null);
+  };
+
+  const onMouseMove = (e) => {
+    if (!isDraggingToCreate || !dragStart) return;
+
+    const current = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+
+    const x = Math.min(dragStart.x, current.x);
+    const y = Math.min(dragStart.y, current.y);
+    const width = Math.abs(dragStart.x - current.x);
+    const height = Math.abs(dragStart.y - current.y);
+
+    setDragRect({ x, y, width, height });
+  };
 
   const onMouseUp = useCallback(
     (event) => {
-      event.preventDefault();
+      // 1. 먼저 박스 드래그 로직 처리
+      if (
+        isDraggingToCreate &&
+        dragRect &&
+        dragRect.width > 10 &&
+        dragRect.height > 10
+      ) {
+        const id = `resizable-${nodes.length + 1}`;
+        const newNode = {
+          id,
+          type: "tmpResizable",
+          position: { x: dragRect.x, y: dragRect.y },
+          width: dragRect.width,
+          height: dragRect.height,
+          data: {
+            type: "object",
+            label: "New Object",
+            showToolbar: true,
+          },
+        };
+        setNodes((nds) => [...nds, newNode]);
+
+        // cleanup
+        setIsDraggingToCreate(false);
+        setDragStart(null);
+        setDragRect(null);
+        return;
+      }
+
+      // 2. 아니면 DnD 드롭 처리
       if (!type || !label) return;
 
       const position = screenToFlowPosition({
@@ -76,7 +140,18 @@ function InstanceBoard() {
       setLabel(null);
       setGhostPos({ x: 0, y: 0 });
     },
-    [screenToFlowPosition, type, label, classNodes, classEdges, nodes]
+    [
+      isDraggingToCreate,
+      dragRect,
+      dragStart,
+      nodes,
+      type,
+      label,
+      id,
+      screenToFlowPosition,
+      classNodes,
+      classEdges,
+    ]
   );
 
   const onConnect = useCallback(
@@ -113,20 +188,53 @@ function InstanceBoard() {
     [onNodesChange, edges]
   );
 
-  const handleClick = () => {
-    const result = extractSentencesAndBoxes(nodes, edges, {nodes: classNodes, edges: classEdges});
-    console.log(result.sentences);
-    console.log(result.boxes);
+  const handleClick = async () => {
+    const result = extractSentencesAndBoxes(nodes, edges, {
+      nodes: classNodes,
+      edges: classEdges,
+    });
 
-    const imageData = generateImageFromInstanceData(result.sentences, result.boxes);
-    console.log(imageData);
-    
+    try {
+      const response = await generateImageFromInstanceData(
+        result.sentences,
+        result.boxes
+      );
+
+      console.log("response", response);
+      onImageGenerated(response.image); // 이미지 생성 후 부모 컴포넌트에 전달
+      setImage(response.image); // 상태 업데이트
+      setGlobalCaption(response.globalCaption); // 상태 업데이트
+    } catch (err) {
+      console.error("Image generation failed", err);
+    }
   };
 
   return (
-    <div className="reactflow-wrapper" onMouseUp={onMouseUp}>
+    <div
+      className="reactflow-wrapper"
+      onMouseUp={onMouseUp}
+      onMouseMove={onMouseMove}
+      onMouseDown={onMouseDown}
+      style={{userSelect: 'none'}}
+    >
+      {dragRect && isDraggingToCreate && (
+        <div
+          style={{
+            position: "absolute",
+            top: `${dragRect.y}px`,
+            left: `${dragRect.x}px`,
+            width: `${dragRect.width}px`,
+            height: `${dragRect.height}px`,
+            border: "2px dashed #007bff",
+            backgroundColor: "rgba(0, 123, 255, 0.1)",
+            zIndex: 1000,
+            
+          }}
+        />
+      )}
       <div>
         <button
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={handleClick}
           style={{
             padding: "10px 20px",
@@ -150,6 +258,9 @@ function InstanceBoard() {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        panOnDrag={false}
+        panOnScroll={false}
+        selectNodesOnDrag={false}  // ✅ 선택 드래그 방지
       >
         <Controls />
       </ReactFlow>
@@ -157,8 +268,8 @@ function InstanceBoard() {
   );
 }
 
-function InstanceBoardWithProvider() {
-  const [id, setId, type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
+function InstanceBoardWithProvider({ onImageGenerated }) {
+  const [, , type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
 
   return (
     <ReactFlowProvider debounce={200}>
@@ -169,6 +280,7 @@ function InstanceBoardWithProvider() {
         setType={setType}
         label={label}
         setLabel={setLabel}
+        onImageGenerated={onImageGenerated}
       />
     </ReactFlowProvider>
   );

@@ -1,7 +1,7 @@
 import React from "react";
 import { useDnD } from "../context/DragAndDropContext";
 const GhostNode = () => {
-  const [id, , type, , position, , label, ] = useDnD();
+  const [, , type, , position, , label, ] = useDnD();
 
   if (!type) return null;
 

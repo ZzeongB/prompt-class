@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef } from "react";
 import {
   ReactFlow,
   useNodesState,
   useEdgesState,
-  addEdge,
   useReactFlow,
   MarkerType,
   ReactFlowProvider,
@@ -114,7 +113,7 @@ function ClassBoard() {
 }
 
 function ClassBoardWithProvider() {
-  const [id, setId, type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
+  const [, , type, , ghostPos, setGhostPos, label, setLabel] = useDnD();
 
   return (
     <ReactFlowProvider>
