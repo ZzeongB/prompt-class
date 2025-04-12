@@ -39,6 +39,26 @@ def encode_image(image):
     image.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
+def safe_split_refined_captions(text, expected_count):
+    # 먼저 1. ... 형태로 나누기
+    matches = re.findall(r"^\d+\.\s(.+)", text, re.MULTILINE)
+
+    # 정확히 기대 개수만큼이면 바로 리턴
+    if len(matches) == expected_count:
+        return matches
+
+    # fallback: 숫자 라벨 없이 줄 단위로 대체
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    fallback_lines = [
+        line for line in lines
+        if not line.lower().startswith("global image description")
+    ]
+
+    # 만약 여전히 길이 다르면, 자르거나 채우기
+    while len(fallback_lines) < expected_count:
+        fallback_lines.append("")  # 비어 있는 문장으로 패딩
+    return fallback_lines[:expected_count]
+
 def generate_global_caption_and_refinements(sentences):
     # 프롬프트 구성
     prompt = f"""The following are region-level descriptions of objects in an image. 
@@ -59,23 +79,22 @@ Corrected region descriptions:
 Global image description:
 ..."""
 
-    # GPT 호출 (Chat Completion)
     response = client.chat.completions.create(
-        model="gpt-4",  # 또는 "gpt-4o", "gpt-3.5-turbo"
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}]
     )
 
-    # 응답 텍스트 추출
     response_text = response.choices[0].message.content
 
-    # 지역 설명 파싱
+    # 파싱
     region_matches = re.findall(r"^\d+\.\s(.+)", response_text, re.MULTILINE)
-
-    # 글로벌 설명 파싱
     global_match = re.search(r"Global image description:\s*([\s\S]+)", response_text)
     global_caption = global_match.group(1).strip() if global_match else ""
+
+    # 안전 처리
+    if len(region_matches) != len(sentences):
+        print("⚠️ Warning: refined captions count mismatch! Trying fallback parsing.")
+        region_matches = safe_split_refined_captions(response_text, len(sentences))
 
     return {
         "refined_captions": region_matches,

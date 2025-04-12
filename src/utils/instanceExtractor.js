@@ -1,7 +1,10 @@
+import { getNormalizedBox } from "./node/getNormalizedBox";
+
 export function extractSentencesAndBoxes(
   instanceNodes,
   instanceEdges,
-  classGraph
+  classGraph,
+  flowToScreenPosition
 ) {
   const objectNodes = instanceNodes.filter(
     (n) => n.type === "instance" && n.data.type === "object"
@@ -82,11 +85,15 @@ export function extractSentencesAndBoxes(
     const resizableNode = resizableNodes.find(
       (n) => n.id.split("-resizable")[0] === objNode.id
     );
-    const { x, y } = resizableNode.position;
-    const width = resizableNode.measured.width || 100;
-    const height = resizableNode.measured.height || 100;
 
-    boxes.push([x / 500, y / 500, (x + width) / 500, (y + height) / 500]);
+    const box = getNormalizedBox(
+      resizableNode,
+      flowToScreenPosition,
+      500, // x offset (오른쪽 패널 offset)
+      0, // y offset (필요 없으면 0),
+      true // normalize (필요 없으면 false)
+    );
+    boxes.push(box);
   });
 
   return { sentences, boxes };

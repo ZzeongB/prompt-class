@@ -8,19 +8,22 @@ import {
 import { EDGE_COLOR } from "../utils/constants";
 import { generateDescription } from "../api/generateDescription";
 import { useImage } from "../context/ImageContext";
+import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 
 function TempResizableNode({ id, data, width, height }) {
-  const { deleteElements, getNode } = useReactFlow();
+  const { deleteElements, getNode, flowToScreenPosition } = useReactFlow();
   const node = getNode(id);
-  const position = node?.position;
-  const crop_box = [
-    position.x,
-    position.y,
-    position.x + width,
-    position.y + height,
-  ];
 
-  console.log("TempResizableNode", { id, data, width, height, crop_box });
+  const crop_box = getNormalizedBox(
+    node,
+    flowToScreenPosition,
+    500,
+    0, 
+    false
+  );
+
+  console.log("crop_box", crop_box);
+
   const { image, globalCaption } = useImage();
   return (
     <div>

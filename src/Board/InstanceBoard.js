@@ -46,7 +46,7 @@ const defaultEdgeOptions = {
 function InstanceBoard({ onImageGenerated }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges } = useClassGraph();
   const { image, setImage, globalCaption, setGlobalCaption } = useImage();
@@ -189,10 +189,15 @@ function InstanceBoard({ onImageGenerated }) {
   );
 
   const handleClick = async () => {
-    const result = extractSentencesAndBoxes(nodes, edges, {
-      nodes: classNodes,
-      edges: classEdges,
-    });
+    const result = extractSentencesAndBoxes(
+      nodes,
+      edges,
+      {
+        nodes: classNodes,
+        edges: classEdges,
+      },
+      flowToScreenPosition
+    );
 
     try {
       const response = await generateImageFromInstanceData(
@@ -215,7 +220,7 @@ function InstanceBoard({ onImageGenerated }) {
       onMouseUp={onMouseUp}
       onMouseMove={onMouseMove}
       onMouseDown={onMouseDown}
-      style={{userSelect: 'none'}}
+      style={{ userSelect: "none" }}
     >
       {dragRect && isDraggingToCreate && (
         <div
@@ -228,7 +233,6 @@ function InstanceBoard({ onImageGenerated }) {
             border: "2px dashed #007bff",
             backgroundColor: "rgba(0, 123, 255, 0.1)",
             zIndex: 1000,
-            
           }}
         />
       )}
@@ -260,10 +264,8 @@ function InstanceBoard({ onImageGenerated }) {
         defaultEdgeOptions={defaultEdgeOptions}
         panOnDrag={false}
         panOnScroll={false}
-        selectNodesOnDrag={false}  // ✅ 선택 드래그 방지
-      >
-        <Controls />
-      </ReactFlow>
+        selectNodesOnDrag={false} // ✅ 선택 드래그 방지
+      />
     </div>
   );
 }

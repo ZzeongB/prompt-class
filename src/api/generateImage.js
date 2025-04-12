@@ -3,8 +3,9 @@ import { generateGlobalCaption } from "./generateGlobalCaption";
 export async function generateImageFromInstanceData(sentences, boxes) {
   try {
     const { refinedCaptions, globalCaption } = await generateGlobalCaption(sentences);
-    console.log("Global caption:", globalCaption);
-    console.log("Refined captions:", refinedCaptions);
+    console.log("refinedCaptions", refinedCaptions);
+    console.log("globalCaption", globalCaption);
+    console.log("region_bboxes_list", boxes);
 
     const response = await fetch("http://127.0.0.1:5000/generate", {
       method: "POST",
