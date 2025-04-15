@@ -22,7 +22,12 @@ import { useImage } from "../context/ImageContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
 import { extractSentencesAndBoxes } from "../utils/instanceExtractor";
 import { generateImageFromInstanceData } from "../api/generateImage";
-import { handleMouseDown, handleMouseMove, handleMouseUp } from "../utils/layout/handleTempLayout";
+import {
+  handleMouseDown,
+  handleMouseMove,
+  handleMouseUp,
+} from "../utils/layout/handleTempLayout";
+import { createInstance } from "../utils/instanceBuilder";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -46,6 +51,7 @@ function InstanceBoard({ onImageGenerated }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
+  const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges } = useClassGraph();
   const { setImage, setGlobalCaption } = useImage();
   const [dragState, setDragState] = useState(null);
@@ -58,8 +64,37 @@ function InstanceBoard({ onImageGenerated }) {
     handleMouseMove(e, dragState, setDragState);
   };
 
-  const onMouseUp = () => {
-    handleMouseUp(dragState, setDragState, screenToFlowPosition, nodes, setNodes);
+  const onMouseUp = (event) => {
+    if (dragState?.rect && dragState?.start) {
+      handleMouseUp(
+        dragState,
+        setDragState,
+        screenToFlowPosition,
+        nodes,
+        setNodes
+      );
+      return;
+    } else {
+      if (id && type) {
+        const { newNodes, newEdges } = createInstance(
+          event,
+          id,
+          label,
+          type,
+          screenToFlowPosition,
+          nodes,
+          classNodes,
+          classEdges
+        );
+
+        setNodes((prevNodes) => [...prevNodes, ...newNodes]);
+        setEdges((prevEdges) => [...prevEdges, ...newEdges]);
+
+        setType(null);
+        setLabel(null);
+        setGhostPos({ x: 0, y: 0 });
+      }
+    }
   };
 
   const onConnect = useCallback(

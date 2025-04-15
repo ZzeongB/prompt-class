@@ -1,13 +1,47 @@
 // src/utils/instanceBuilder.js
-export function createInstanceWithAttributes({
+
+export function createInstance(
+  event,
+  id,
+  label,
+  type,
+  screenToFlowPosition,
+  nodes,
+  classNodes,
+  classEdges
+) {
+  if (!type || !label) return;
+
+  const position = screenToFlowPosition({
+    x: event.clientX,
+    y: event.clientY,
+  });
+
+  const { newNodes, newEdges } = createInstanceWithAttributes(
+    id,
+    label,
+    type,
+    position,
+    classNodes,
+    classEdges,
+    nodes.length
+  );
+
+  return {
+    newNodes,
+    newEdges,
+  };
+}
+
+export function createInstanceWithAttributes(
   id,
   label,
   type,
   position,
   classNodes,
   classEdges,
-  currentNodeCount,
-}) {
+  currentNodeCount
+) {
   const sharedId = `instance-${id.split("-")[1]}-${currentNodeCount}`;
 
   const newNode_data = {
