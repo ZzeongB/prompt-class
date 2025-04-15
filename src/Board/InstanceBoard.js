@@ -6,7 +6,6 @@ import {
   useReactFlow,
   MarkerType,
   ReactFlowProvider,
-  Controls,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useDnD } from "../context/DragAndDropContext";
@@ -20,10 +19,10 @@ import {
 } from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { useImage } from "../context/ImageContext";
-import { createInstanceWithAttributes } from "../utils/instanceBuilder";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
 import { extractSentencesAndBoxes } from "../utils/instanceExtractor";
 import { generateImageFromInstanceData } from "../api/generateImage";
+import { handleMouseDown, handleMouseMove, handleMouseUp } from "../utils/layout/handleTempLayout";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -47,119 +46,21 @@ function InstanceBoard({ onImageGenerated }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
-  const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges } = useClassGraph();
-  const { image, setImage, globalCaption, setGlobalCaption } = useImage();
-  const [isDraggingToCreate, setIsDraggingToCreate] = useState(false);
-  const [dragStart, setDragStart] = useState(null);
-  const [dragRect, setDragRect] = useState(null);
+  const { setImage, setGlobalCaption } = useImage();
+  const [dragState, setDragState] = useState(null);
 
   const onMouseDown = (e) => {
-    // pan 막고, left click일 때만 실행
-    if (e.button !== 0) return;
-    if (isDraggingToCreate) {
-      setIsDraggingToCreate(false);
-      setDragStart(null);
-      setDragRect(null);
-      return;
-    }
-
-    setIsDraggingToCreate(true);
-    setDragStart({ x: e.clientX - 512, y: e.clientY });
-
-    setDragRect(null);
+    handleMouseDown(e, setDragState);
   };
 
   const onMouseMove = (e) => {
-    if (!isDraggingToCreate || !dragStart) return;
-
-    const x = Math.min(dragStart.x, e.clientX - 512);
-    const y = Math.min(dragStart.y, e.clientY);
-    const width = Math.abs(e.clientX - 512 - dragStart.x);
-    const height = Math.abs(e.clientY - dragStart.y);
-
-    setDragRect({ x, y, width, height });
+    handleMouseMove(e, dragState, setDragState);
   };
 
-  const onMouseUp = useCallback(
-    (event) => {
-      // 1. 먼저 박스 드래그 로직 처리
-      if (
-        isDraggingToCreate &&
-        dragRect &&
-        dragRect.width > 10 &&
-        dragRect.height > 10
-      ) {
-        const topLeft = screenToFlowPosition({
-          x: dragRect.x + 512,
-          y: dragRect.y,
-        });
-        const bottomRight = screenToFlowPosition({
-          x: dragRect.x + dragRect.width + 512,
-          y: dragRect.y + dragRect.height,
-        });
-
-        const id = `resizable-${nodes.length + 1}`;
-        const newNode = {
-          id,
-          type: "tmpResizable",
-          position: { x: topLeft.x, y: topLeft.y },
-          width: bottomRight.x - topLeft.x,
-          height: bottomRight.y - topLeft.y,
-          data: {
-            type: "object",
-            label: "New Object",
-            showToolbar: true,
-          },
-        };
-
-        setNodes((nds) => [...nds, newNode]);
-
-        // cleanup
-        setIsDraggingToCreate(false);
-        setDragStart(null);
-        setDragRect(null);
-        return;
-      }
-
-      // 2. 아니면 DnD 드롭 처리
-      if (!type || !label) return;
-
-      const position = screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-
-      const { newNodes, newEdges } = createInstanceWithAttributes({
-        id,
-        label,
-        type,
-        position,
-        classNodes,
-        classEdges,
-        currentNodeCount: nodes.length,
-      });
-
-      setNodes((nds) => [...nds, ...newNodes]);
-      setEdges((eds) => [...eds, ...newEdges]);
-
-      setType(null);
-      setLabel(null);
-      setGhostPos({ x: 0, y: 0 });
-    },
-    [
-      isDraggingToCreate,
-      dragRect,
-      dragStart,
-      nodes,
-      type,
-      label,
-      id,
-      screenToFlowPosition,
-      classNodes,
-      classEdges,
-    ]
-  );
+  const onMouseUp = () => {
+    handleMouseUp(dragState, setDragState, screenToFlowPosition, nodes, setNodes);
+  };
 
   const onConnect = useCallback(
     (params) => handleConnect({ params, nodes, setNodes, setEdges }),
@@ -192,7 +93,7 @@ function InstanceBoard({ onImageGenerated }) {
 
       onNodesChange(changes);
     },
-    [onNodesChange, edges]
+    [onNodesChange, edges, setNodes]
   );
 
   const handleClick = async () => {
@@ -229,20 +130,21 @@ function InstanceBoard({ onImageGenerated }) {
       onMouseDown={onMouseDown}
       style={{ userSelect: "none" }}
     >
-      {dragRect && isDraggingToCreate && (
+      {dragState?.rect && (
         <div
           style={{
             position: "absolute",
-            top: `${dragRect.y}px`,
-            left: `${dragRect.x}px`,
-            width: `${dragRect.width}px`,
-            height: `${dragRect.height}px`,
+            top: `${dragState.rect.y}px`,
+            left: `${dragState.rect.x - 512}px`,
+            width: `${dragState.rect.width}px`,
+            height: `${dragState.rect.height}px`,
             border: "2px dashed #007bff",
             backgroundColor: "rgba(0, 123, 255, 0.1)",
             zIndex: 1000,
           }}
         />
       )}
+
       <div>
         <button
           onMouseDown={(e) => e.stopPropagation()}

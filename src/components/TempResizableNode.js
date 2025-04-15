@@ -3,7 +3,6 @@ import {
   NodeResizer,
   NodeToolbar,
   useReactFlow,
-  useStore,
 } from "@xyflow/react";
 import { EDGE_COLOR } from "../utils/constants";
 import { generateDescription } from "../api/generateDescription";
