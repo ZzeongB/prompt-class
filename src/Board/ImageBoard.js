@@ -1,6 +1,4 @@
 function ImageBoard({ imageSrc }) {
-  console.log("ImageBoard rendered");
-  console.log("ImageSrc:", imageSrc);
   return (
     <div>
       {imageSrc && (

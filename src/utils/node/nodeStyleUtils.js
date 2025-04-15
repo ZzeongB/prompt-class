@@ -1,4 +1,11 @@
-import { OBJ_COLOR, ATTR_COLOR, REL_COLOR, BORDER_COLOR, EDGE_COLOR, BACKGROUND_COLOR } from "../constants";
+import {
+  OBJ_COLOR,
+  ATTR_COLOR,
+  REL_COLOR,
+  BORDER_COLOR,
+  EDGE_COLOR,
+  BACKGROUND_COLOR,
+} from "../constants";
 
 // styleUtils.js
 export function getClassNodeStyle(type, options = {}) {
@@ -57,8 +64,17 @@ export function getInstanceNodeStyle(type, options = {}) {
     return { ...base, borderColor: OBJ_COLOR };
   }
 
-  if (type === "relation") {
+  if (type === "relationship") {
     return { ...base, borderColor: REL_COLOR };
+  }
+
+  if (type === "relationship-layout") {
+    return {
+      ...base,
+      background:
+        "repeating-linear-gradient(135deg, #CFF4D2, #CFF4D2 4px, #B2EECB 4px, #B2EECB 8px)",
+      borderColor: REL_COLOR,
+    };
   }
 
   return base;
@@ -84,8 +100,8 @@ export function getPosition(type, classIndex, index = 0) {
 
 // 두 노드의 중간 위치 계산
 export function getMidPosition(nodeA, nodeB) {
-    return {
-      x: (nodeA.position.x + nodeB.position.x) / 2,
-      y: (nodeA.position.y + nodeB.position.y) / 2,
-    };
-  }
+  return {
+    x: (nodeA.position.x + nodeB.position.x) / 2,
+    y: (nodeA.position.y + nodeB.position.y) / 2,
+  };
+}

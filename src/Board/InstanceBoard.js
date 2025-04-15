@@ -50,7 +50,6 @@ function InstanceBoard({ onImageGenerated }) {
   const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges } = useClassGraph();
   const { image, setImage, globalCaption, setGlobalCaption } = useImage();
-
   const [isDraggingToCreate, setIsDraggingToCreate] = useState(false);
   const [dragStart, setDragStart] = useState(null);
   const [dragRect, setDragRect] = useState(null);
@@ -65,21 +64,19 @@ function InstanceBoard({ onImageGenerated }) {
       return;
     }
 
-    const start = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     setIsDraggingToCreate(true);
-    setDragStart(start);
+    setDragStart({ x: e.clientX - 512, y: e.clientY });
+
     setDragRect(null);
   };
 
   const onMouseMove = (e) => {
     if (!isDraggingToCreate || !dragStart) return;
 
-    const current = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-
-    const x = Math.min(dragStart.x, current.x);
-    const y = Math.min(dragStart.y, current.y);
-    const width = Math.abs(dragStart.x - current.x);
-    const height = Math.abs(dragStart.y - current.y);
+    const x = Math.min(dragStart.x, e.clientX - 512);
+    const y = Math.min(dragStart.y, e.clientY);
+    const width = Math.abs(e.clientX - 512 - dragStart.x);
+    const height = Math.abs(e.clientY - dragStart.y);
 
     setDragRect({ x, y, width, height });
   };
@@ -93,19 +90,29 @@ function InstanceBoard({ onImageGenerated }) {
         dragRect.width > 10 &&
         dragRect.height > 10
       ) {
+        const topLeft = screenToFlowPosition({
+          x: dragRect.x + 512,
+          y: dragRect.y,
+        });
+        const bottomRight = screenToFlowPosition({
+          x: dragRect.x + dragRect.width + 512,
+          y: dragRect.y + dragRect.height,
+        });
+
         const id = `resizable-${nodes.length + 1}`;
         const newNode = {
           id,
           type: "tmpResizable",
-          position: { x: dragRect.x, y: dragRect.y },
-          width: dragRect.width,
-          height: dragRect.height,
+          position: { x: topLeft.x, y: topLeft.y },
+          width: bottomRight.x - topLeft.x,
+          height: bottomRight.y - topLeft.y,
           data: {
             type: "object",
             label: "New Object",
             showToolbar: true,
           },
         };
+
         setNodes((nds) => [...nds, newNode]);
 
         // cleanup
@@ -265,6 +272,15 @@ function InstanceBoard({ onImageGenerated }) {
         panOnDrag={false}
         panOnScroll={false}
         selectNodesOnDrag={false} // ✅ 선택 드래그 방지
+        zoomOnScroll={false}
+        zoomOnDoubleClick={false}
+        zoomOnPinch={false}
+        nodeDragBounds={{
+          left: 0,
+          top: 0,
+          right: 512,
+          bottom: 512,
+        }}
       />
     </div>
   );

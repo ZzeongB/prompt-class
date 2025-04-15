@@ -1,5 +1,5 @@
 import { addEdge } from "@xyflow/react";
-import { promptForNodeLabel, createRelationshipNode } from "./nodeConnectUtils";
+import { promptForNodeLabel, createRelationshipNode } from "./nodeCreateUtils";
 
 export function handleConnect({ params, nodes, setNodes, setEdges }) {
   const sourceNode = nodes.find((n) => n.id === params.source);
