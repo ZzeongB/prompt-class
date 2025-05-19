@@ -6,57 +6,124 @@ export function classToFlow(classDefs) {
 
   classDefs.forEach((cls, classIndex) => {
     const classId = `class-${cls.name}`;
+
+    // 1. layout 계산
+    const layoutRows = [];
+    const objectIndexMap = {};
+
+    cls.objects.forEach((obj) => {
+      layoutRows.push({ type: "object", name: obj.name });
+      objectIndexMap[obj.name] = layoutRows.length - 1;
+    });
+
+    cls.relations?.forEach((rel) => {
+      const s = objectIndexMap[rel.source];
+      const t = objectIndexMap[rel.target];
+      const insertIndex = Math.min(s, t) + 1;
+
+      layoutRows.splice(insertIndex, 0, {
+        type: "relation",
+        source: rel.source,
+        target: rel.target,
+        rel,
+      });
+
+      Object.keys(objectIndexMap).forEach((key) => {
+        if (objectIndexMap[key] >= insertIndex) {
+          objectIndexMap[key]++;
+        }
+      });
+    });
+
+    const objectGapY = 80;
+    const totalHeight = layoutRows.length * objectGapY + 60;
+
+    // 2. 클래스 박스
     nodes.push({
       id: classId,
-      data: { label: cls.name, type: 'object' },
-      position: getPosition('object', classIndex),
-      type: 'class',
-      classId: classId,
+      type: "class-group",
+      data: { label: cls.name, collapsed: false, expandedHeight: totalHeight, type: "object" },
+      position: getPosition("class", classIndex, 0, 0, 0, totalHeight),
+      style: {
+        width: 220,
+        height: totalHeight,
+        backgroundColor: "transparent",
+        zIndex: -1,
+      },
     });
 
-    cls.attributes.forEach((attr, attrIndex) => {
-      const attrId = `${classId}-attr-${attrIndex}`;
-      nodes.push({
-        id: attrId,
-        data: { label: attr.name, type: 'attribute', hasValue: attr.value, },
-        position: getPosition('attribute', classIndex, attrIndex),
-        type: 'class',
-      });
+    // 3. 노드 생성
+    layoutRows.forEach((row, rowIndex) => {
+      const y = rowIndex; // objectIndex로 바로 사용
+      const isCollapsed = nodes.find(n => n.id === classId)?.data?.collapsed;
+      if (isCollapsed) {
+        return; // 클래스가 접혀있으면 노드 생성 안 함
+      }
 
-      edges.push({
-        id: `e-${classId}-${attrId}`,
-        source: classId,
-        target: attrId,
-      });
-    });
+      if (row.type === "object") {
+        const obj = cls.objects.find((o) => o.name === row.name);
+        const objectId = `${classId}-obj-${obj.name}`;
 
-    cls.relations?.forEach((rel, relIndex) => {
-      const relationId = `${classId}-rel-${relIndex}`;
-      const targetId = `class-${rel.target}`;
-      nodes.push({
-        id: relationId,
-        data: { label: rel.type, type: 'relation' },
-        position: getPosition('relation', classIndex, relIndex),
-        type: 'class',
-      });
+        nodes.push({
+          id: objectId,
+          data: { label: obj.name, type: "object" },
+          type: "class",
+          parentNode: classId,
+          extent: "parent",
+          position: getPosition("object", classIndex, y),
+        });
 
-      edges.push({
-        id: `e-${classId}-${relationId}`,
-        source: classId,
-        target: relationId,
-      });
+        obj.attributes?.forEach((attr, attrIndex) => {
+          const attrId = `${objectId}-attr-${attr.name}`;
+          nodes.push({
+            id: attrId,
+            data: {
+              label: attr.name,
+              type: "attribute",
+              hasValue: attr.value,
+            },
+            type: "class",
+            parentNode: classId,
+            extent: "parent",
+            position: getPosition("attribute", classIndex, y, attrIndex),
+          });
 
-      edges.push({
-        id: `e-${relationId}-${targetId}`,
-        source: relationId,
-        target: targetId,
-      });
+          edges.push({
+            id: `e-${objectId}-${attrId}`,
+            source: objectId,
+            target: attrId,
+          });
+        });
+      }
+
+      if (row.type === "relation") {
+        const { rel } = row;
+        const sourceId = `${classId}-obj-${rel.source}`;
+        const targetId = `${classId}-obj-${rel.target}`;
+        const relationId = `${classId}-rel-${rel.type}-${rowIndex}`;
+
+        const sourceIdx = objectIndexMap[rel.source];
+        const targetIdx = objectIndexMap[rel.target];
+
+        nodes.push({
+          id: relationId,
+          data: { label: rel.type, type: "relation" },
+          type: "class",
+          parentNode: classId,
+          extent: "parent",
+          position: getPosition("relation", classIndex, sourceIdx, 0, targetIdx),
+        });
+
+        edges.push(
+          { id: `e-${sourceId}-${relationId}`, source: sourceId, target: relationId },
+          { id: `e-${relationId}-${targetId}`, source: relationId, target: targetId }
+        );
+      }
     });
   });
 
   return { nodes, edges };
 }
-
 
 export function flowToClass(nodes, edges) {
   const classNodes = nodes.filter((n) => n.id.startsWith("class-"));

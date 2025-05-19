@@ -9,11 +9,15 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { classToFlow } from "../utils/flowUtils";
-import classSample from "../classSample";
+import { classSample } from "../classSample.ts";
 import DefaultEdge from "../components/DefaultEdge";
 import ClassNode from "../components/ClassNode";
+import ClassGroupNode from "../components/ClassGroupNode";
 import { useDnD } from "../context/DragAndDropContext";
-import { handleConnect, handleConnectEnd } from "../utils/node/nodeConnectHandlers";
+import {
+  handleConnect,
+  handleConnectEnd,
+} from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { createNewObjectNode } from "../utils/node/nodeCreateUtils";
 
@@ -22,6 +26,7 @@ const edgeTypes = {
 };
 
 const nodeTypes = {
+  'class-group': ClassGroupNode,
   class: ClassNode,
   instance: ClassNode,
 };
@@ -33,6 +38,20 @@ const defaultEdgeOptions = {
     color: "#000",
   },
 };
+
+function getVisibleNodes(allNodes) {
+  const collapsed = new Set(
+    allNodes
+      .filter((n) => n.type === "class-group" && n.data?.collapsed)
+      .map((n) => n.id)
+  );
+
+  return allNodes.filter((n) => {
+    if (n.type === "class-group") return true;
+    return !collapsed.has(n.parentNode);
+  });
+}
+
 
 function ClassBoard() {
   const reactFlowWrapper = useRef(null);
@@ -92,7 +111,7 @@ function ClassBoard() {
   return (
     <div className="reactflow-wrapper" ref={reactFlowWrapper}>
       <ReactFlow
-        nodes={nodes}
+        nodes={getVisibleNodes(nodes)}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}

@@ -10,8 +10,8 @@ import {
 // styleUtils.js
 export function getClassNodeStyle(type, options = {}) {
   const base = {
-    border: "2px solid",
-    borderColor: BORDER_COLOR,
+    // border: "2px solid",
+    // borderColor: BORDER_COLOR,
     borderRadius: 8,
     padding: 10,
     display: "flex",
@@ -22,8 +22,9 @@ export function getClassNodeStyle(type, options = {}) {
   if (type === "attribute") {
     return {
       ...base,
-      background: ATTR_COLOR,
-      border: options.hasValue ? "2px solid" : "2px dashed",
+      background: options.hasValue ? ATTR_COLOR : "transparent",
+      border: options.hasValue ? "0px solid" : "3px dashed",
+      borderColor: options.hasValue ? null : ATTR_COLOR,  
       fontStyle: options.hasValue ? "normal" : "italic",
     };
   }
@@ -80,21 +81,50 @@ export function getInstanceNodeStyle(type, options = {}) {
   return base;
 }
 
-export function getPosition(type, classIndex, index = 0) {
-  const baseX = classIndex * 200; // 클래스 간 좌우 간격
-  const baseY = 50;
+export function getPosition(
+  type,
+  classIndex,
+  objectIndex = 0,
+  attrIndex = 0,
+  targetIndex = 0,
+  height = 0
+) {
+  const classGapX = 300;
+  const objectGapY = 80;
+  const attrGapY = 30;
+  const relationOffsetY = 20;
+
+  const classX = classIndex * classGapX;
+  const objectBaseY = objectIndex * objectGapY;
 
   switch (type) {
+    case "class":
+      return {
+        x: classX,
+        y: height / 2 - 90,
+      };
     case "object":
-      return { x: baseX, y: baseY };
+      return {
+        x: classX - 50,
+        y: objectBaseY,
+      };
     case "attribute":
-      return { x: baseX + 100, y: baseY + index * 50 };
-    case "value":
-      return { x: baseX + 200, y: baseY + index * 50 };
-    case "relation":
-      return { x: baseX + 50, y: baseY + 150 + index * 40 };
+      return {
+        x: classX + 50,
+        y: objectBaseY + attrIndex * attrGapY,
+      };
+    case "relation": {
+      const sourceY = objectIndex * objectGapY;
+      const targetY = targetIndex * objectGapY;
+      const centerY = (sourceY + targetY) / 2;
+
+      return {
+        x: classX,
+        y: centerY,
+      };
+    }
     default:
-      return { x: baseX, y: baseY };
+      return { x: 0, y: 0 };
   }
 }
 
