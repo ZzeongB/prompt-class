@@ -10,7 +10,7 @@ import {
 import { getInstanceNodeStyle } from "../utils/node/nodeStyleUtils";
 import {handleObjectLayoutSave, handleRelationshipLayoutSave} from "../utils/layout/handleLayoutSave";
 
-function InstanceNode({ id, data }) {
+function LayoutNode({ id, data }) {
   const {
     deleteElements,
     getNode,
@@ -29,7 +29,7 @@ function InstanceNode({ id, data }) {
   return (
     <div>
       <NodeToolbar isVisible={"enabled"}>
-        {/* {data.type !== "attribute" && (
+        {data.type !== "attribute" && (
           <button
             onMouseDown={(e) => e.stopPropagation()}
             onClick={() => {
@@ -49,7 +49,7 @@ function InstanceNode({ id, data }) {
           onClick={() => deleteElements({ nodes: [{ id }] })}
         >
           Delete node
-        </button> */}
+        </button>
       </NodeToolbar>
 
       <div style={style}>{label}</div>
@@ -80,4 +80,4 @@ function InstanceNode({ id, data }) {
   );
 }
 
-export default memo(InstanceNode);
+export default memo(LayoutNode);

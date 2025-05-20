@@ -1,4 +1,4 @@
-import React from "react";
+import { OBJ_COLOR_TRANS, REL_COLOR_TRANS, ATTR_COLOR_TRANS } from "../utils/constants";
 import { useDnD } from "../context/DragAndDropContext";
 const GhostNode = () => {
   const [, , type, , position, , label, ] = useDnD();
@@ -9,21 +9,20 @@ const GhostNode = () => {
     <div
       style={{
         pointerEvents: 'none', // ✅ 이거 없으면 onDrop 안 먹힘
-
         position: "fixed",
         top: position.y,
         left: position.x,
         transform: "translate(-50%, -50%)",
         pointerEvents: "none",
-        opacity: 0.5,
+        opacity: 0.8,
         zIndex: 9999,
-        border: "2px solid #333",
+        // border: "2px solid #333",
         borderRadius: 8,
         padding: 8,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: type === "attribute" ? "#4DABF7" : type === "object" ? "#FF6B6B" : type === "relation" ? "#51CF66" : "#D6D6FF",
+        background: type === "attribute" ? ATTR_COLOR_TRANS : type === "object" ? OBJ_COLOR_TRANS : type === "relationship" ? REL_COLOR_TRANS : "#D6D6FF",
         fontSize: "12px",
       }}
     >

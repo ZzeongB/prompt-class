@@ -22,7 +22,7 @@ export function classToFlow(classDefs) {
       const insertIndex = Math.min(s, t) + 1;
 
       layoutRows.splice(insertIndex, 0, {
-        type: "relation",
+        type: "relationship",
         source: rel.source,
         target: rel.target,
         rel,
@@ -42,7 +42,12 @@ export function classToFlow(classDefs) {
     nodes.push({
       id: classId,
       type: "class-group",
-      data: { label: cls.name, collapsed: false, expandedHeight: totalHeight, type: "object" },
+      data: {
+        label: cls.name,
+        collapsed: false,
+        expandedHeight: totalHeight,
+        type: "object",
+      },
       position: getPosition("class", classIndex, 0, 0, 0, totalHeight),
       style: {
         width: 220,
@@ -55,7 +60,7 @@ export function classToFlow(classDefs) {
     // 3. 노드 생성
     layoutRows.forEach((row, rowIndex) => {
       const y = rowIndex; // objectIndex로 바로 사용
-      const isCollapsed = nodes.find(n => n.id === classId)?.data?.collapsed;
+      const isCollapsed = nodes.find((n) => n.id === classId)?.data?.collapsed;
       if (isCollapsed) {
         return; // 클래스가 접혀있으면 노드 생성 안 함
       }
@@ -96,7 +101,7 @@ export function classToFlow(classDefs) {
         });
       }
 
-      if (row.type === "relation") {
+      if (row.type === "relationship") {
         const { rel } = row;
         const sourceId = `${classId}-obj-${rel.source}`;
         const targetId = `${classId}-obj-${rel.target}`;
@@ -107,16 +112,30 @@ export function classToFlow(classDefs) {
 
         nodes.push({
           id: relationId,
-          data: { label: rel.type, type: "relation" },
+          data: { label: rel.type, type: "relationship" },
           type: "class",
           parentNode: classId,
           extent: "parent",
-          position: getPosition("relation", classIndex, sourceIdx, 0, targetIdx),
+          position: getPosition(
+            "relationship",
+            classIndex,
+            sourceIdx,
+            0,
+            targetIdx
+          ),
         });
 
         edges.push(
-          { id: `e-${sourceId}-${relationId}`, source: sourceId, target: relationId },
-          { id: `e-${relationId}-${targetId}`, source: relationId, target: targetId }
+          {
+            id: `e-${sourceId}-${relationId}`,
+            source: sourceId,
+            target: relationId,
+          },
+          {
+            id: `e-${relationId}-${targetId}`,
+            source: relationId,
+            target: targetId,
+          }
         );
       }
     });

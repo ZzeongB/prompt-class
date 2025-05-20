@@ -1,14 +1,39 @@
 import { useReactFlow } from "@xyflow/react";
-import { OBJ_COLOR, REL_COLOR, ATTR_COLOR } from "../utils/constants";
-function hexToRGBA(hex, alpha = 0.2) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
+import {
+  OBJ_COLOR_TRANS,
+  REL_COLOR_TRANS,
+  ATTR_COLOR_TRANS,
+} from "../utils/constants";
+import { useDnD } from "../context/DragAndDropContext";
 
 export default function ClassGroupNode({ id, data }) {
   const { getNodes, setNodes } = useReactFlow();
+  const [, setId, , setType, , setPosition, , setLabel] = useDnD();
+
+  const onDragStart = (e, data) => {
+    if (e.target.closest(".classHandle")) {
+      return;
+    }
+
+    console.log("onDragStart", data);
+    setType(data.type);
+    setLabel(data.label);
+    setId(id);
+
+    const onMouseMove = (e) => {
+      setPosition({ x: e.clientX, y: e.clientY });
+    };
+
+    const onMouseUp = () => {
+      console.log("onMouseUp");
+      setType(null);
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
 
   const toggleCollapse = () => {
     const nodes = getNodes();
@@ -33,13 +58,12 @@ export default function ClassGroupNode({ id, data }) {
     );
   };
 
-  const color = hexToRGBA(
+  const color =
     data.type === "object"
-      ? OBJ_COLOR
+      ? OBJ_COLOR_TRANS
       : data.type === "relationship"
-      ? REL_COLOR
-      : ATTR_COLOR
-  );
+      ? REL_COLOR_TRANS
+      : ATTR_COLOR_TRANS;
 
   return (
     <div
@@ -47,13 +71,14 @@ export default function ClassGroupNode({ id, data }) {
       style={{
         padding: 10,
         // transition: "height 0.3s ease",
-        border: "2px solid",
+        border: "5px solid",
         borderColor: color,
         borderRadius: 12,
         height: data.collapsed ? 25 : data.expandedHeight ?? 200,
-        background: color,
+        // background: color,
       }}
       className="nodrag"
+      onMouseDown={(e) => onDragStart(e, data)}
     >
       <strong>{data.label}</strong> {data.collapsed ? "▶" : "▼"}
     </div>

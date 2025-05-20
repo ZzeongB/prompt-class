@@ -2,13 +2,14 @@ import {
   OBJ_COLOR,
   ATTR_COLOR,
   REL_COLOR,
+  WHITE,
   BORDER_COLOR,
   EDGE_COLOR,
   BACKGROUND_COLOR,
 } from "../constants";
 
 // styleUtils.js
-export function getClassNodeStyle(type, options = {}) {
+export function getInstanceNodeStyle(type, options = {}) {
   const base = {
     // border: "2px solid",
     // borderColor: BORDER_COLOR,
@@ -17,12 +18,13 @@ export function getClassNodeStyle(type, options = {}) {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    background: WHITE,
   };
 
   if (type === "attribute") {
     return {
       ...base,
-      background: options.hasValue ? ATTR_COLOR : "transparent",
+      background: options.hasValue ? ATTR_COLOR : WHITE,
       border: options.hasValue ? "0px solid" : "3px dashed",
       borderColor: options.hasValue ? null : ATTR_COLOR,  
       fontStyle: options.hasValue ? "normal" : "italic",
@@ -33,30 +35,39 @@ export function getClassNodeStyle(type, options = {}) {
     return { ...base, background: OBJ_COLOR };
   }
 
-  if (type === "relation") {
+  if (type === "relationship") {
     return { ...base, background: REL_COLOR };
+  }
+
+  if (type === "relationship-layout") {
+    return {
+      ...base,
+      background:
+        "repeating-linear-gradient(135deg, #CFF4D2, #CFF4D2 4px, #B2EECB 4px, #B2EECB 8px)",
+      borderColor: REL_COLOR,
+    };
   }
 
   return base;
 }
 
-export function getInstanceNodeStyle(type, options = {}) {
+export function getClassNodeStyle(type, options = {}) {
   const base = {
-    border: "2px solid",
+    border: "3px solid",
     borderRadius: 4,
     padding: 5,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: BACKGROUND_COLOR,
-    fontSize: 12,
+    background: WHITE,
+    fontSize: 15,
   };
 
   if (type === "attribute") {
     return {
       ...base,
       borderColor: ATTR_COLOR,
-      border: options.hasValue ? "2px solid" : "2px dashed",
+      border: options.hasValue ? "3px solid" : "3px dashed",
       fontStyle: options.hasValue ? "normal" : "italic",
     };
   }
@@ -67,15 +78,6 @@ export function getInstanceNodeStyle(type, options = {}) {
 
   if (type === "relationship") {
     return { ...base, borderColor: REL_COLOR };
-  }
-
-  if (type === "relationship-layout") {
-    return {
-      ...base,
-      background:
-        "repeating-linear-gradient(135deg, #CFF4D2, #CFF4D2 4px, #B2EECB 4px, #B2EECB 8px)",
-      borderColor: REL_COLOR,
-    };
   }
 
   return base;
@@ -92,7 +94,6 @@ export function getPosition(
   const classGapX = 300;
   const objectGapY = 80;
   const attrGapY = 30;
-  const relationOffsetY = 20;
 
   const classX = classIndex * classGapX;
   const objectBaseY = objectIndex * objectGapY;
@@ -113,7 +114,7 @@ export function getPosition(
         x: classX + 50,
         y: objectBaseY + attrIndex * attrGapY,
       };
-    case "relation": {
+    case "relationship": {
       const sourceY = objectIndex * objectGapY;
       const targetY = targetIndex * objectGapY;
       const centerY = (sourceY + targetY) / 2;

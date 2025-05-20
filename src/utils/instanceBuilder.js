@@ -8,7 +8,8 @@ export function createInstance(
   screenToFlowPosition,
   nodes,
   classNodes,
-  classEdges
+  classEdges,
+  resizable = true
 ) {
   if (!type || !label) return;
 
@@ -24,9 +25,11 @@ export function createInstance(
     position,
     classNodes,
     classEdges,
-    nodes.length
+    nodes.length,
+    resizable
   );
 
+  console.log("newNodes", newNodes);
   return {
     newNodes,
     newEdges,
@@ -40,7 +43,8 @@ export function createInstanceWithAttributes(
   position,
   classNodes,
   classEdges,
-  currentNodeCount
+  currentNodeCount,
+  resizable = true
 ) {
   const sharedId = `instance-${id.split("-")[1]}-${currentNodeCount}`;
 
@@ -114,8 +118,15 @@ export function createInstanceWithAttributes(
     }
   }
 
-  return {
-    newNodes: [newNode_data, newNode_resizable, ...newAttrNodes],
-    newEdges: newAttrEdges,
-  };
+  if (resizable) {
+    return {
+      newNodes: [newNode_data, newNode_resizable, ...newAttrNodes],
+      newEdges: newAttrEdges,
+    };
+  } else {
+    return {
+      newNodes: [newNode_data, ...newAttrNodes],
+      newEdges: newAttrEdges,
+    };
+  }
 }

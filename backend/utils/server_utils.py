@@ -1,34 +1,55 @@
+import base64
 import os
 import re
-
-from openai import OpenAI
-import torch
-from dotenv import load_dotenv
-
-import base64
 from io import BytesIO
 
-from src.models.transformer_sd3_SiamLayout import SiamLayoutSD3Transformer2DModel
-from src.pipeline.pipeline_sd3_CreatiLayout import CreatiLayoutSD3Pipeline
-from src.pipeline.pipeline_sd3_CreatiLayout import CreatiLayoutSD3Pipeline
+import torch
+from dotenv import load_dotenv
+from openai import OpenAI
+from src.models.transformer_flux_SiamLayout import FluxTransformer2DModel
+from src.pipeline.pipeline_flux_CreatiLayout import CreatiLayoutFluxPipeline
 
 load_dotenv()
 client = OpenAI(
-  api_key=os.environ['OPENAI_API_KEY'],  # this is also the default, it can be omitted
+    api_key=os.environ["OPENAI_API_KEY"],  # this is also the default, it can be omitted
 )
 
+
 def load_model(device):
-    model_path = "stabilityai/stable-diffusion-3-medium-diffusers"
-    ckpt_path = "HuiZhang0812/CreatiLayout"
-    transformer_additional_kwargs = dict(attention_type="layout", strict=True)
-    transformer = SiamLayoutSD3Transformer2DModel.from_pretrained(
+    # # STABLE DIFFUSION 3
+    # model_path = "stabilityai/stable-diffusion-3-medium-diffusers"
+    # ckpt_path = "HuiZhang0812/CreatiLayout"
+    # transformer_additional_kwargs = dict(attention_type="layout", strict=True)
+    # transformer = SiamLayoutSD3Transformer2DModel.from_pretrained(
+    #     ckpt_path,
+    #     subfolder="SiamLayout_SD3",
+    #     torch_dtype=torch.float16,
+    #     **transformer_additional_kwargs,
+    # )
+    # pipe = CreatiLayoutSD3Pipeline.from_pretrained(
+    #     model_path, transformer=transformer, torch_dtype=torch.float16
+    # )
+
+    # FLUX
+    model_path = "/data/FLUX.1-dev"  # "black-forest-labs/FLUX.1-dev"
+    ckpt_path = "/data/CreatiLayout"  # "HuiZhang0812/CreatiLayout"
+    transformer_additional_kwargs = dict(
+        attention_type="layout",
+        double_blocks_index=[i for i in range(0, 19, 1)],
+        single_blocks_index=[i for i in range(0, 38, 1)],
+        is_add=True,
+        max_boxes_token_length=30,
+        fix_bbox_ids=True,
+        strict=True,
+    )
+    transformer = FluxTransformer2DModel.from_pretrained(
         ckpt_path,
-        subfolder="SiamLayout_SD3",
-        torch_dtype=torch.float16,
+        subfolder="SiamLayout_FLUX",
+        torch_dtype=torch.bfloat16,
         **transformer_additional_kwargs,
     )
-    pipe = CreatiLayoutSD3Pipeline.from_pretrained(
-        model_path, transformer=transformer, torch_dtype=torch.float16
+    pipe = CreatiLayoutFluxPipeline.from_pretrained(
+        model_path, transformer=transformer, torch_dtype=torch.bfloat16
     )
     pipe = pipe.to(device)
     return pipe
@@ -38,6 +59,7 @@ def encode_image(image):
     buffered = BytesIO()
     image.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
+
 
 def safe_split_refined_captions(text, expected_count):
     # 먼저 1. ... 형태로 나누기
@@ -50,7 +72,8 @@ def safe_split_refined_captions(text, expected_count):
     # fallback: 숫자 라벨 없이 줄 단위로 대체
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     fallback_lines = [
-        line for line in lines
+        line
+        for line in lines
         if not line.lower().startswith("global image description")
     ]
 
@@ -58,6 +81,7 @@ def safe_split_refined_captions(text, expected_count):
     while len(fallback_lines) < expected_count:
         fallback_lines.append("")  # 비어 있는 문장으로 패딩
     return fallback_lines[:expected_count]
+
 
 def generate_global_caption_and_refinements(sentences):
     # 프롬프트 구성
@@ -80,8 +104,7 @@ Global image description:
 ..."""
 
     response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}]
+        model="gpt-4", messages=[{"role": "user", "content": prompt}]
     )
 
     response_text = response.choices[0].message.content
@@ -96,10 +119,8 @@ Global image description:
         print("⚠️ Warning: refined captions count mismatch! Trying fallback parsing.")
         region_matches = safe_split_refined_captions(response_text, len(sentences))
 
-    return {
-        "refined_captions": region_matches,
-        "global_caption": global_caption
-    }
+    return {"refined_captions": region_matches, "global_caption": global_caption}
+
 
 def generate_description(region, global_caption):
     # OpenAI Vision API 호출 (gpt-4-vision)
@@ -109,7 +130,10 @@ def generate_description(region, global_caption):
             {
                 "role": "user",
                 "content": [
-                    {"type": "input_text", "text": f"Describe this part of the image. {global_caption}"},
+                    {
+                        "type": "input_text",
+                        "text": f"Describe this part of the image. {global_caption}",
+                    },
                     {
                         "type": "input_image",
                         "image_url": "data:image/png;base64," + encode_image(region),
@@ -118,7 +142,7 @@ def generate_description(region, global_caption):
             }
         ],
     )
-    
+
     # 응답 텍스트 추출
     response_text = response.output_text
     # 응답에서 설명 추출

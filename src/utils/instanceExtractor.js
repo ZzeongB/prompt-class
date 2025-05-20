@@ -1,5 +1,37 @@
 import { getNormalizedBox } from "./node/getNormalizedBox";
 
+function buildCompositionalSentence(classEntry) {
+  const objectNameMap = {};
+
+  classEntry.objects.forEach((obj) => {
+    const modifiers = obj.attributes?.map((attr) => attr.name) || [];
+    const fullName = [...modifiers, obj.name].join(" ");
+    objectNameMap[obj.name] = fullName;
+  });
+
+  const objectsInRelations = new Set();
+  const relationSentences = classEntry.relations?.map((rel) => {
+    const source = objectNameMap[rel.source] || rel.source;
+    const target = objectNameMap[rel.target] || rel.target;
+
+    objectsInRelations.add(rel.source);
+    objectsInRelations.add(rel.target);
+
+    return `${source} ${rel.name} ${target}`;
+  }) ?? [];
+
+  const standaloneObjects = classEntry.objects
+    .filter((obj) => !objectsInRelations.has(obj.name))
+    .map((obj) => objectNameMap[obj.name]);
+
+  const fullContent = [...relationSentences, ...standaloneObjects].join(", ");
+
+  // Class 이름 삽입
+  const classLabel = classEntry.class.toLowerCase();
+  return `Illustration of ${classLabel}: ${fullContent}`;
+}
+
+
 export function extractSentencesAndBoxes(
   instanceNodes,
   instanceEdges,
@@ -12,76 +44,20 @@ export function extractSentencesAndBoxes(
   const resizableNodes = instanceNodes.filter(
     (n) => n.type === "resizable" && n.data.type === "object"
   );
-  const classGraphEdges = classGraph.edges;
-  const classGraphNodes = classGraph.nodes;
 
   const sentences = [];
   const boxes = [];
 
   objectNodes.forEach((objNode) => {
-    const objectSentences = [];
 
-    // 1. 이 object에 연결된 class object 찾기
-    const classObjectId = objNode.data.classId;
+    const classId = objNode.data.classId; // e.g., "class__두더지"
+    const classEntry = classGraph.find((c) => `class-${c.class}` === classId);
+    console.log("classEntry", classEntry);
+    if (!classEntry) return;
+    const sentence = buildCompositionalSentence(classEntry);
+    sentences.push(sentence);
 
-    // 2. class object에 연결된 attribute 노드들 찾기
-    const classAttrEdges = classGraphEdges.filter(
-      (e) => e.source === classObjectId && e.target.includes("attr")
-    );
-    const classAttrIds = classAttrEdges.map((e) => e.target);
-    const classAttrs = classAttrIds.map((id) =>
-      classGraphNodes.find((n) => n.id === id)
-    );
-
-    const instanceAttrEdges = instanceEdges.filter(
-      (e) => e.source === objNode.id || e.target === objNode.id
-    );
-
-    const linkedAttrNodeIds = instanceAttrEdges
-      .map((e) => (e.source === objNode.id ? e.target : e.source))
-      .filter(
-        (id) =>
-          instanceNodes.find((n) => n.id === id)?.data.type === "attribute"
-      );
-
-    const linkedAttrNodes = linkedAttrNodeIds.map((id) =>
-      instanceNodes.find((n) => n.id === id)
-    );
-
-    classAttrs.forEach((classAttr) => {
-      const hasValue = classAttr.data.hasValue;
-      const label = classAttr.data.label;
-
-      if (hasValue) {
-        objectSentences.push(`${label} ${objNode.data.label}`);
-      } else {
-        // instance에 연결된 attr 중 이 classAttr에 해당하는 것 찾기
-        const matchedInstanceAttr = linkedAttrNodes.find(
-          (n) => n.data.classId === classAttr.id
-        );
-        if (matchedInstanceAttr) {
-          objectSentences.push(
-            `${objNode.data.label} has ${matchedInstanceAttr.label}`
-          );
-        }
-      }
-    });
-
-    // 3. instance에만 있는 attribute 처리
-    linkedAttrNodes.forEach((attrNode) => {
-      const isDefinedInClass = classAttrIds.includes(attrNode.data.classId);
-      if (!isDefinedInClass) {
-        objectSentences.push(
-          `${objNode.data.label} has ${attrNode.data.label.split(":")[0]}${
-            attrNode.data.label.split(":")[1]
-          }`
-        );
-      }
-    });
-
-    sentences.push(objectSentences.join(", "));
-
-    // 4. 좌표
+    // 3. 박스 추출
     const resizableNode = resizableNodes.find(
       (n) => n.id.split("-resizable")[0] === objNode.id
     );
@@ -89,9 +65,9 @@ export function extractSentencesAndBoxes(
     const box = getNormalizedBox(
       resizableNode,
       flowToScreenPosition,
-      500, // x offset (오른쪽 패널 offset)
-      0, // y offset (필요 없으면 0),
-      true // normalize (필요 없으면 false)
+      500,
+      0,
+      true
     );
     boxes.push(box);
   });

@@ -3,6 +3,7 @@ import "@xyflow/react/dist/style.css";
 import GhostNode from "./components/GhostNode";
 import ClassBoardWithProvider from "./Board/ClassBoard";
 import InstanceBoardWithProvider from "./Board/InstanceBoard";
+import LayoutBoardWithProvider from "./Board/LayoutBoard";
 import ImageBoard from "./Board/ImageBoard";
 import { ClassGraphProvider } from "./context/ClassGraphContext";
 import { ImageProivder } from "./context/ImageContext";
@@ -39,9 +40,17 @@ export default function App() {
       <ClassGraphProvider>
         <ImageProivder>
           <DnDProvider>
-            <div style={{ width: "512px", height: "512px" }}>
+            {/* <div
+              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            > */}
+            <div style={{ width: "500px", height: "600px" }}>
               <ClassBoardWithProvider />
             </div>
+            <div style={{ width: "500px", height: "600px" }}>
+              <InstanceBoardWithProvider />
+            </div>
+            {/* </div> */}
+
             <div
               style={{
                 position: "relative",
@@ -75,10 +84,10 @@ export default function App() {
                   userSelect: "none", // ✅ 이거!
                 }}
               >
-                <InstanceBoardWithProvider onImageGenerated={setImageSrc} />
+                <LayoutBoardWithProvider onImageGenerated={setImageSrc} />
               </div>
             </div>
-            <div
+            {/* <div
               style={{
                 width: "512px",
                 height: "512px",
@@ -86,7 +95,7 @@ export default function App() {
               }}
             >
               <ImageBoard imageSrc={imageSrc} />
-            </div>
+            </div> */}
             <GhostNode />
           </DnDProvider>
         </ImageProivder>
