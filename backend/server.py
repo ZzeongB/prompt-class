@@ -11,7 +11,12 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from PIL import Image
 from utils.bbox_visualization import bbox_visualization, scale_boxes
-from utils.server_utils import generate_global_caption_and_refinements, load_model, encode_image, generate_description
+from utils.server_utils import (
+    encode_image,
+    generate_description,
+    generate_global_caption_and_refinements,
+    load_model,
+)
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
@@ -21,8 +26,8 @@ seed = 42
 batch_size = 1
 num_inference_steps = 50
 guidance_scale = 7.5
-height = 1024
-width = 1024
+height = 512
+width = 512
 
 save_root = "output"
 img_save_root = os.path.join(save_root, "images")
@@ -67,9 +72,9 @@ def generate():
     images = images.images
 
     print("Sucessfully generated images")
-    
+
     img_base64 = encode_image(images[0])
-    
+
     for j, image in enumerate(images):
         image.save(os.path.join(img_save_root, f"{filename}_{j}.png"))
 
@@ -113,7 +118,7 @@ def describe_region():
 
     # crop region
     region = full_image.crop(crop_box)
-    
+
     # save region image
     region_path = os.path.join(img_save_root, "_region.png")
     region.save(region_path)

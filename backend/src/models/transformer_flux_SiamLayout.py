@@ -19,10 +19,30 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 from diffusers.loaders import FromOriginalModelMixin, PeftAdapterMixin
 from diffusers.models.attention import FeedForward
+from diffusers.models.embeddings import (
+    CombinedTimestepGuidanceTextProjEmbeddings,
+    CombinedTimestepTextProjEmbeddings,
+    FluxPosEmbed,
+)
+from diffusers.models.modeling_outputs import Transformer2DModelOutput
+from diffusers.models.modeling_utils import ModelMixin
+from diffusers.models.normalization import (
+    AdaLayerNormContinuous,
+    AdaLayerNormZero,
+    AdaLayerNormZeroSingle,
+)
+from diffusers.utils import (
+    USE_PEFT_BACKEND,
+    is_torch_version,
+    logging,
+    scale_lora_layers,
+    unscale_lora_layers,
+)
+from diffusers.utils.import_utils import is_torch_npu_available
+from diffusers.utils.torch_utils import maybe_allow_in_graph
 from src.models.attention_processor_flux_SiamLayout import (
     Attention,
     AttentionProcessor,
@@ -30,19 +50,9 @@ from src.models.attention_processor_flux_SiamLayout import (
     FluxAttnProcessor2_0_NPU,
     FusedFluxAttnProcessor2_0,
 )
-from diffusers.models.modeling_utils import ModelMixin
-from diffusers.models.normalization import AdaLayerNormContinuous, AdaLayerNormZero, AdaLayerNormZeroSingle
-from diffusers.utils import USE_PEFT_BACKEND, is_torch_version, logging, scale_lora_layers, unscale_lora_layers
-from diffusers.utils.import_utils import is_torch_npu_available
-from diffusers.utils.torch_utils import maybe_allow_in_graph
-from diffusers.models.embeddings import CombinedTimestepGuidanceTextProjEmbeddings, CombinedTimestepTextProjEmbeddings, FluxPosEmbed
-from diffusers.models.modeling_outputs import Transformer2DModelOutput
-
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
-
-    
 
 def zero_module(module):
     """
@@ -51,6 +61,7 @@ def zero_module(module):
     for p in module.parameters():
         p.detach().zero_()
     return module
+
 
 def get_fourier_embeds_from_boundingbox(embed_dim, box):
     """
@@ -84,7 +95,9 @@ class PixArtAlphaTextProjection(nn.Module):
         super().__init__()
         if out_features is None:
             out_features = hidden_size
-        self.linear_1 = nn.Linear(in_features=in_features, out_features=hidden_size, bias=True)
+        self.linear_1 = nn.Linear(
+            in_features=in_features, out_features=hidden_size, bias=True
+        )
         if act_fn == "gelu_tanh":
             self.act_1 = nn.GELU(approximate="tanh")
         elif act_fn == "silu":
@@ -93,7 +106,9 @@ class PixArtAlphaTextProjection(nn.Module):
             self.act_1 = FP32SiLU()
         else:
             raise ValueError(f"Unknown activation function: {act_fn}")
-        self.linear_2 = nn.Linear(in_features=hidden_size, out_features=out_features, bias=True)
+        self.linear_2 = nn.Linear(
+            in_features=hidden_size, out_features=out_features, bias=True
+        )
 
     def forward(self, caption):
         hidden_states = self.linear_1(caption)
@@ -114,67 +129,81 @@ class TextBoundingboxProjection(nn.Module):
         if isinstance(out_dim, tuple):
             out_dim = out_dim[0]
 
+        self.linears = PixArtAlphaTextProjection(
+            in_features=self.positive_len + self.position_dim,
+            hidden_size=out_dim // 2,
+            out_features=out_dim,
+            act_fn="silu",
+        )
 
-        self.linears = PixArtAlphaTextProjection(in_features=self.positive_len + self.position_dim,hidden_size=out_dim//2,out_features=out_dim, act_fn="silu")
+        self.null_positive_feature = torch.nn.Parameter(
+            torch.zeros([self.positive_len])
+        )
 
-        self.null_positive_feature = torch.nn.Parameter(torch.zeros([self.positive_len]))
-
-        
-        self.null_position_feature = torch.nn.Parameter(torch.zeros([self.position_dim]))
+        self.null_position_feature = torch.nn.Parameter(
+            torch.zeros([self.position_dim])
+        )
 
     def forward(
         self,
-        boxes,#[B,10,4]
-        masks,#[B,10]
-        positive_embeddings, #torch.Size([B, 10, 512,1536])
+        boxes,  # [B,10,4]
+        masks,  # [B,10]
+        positive_embeddings,  # torch.Size([B, 10, 512,1536])
     ):
-        
-        B,max_box,num_token,dim = positive_embeddings.shape
-        
-        masks = masks.unsqueeze(-1) #torch.Size([2, 10, 1])
+        B, max_box, num_token, dim = positive_embeddings.shape
+
+        masks = masks.unsqueeze(-1)  # torch.Size([2, 10, 1])
 
         # embedding position (it may includes padding as placeholder)
-        xyxy_embedding = get_fourier_embeds_from_boundingbox(self.fourier_embedder_dim, boxes)  # B*N*4 -> B*N*C #torch.Size([2, 10, 64])
+        xyxy_embedding = get_fourier_embeds_from_boundingbox(
+            self.fourier_embedder_dim, boxes
+        )  # B*N*4 -> B*N*C #torch.Size([2, 10, 64])
 
         # learnable null embedding
-        xyxy_null = self.null_position_feature.view(1, 1, -1) #torch.Size([1, 1, 64])
+        xyxy_null = self.null_position_feature.view(1, 1, -1)  # torch.Size([1, 1, 64])
 
         # replace padding with learnable null embedding
-        xyxy_embedding = xyxy_embedding * masks + (1 - masks) * xyxy_null #torch.Size([2, 10, 64])
-
-     
+        xyxy_embedding = (
+            xyxy_embedding * masks + (1 - masks) * xyxy_null
+        )  # torch.Size([2, 10, 64])
 
         # 增加一个维度
-        xyxy_embedding_unsqueezed = torch.unsqueeze(xyxy_embedding, 2)  # shape变为[2, 10, 1, 64]
+        xyxy_embedding_unsqueezed = torch.unsqueeze(
+            xyxy_embedding, 2
+        )  # shape变为[2, 10, 1, 64]
 
         # 然后扩展到新的大小
-        xyxy_embedding_expanded = xyxy_embedding_unsqueezed.expand(-1, -1, num_token, -1)  # torch.Size([2, 10, 30, 64])
+        xyxy_embedding_expanded = xyxy_embedding_unsqueezed.expand(
+            -1, -1, num_token, -1
+        )  # torch.Size([2, 10, 30, 64])
 
-
-       
-
-        masks = masks.unsqueeze(-1) #torch.Size([2, 10, 1, 1])
+        masks = masks.unsqueeze(-1)  # torch.Size([2, 10, 1, 1])
         # learnable null embedding
-        positive_null = self.null_positive_feature.view(1, 1, 1, -1) #从[1536]变到[1,1,1,1536]
+        positive_null = self.null_positive_feature.view(
+            1, 1, 1, -1
+        )  # 从[1536]变到[1,1,1,1536]
 
         # replace padding with learnable null embedding
-        positive_embeddings = positive_embeddings * masks + (1 - masks) * positive_null #torch.Size([2, 10, 30, 1536])
+        positive_embeddings = (
+            positive_embeddings * masks + (1 - masks) * positive_null
+        )  # torch.Size([2, 10, 30, 1536])
+
+        objs = self.linears(
+            torch.cat([positive_embeddings, xyxy_embedding_expanded], dim=-1)
+        )  # torch.Size([2, 10,30, 1536+64]) ->torch.Size([2, 10,30,1536])
+
+        objs = objs.view(B, max_box * num_token, -1)
+
+        return objs  # [B,300,1536]
 
 
-
-        objs = self.linears(torch.cat([positive_embeddings, xyxy_embedding_expanded], dim=-1)) # torch.Size([2, 10,30, 1536+64]) ->torch.Size([2, 10,30,1536])
-
-        objs = objs.view(B, max_box*num_token, -1)
-
-
-        return objs #[B,300,1536]
-    
 class CustomIdentity(nn.Module):
     def __init__(self):
         super(CustomIdentity, self).__init__()
 
     def forward(self, img_bbox, vec=None, pe=None):
         return img_bbox
+
 
 @maybe_allow_in_graph
 class FluxSingleTransformerBlock(nn.Module):
@@ -191,7 +220,14 @@ class FluxSingleTransformerBlock(nn.Module):
             processing of `context` conditions.
     """
 
-    def __init__(self, dim, num_attention_heads, attention_head_dim, mlp_ratio=4.0,attention_type="layout"):
+    def __init__(
+        self,
+        dim,
+        num_attention_heads,
+        attention_head_dim,
+        mlp_ratio=4.0,
+        attention_type="layout",
+    ):
         super().__init__()
         self.mlp_hidden_dim = int(dim * mlp_ratio)
 
@@ -222,30 +258,30 @@ class FluxSingleTransformerBlock(nn.Module):
             self.bbox_proj_mlp = nn.Linear(dim, self.mlp_hidden_dim)
             self.bbox_act_mlp = nn.GELU(approximate="tanh")
             self.bbox_proj_out = nn.Linear(dim + self.mlp_hidden_dim, dim)
-            self.bbox_attn= Attention(
-                    query_dim=dim,
-                    cross_attention_dim=None,
-                    dim_head=attention_head_dim,
-                    heads=num_attention_heads,
-                    out_dim=dim,
-                    bias=True,
-                    processor=processor,
-                    qk_norm="rms_norm",
-                    eps=1e-6,
-                    pre_only=True,
-                )
+            self.bbox_attn = Attention(
+                query_dim=dim,
+                cross_attention_dim=None,
+                dim_head=attention_head_dim,
+                heads=num_attention_heads,
+                out_dim=dim,
+                bias=True,
+                processor=processor,
+                qk_norm="rms_norm",
+                eps=1e-6,
+                pre_only=True,
+            )
             self.bbox_forward = zero_module(nn.Linear(dim, dim))
-    
+
     def forward(
         self,
         hidden_states: torch.FloatTensor,
         bbox_hidden_states=None,
-        temb: torch.FloatTensor=None,
+        temb: torch.FloatTensor = None,
         image_rotary_emb=None,
         image_rotary_emb_for_bbox=None,
         bbox_scale=1.0,
-        bbox_end_index = 300,
-        txt_end_index = 77,
+        bbox_end_index=300,
+        txt_end_index=77,
         joint_attention_kwargs=None,
     ):
         residual = hidden_states
@@ -258,43 +294,64 @@ class FluxSingleTransformerBlock(nn.Module):
             image_rotary_emb=image_rotary_emb,
             **joint_attention_kwargs,
         )
-        #print(attn_output.shape, mlp_hidden_states.shape)#torch.Size([1, 1101, 3072]) torch.Size([1, 1101, 12288])
+        # print(attn_output.shape, mlp_hidden_states.shape)#torch.Size([1, 1101, 3072]) torch.Size([1, 1101, 12288])
         hidden_states = torch.cat([attn_output, mlp_hidden_states], dim=2)
         gate = gate.unsqueeze(1)
         hidden_states = gate * self.proj_out(hidden_states)
 
         # layout
-        if self.attention_type == "layout" and bbox_hidden_states!=None and bbox_scale!=0.0:
-            
-            #hidden_states_for_img_and_bbox = torch.cat([bbox_hidden_states, hidden_states[:, txt_end_index :, ...]], dim=1)
-            hidden_states_for_img_and_bbox = torch.cat([bbox_hidden_states, residual[:, txt_end_index :, ...]], dim=1)
+        if (
+            self.attention_type == "layout"
+            and bbox_hidden_states != None
+            and bbox_scale != 0.0
+        ):
+            # hidden_states_for_img_and_bbox = torch.cat([bbox_hidden_states, hidden_states[:, txt_end_index :, ...]], dim=1)
+            hidden_states_for_img_and_bbox = torch.cat(
+                [bbox_hidden_states, residual[:, txt_end_index:, ...]], dim=1
+            )
 
-            norm_hidden_states_for_img_and_bbox, gate_bbox = self.bbox_norm(hidden_states_for_img_and_bbox, emb=temb)
-            mlp_hidden_states_for_img_and_bbox = self.bbox_act_mlp(self.bbox_proj_mlp(norm_hidden_states_for_img_and_bbox))
+            norm_hidden_states_for_img_and_bbox, gate_bbox = self.bbox_norm(
+                hidden_states_for_img_and_bbox, emb=temb
+            )
+            mlp_hidden_states_for_img_and_bbox = self.bbox_act_mlp(
+                self.bbox_proj_mlp(norm_hidden_states_for_img_and_bbox)
+            )
             attn_output_bbox = self.bbox_attn(
                 hidden_states=norm_hidden_states_for_img_and_bbox,
                 image_rotary_emb=image_rotary_emb_for_bbox,
                 **joint_attention_kwargs,
             )
-            hidden_states_for_img_and_bbox = torch.cat([attn_output_bbox, mlp_hidden_states_for_img_and_bbox], dim=2)
+            hidden_states_for_img_and_bbox = torch.cat(
+                [attn_output_bbox, mlp_hidden_states_for_img_and_bbox], dim=2
+            )
             gate_bbox = gate_bbox.unsqueeze(1)
-            hidden_states_for_img_and_bbox = gate_bbox * self.bbox_proj_out(hidden_states_for_img_and_bbox)
+            hidden_states_for_img_and_bbox = gate_bbox * self.bbox_proj_out(
+                hidden_states_for_img_and_bbox
+            )
 
             # update imgs in hidden_states
-            hidden_states_bbox_img_residual = self.bbox_forward(hidden_states_for_img_and_bbox[:, bbox_end_index :, ...])
-            hidden_states[:, txt_end_index :, ...] += bbox_scale * hidden_states_bbox_img_residual
-            # update bbox_hidden_states 
-            bbox_hidden_states = residual_bbox_hidden_states + hidden_states_for_img_and_bbox[:, :bbox_end_index, ...]
+            hidden_states_bbox_img_residual = self.bbox_forward(
+                hidden_states_for_img_and_bbox[:, bbox_end_index:, ...]
+            )
+            hidden_states[:, txt_end_index:, ...] += (
+                bbox_scale * hidden_states_bbox_img_residual
+            )
+            # update bbox_hidden_states
+            bbox_hidden_states = (
+                residual_bbox_hidden_states
+                + hidden_states_for_img_and_bbox[:, :bbox_end_index, ...]
+            )
 
             if bbox_hidden_states.dtype == torch.float16:
                 bbox_hidden_states = bbox_hidden_states.clip(-65504, 65504)
-            
+
         hidden_states = residual + hidden_states
         if hidden_states.dtype == torch.float16:
             hidden_states = hidden_states.clip(-65504, 65504)
 
-        return hidden_states,bbox_hidden_states
-      
+        return hidden_states, bbox_hidden_states
+
+
 @maybe_allow_in_graph
 class FluxTransformerBlock(nn.Module):
     r"""
@@ -310,7 +367,15 @@ class FluxTransformerBlock(nn.Module):
             processing of `context` conditions.
     """
 
-    def __init__(self, dim, num_attention_heads, attention_head_dim, qk_norm="rms_norm", eps=1e-6,attention_type="default"):
+    def __init__(
+        self,
+        dim,
+        num_attention_heads,
+        attention_head_dim,
+        qk_norm="rms_norm",
+        eps=1e-6,
+        attention_type="default",
+    ):
         super().__init__()
 
         self.attention_type = attention_type
@@ -341,13 +406,15 @@ class FluxTransformerBlock(nn.Module):
         self.ff = FeedForward(dim=dim, dim_out=dim, activation_fn="gelu-approximate")
 
         self.norm2_context = nn.LayerNorm(dim, elementwise_affine=False, eps=1e-6)
-        self.ff_context = FeedForward(dim=dim, dim_out=dim, activation_fn="gelu-approximate")
+        self.ff_context = FeedForward(
+            dim=dim, dim_out=dim, activation_fn="gelu-approximate"
+        )
 
         # let chunk size default to None
         self._chunk_size = None
         self._chunk_dim = 0
 
-        #layout
+        # layout
         if self.attention_type == "layout":
             self.norm1_bbox = AdaLayerNormZero(dim)
             self.bbox_attn = Attention(
@@ -364,11 +431,10 @@ class FluxTransformerBlock(nn.Module):
                 eps=eps,
             )
             self.norm2_bbox = nn.LayerNorm(dim, elementwise_affine=False, eps=1e-6)
-            self.ff_bbox = FeedForward(dim=dim, dim_out=dim, activation_fn="gelu-approximate")
+            self.ff_bbox = FeedForward(
+                dim=dim, dim_out=dim, activation_fn="gelu-approximate"
+            )
             self.bbox_forward = zero_module(nn.Linear(dim, dim))
-
-
-
 
     def forward(
         self,
@@ -381,14 +447,15 @@ class FluxTransformerBlock(nn.Module):
         bbox_scale=1.0,
         joint_attention_kwargs=None,
     ):
-        norm_hidden_states, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.norm1(hidden_states, emb=temb)
+        norm_hidden_states, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.norm1(
+            hidden_states, emb=temb
+        )
 
-        norm_encoder_hidden_states, c_gate_msa, c_shift_mlp, c_scale_mlp, c_gate_mlp = self.norm1_context(
-            encoder_hidden_states, emb=temb
+        norm_encoder_hidden_states, c_gate_msa, c_shift_mlp, c_scale_mlp, c_gate_mlp = (
+            self.norm1_context(encoder_hidden_states, emb=temb)
         )
         joint_attention_kwargs = joint_attention_kwargs or {}
-        
-        
+
         # img-txt Attention.
         attn_output, context_attn_output = self.attn(
             hidden_states=norm_hidden_states,
@@ -400,14 +467,17 @@ class FluxTransformerBlock(nn.Module):
         # Process attention outputs for the `hidden_states`.
         attn_output = gate_msa.unsqueeze(1) * attn_output
 
-
         # img-bbox Attention
         # #layout. after gate_msa
-        if self.attention_type == "layout" and bbox_scale!=0.0:
-            norm_bbox_hidden_states, bbox_gate_msa, bbox_shift_mlp, bbox_scale_mlp, bbox_gate_mlp = self.norm1_bbox(
-                bbox_hidden_states, emb=temb
-            )
-        
+        if self.attention_type == "layout" and bbox_scale != 0.0:
+            (
+                norm_bbox_hidden_states,
+                bbox_gate_msa,
+                bbox_shift_mlp,
+                bbox_scale_mlp,
+                bbox_gate_mlp,
+            ) = self.norm1_bbox(bbox_hidden_states, emb=temb)
+
             attn_output_from_bbox, bbox_attn_output = self.bbox_attn(
                 hidden_states=norm_hidden_states,
                 encoder_hidden_states=norm_bbox_hidden_states,
@@ -415,14 +485,16 @@ class FluxTransformerBlock(nn.Module):
                 **joint_attention_kwargs,
             )
 
-            attn_output = attn_output + bbox_scale*self.bbox_forward(attn_output_from_bbox) # zero module
+            attn_output = attn_output + bbox_scale * self.bbox_forward(
+                attn_output_from_bbox
+            )  # zero module
 
-            
         hidden_states = hidden_states + attn_output
 
-        
         norm_hidden_states = self.norm2(hidden_states)
-        norm_hidden_states = norm_hidden_states * (1 + scale_mlp[:, None]) + shift_mlp[:, None]
+        norm_hidden_states = (
+            norm_hidden_states * (1 + scale_mlp[:, None]) + shift_mlp[:, None]
+        )
 
         ff_output = self.ff(norm_hidden_states)
         ff_output = gate_mlp.unsqueeze(1) * ff_output
@@ -435,27 +507,38 @@ class FluxTransformerBlock(nn.Module):
         encoder_hidden_states = encoder_hidden_states + context_attn_output
 
         norm_encoder_hidden_states = self.norm2_context(encoder_hidden_states)
-        norm_encoder_hidden_states = norm_encoder_hidden_states * (1 + c_scale_mlp[:, None]) + c_shift_mlp[:, None]
+        norm_encoder_hidden_states = (
+            norm_encoder_hidden_states * (1 + c_scale_mlp[:, None])
+            + c_shift_mlp[:, None]
+        )
 
         context_ff_output = self.ff_context(norm_encoder_hidden_states)
-        encoder_hidden_states = encoder_hidden_states + c_gate_mlp.unsqueeze(1) * context_ff_output
+        encoder_hidden_states = (
+            encoder_hidden_states + c_gate_mlp.unsqueeze(1) * context_ff_output
+        )
         if encoder_hidden_states.dtype == torch.float16:
             encoder_hidden_states = encoder_hidden_states.clip(-65504, 65504)
 
         # Process attention outputs for the `bbox_hidden_states`.
-        if self.attention_type == "layout" and bbox_scale!=0.0:
+        if self.attention_type == "layout" and bbox_scale != 0.0:
             bbox_attn_output = bbox_gate_msa.unsqueeze(1) * bbox_attn_output
             bbox_hidden_states = bbox_hidden_states + bbox_attn_output
             norm_bbox_hidden_states = self.norm2_bbox(bbox_hidden_states)
-            norm_bbox_hidden_states = norm_bbox_hidden_states * (1 + bbox_scale_mlp[:, None]) + bbox_shift_mlp[:, None]
+            norm_bbox_hidden_states = (
+                norm_bbox_hidden_states * (1 + bbox_scale_mlp[:, None])
+                + bbox_shift_mlp[:, None]
+            )
             bbox_ff_output = self.ff_bbox(norm_bbox_hidden_states)
-            bbox_hidden_states = bbox_hidden_states + bbox_gate_mlp.unsqueeze(1) * bbox_ff_output
-        
-        
-        return encoder_hidden_states, hidden_states,bbox_hidden_states
+            bbox_hidden_states = (
+                bbox_hidden_states + bbox_gate_mlp.unsqueeze(1) * bbox_ff_output
+            )
+
+        return encoder_hidden_states, hidden_states, bbox_hidden_states
 
 
-class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOriginalModelMixin):
+class FluxTransformer2DModel(
+    ModelMixin, ConfigMixin, PeftAdapterMixin, FromOriginalModelMixin
+):
     """
     The Transformer model introduced in Flux.
 
@@ -491,30 +574,29 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
         guidance_embeds: bool = False,
         axes_dims_rope: Tuple[int] = (16, 56, 56),
         attention_type="layout",
-        single_blocks_index= [],
+        single_blocks_index=[],
         double_blocks_index=[],
         is_add=True,
         gradient_checkpointing=False,
         max_boxes_token_length=30,
-        fix_bbox_ids = True,
+        fix_bbox_ids=True,
     ):
         super().__init__()
-        #layout
+        # layout
         self.attention_type = attention_type
-        self.single_blocks_index=single_blocks_index
-        self.double_blocks_index=double_blocks_index
+        self.single_blocks_index = single_blocks_index
+        self.double_blocks_index = double_blocks_index
         self.is_add = is_add
         self.max_boxes_token_length = max_boxes_token_length
         self.fix_bbox_ids = fix_bbox_ids
 
         self.in_channels = in_channels
-        self.num_layers= num_layers
+        self.num_layers = num_layers
         self.num_single_layers = num_single_layers
-        self.attention_head_dim=attention_head_dim
-        self.num_attention_heads=num_attention_heads
-        self.joint_attention_dim=joint_attention_dim
-        self.pooled_projection_dim=pooled_projection_dim
-
+        self.attention_head_dim = attention_head_dim
+        self.num_attention_heads = num_attention_heads
+        self.joint_attention_dim = joint_attention_dim
+        self.pooled_projection_dim = pooled_projection_dim
 
         self.out_channels = out_channels or in_channels
         self.inner_dim = self.num_attention_heads * self.attention_head_dim
@@ -522,10 +604,13 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
         self.pos_embed = FluxPosEmbed(theta=10000, axes_dim=axes_dims_rope)
 
         text_time_guidance_cls = (
-            CombinedTimestepGuidanceTextProjEmbeddings if guidance_embeds else CombinedTimestepTextProjEmbeddings
+            CombinedTimestepGuidanceTextProjEmbeddings
+            if guidance_embeds
+            else CombinedTimestepTextProjEmbeddings
         )
         self.time_text_embed = text_time_guidance_cls(
-            embedding_dim=self.inner_dim, pooled_projection_dim=self.pooled_projection_dim
+            embedding_dim=self.inner_dim,
+            pooled_projection_dim=self.pooled_projection_dim,
         )
 
         self.context_embedder = nn.Linear(self.joint_attention_dim, self.inner_dim)
@@ -537,7 +622,9 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
                     dim=self.inner_dim,
                     num_attention_heads=self.num_attention_heads,
                     attention_head_dim=self.attention_head_dim,
-                    attention_type=self.attention_type if i in self.double_blocks_index else "default",
+                    attention_type=self.attention_type
+                    if i in self.double_blocks_index
+                    else "default",
                 )
                 for i in range(self.num_layers)
             ]
@@ -549,20 +636,24 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
                     dim=self.inner_dim,
                     num_attention_heads=self.num_attention_heads,
                     attention_head_dim=self.attention_head_dim,
-                    attention_type=self.attention_type if i in self.single_blocks_index else "default",
+                    attention_type=self.attention_type
+                    if i in self.single_blocks_index
+                    else "default",
                 )
                 for i in range(self.num_single_layers)
             ]
         )
 
-       
-
-        self.norm_out = AdaLayerNormContinuous(self.inner_dim, self.inner_dim, elementwise_affine=False, eps=1e-6)
-        self.proj_out = nn.Linear(self.inner_dim, patch_size * patch_size * self.out_channels, bias=True)
+        self.norm_out = AdaLayerNormContinuous(
+            self.inner_dim, self.inner_dim, elementwise_affine=False, eps=1e-6
+        )
+        self.proj_out = nn.Linear(
+            self.inner_dim, patch_size * patch_size * self.out_channels, bias=True
+        )
 
         self.gradient_checkpointing = gradient_checkpointing
-        
-        if self.attention_type =="layout":
+
+        if self.attention_type == "layout":
             self.position_net = TextBoundingboxProjection(
                 positive_len=self.inner_dim, out_dim=self.inner_dim
             )
@@ -578,7 +669,11 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
         # set recursively
         processors = {}
 
-        def fn_recursive_add_processors(name: str, module: torch.nn.Module, processors: Dict[str, AttentionProcessor]):
+        def fn_recursive_add_processors(
+            name: str,
+            module: torch.nn.Module,
+            processors: Dict[str, AttentionProcessor],
+        ):
             if hasattr(module, "get_processor"):
                 processors[f"{name}.processor"] = module.get_processor()
 
@@ -593,7 +688,9 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
         return processors
 
     # Copied from diffusers.models.unets.unet_2d_condition.UNet2DConditionModel.set_attn_processor
-    def set_attn_processor(self, processor: Union[AttentionProcessor, Dict[str, AttentionProcessor]]):
+    def set_attn_processor(
+        self, processor: Union[AttentionProcessor, Dict[str, AttentionProcessor]]
+    ):
         r"""
         Sets the attention processor to use to compute attention.
 
@@ -643,7 +740,9 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
 
         for _, attn_processor in self.attn_processors.items():
             if "Added" in str(attn_processor.__class__.__name__):
-                raise ValueError("`fuse_qkv_projections()` is not supported for models having added KV projections.")
+                raise ValueError(
+                    "`fuse_qkv_projections()` is not supported for models having added KV projections."
+                )
 
         self.original_attn_processors = self.attn_processors
 
@@ -685,8 +784,8 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
         controlnet_single_block_samples=None,
         return_dict: bool = True,
         controlnet_blocks_repeat: bool = False,
-        layout_kwargs: dict | None = None,
-        bbox_scale =1.0,
+        layout_kwargs: Optional[Dict[str, Any]] = None,
+        bbox_scale=1.0,
         bbox_ids: torch.Tensor = None,
     ) -> Union[torch.FloatTensor, Transformer2DModelOutput]:
         """
@@ -725,7 +824,10 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
             # weight the lora layers by setting `lora_scale` for each PEFT layer
             scale_lora_layers(self, lora_scale)
         else:
-            if joint_attention_kwargs is not None and joint_attention_kwargs.get("scale", None) is not None:
+            if (
+                joint_attention_kwargs is not None
+                and joint_attention_kwargs.get("scale", None) is not None
+            ):
                 logger.warning(
                     "Passing `scale` via `joint_attention_kwargs` when not using the PEFT backend is ineffective."
                 )
@@ -757,45 +859,66 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
             #     "Please remove the batch dimension and pass it as a 2d torch Tensor"
             # )
             img_ids = img_ids[0]
-        
 
         ids = torch.cat((txt_ids, img_ids), dim=0)
         image_rotary_emb = self.pos_embed(ids)
 
-        #layout
+        # layout
         N = hidden_states.shape[0]
-        if self.attention_type=="layout" and layout_kwargs is not None and layout_kwargs.get("layout", None) is not None:
+        if (
+            self.attention_type == "layout"
+            and layout_kwargs is not None
+            and layout_kwargs.get("layout", None) is not None
+        ):
             layout_args = layout_kwargs["layout"]
-            bbox_raw = layout_args["boxes"].to(dtype=hidden_states.dtype, device=hidden_states.device) # [B,10,4]
-            bbox_text_embeddings = layout_args["positive_embeddings"].to(dtype=hidden_states.dtype, device=hidden_states.device) #[B,10,77,4096]
-            bbox_text_embeddings = self.context_embedder(bbox_text_embeddings) # [B,10,77,1536]
-            bbox_text_embeddings = bbox_text_embeddings[:,:,:self.max_boxes_token_length,:]# [B,10,30,1536]
-            bbox_masks = layout_args["bbox_masks"].to(dtype=hidden_states.dtype, device=hidden_states.device) # [B,10]
-            bbox_hidden_states = self.position_net(boxes=bbox_raw,masks=bbox_masks,positive_embeddings=bbox_text_embeddings) # "bbox": torch.Size([B, 300, 1536])
+            bbox_raw = layout_args["boxes"].to(
+                dtype=hidden_states.dtype, device=hidden_states.device
+            )  # [B,10,4]
+            bbox_text_embeddings = layout_args["positive_embeddings"].to(
+                dtype=hidden_states.dtype, device=hidden_states.device
+            )  # [B,10,77,4096]
+            bbox_text_embeddings = self.context_embedder(
+                bbox_text_embeddings
+            )  # [B,10,77,1536]
+            bbox_text_embeddings = bbox_text_embeddings[
+                :, :, : self.max_boxes_token_length, :
+            ]  # [B,10,30,1536]
+            bbox_masks = layout_args["bbox_masks"].to(
+                dtype=hidden_states.dtype, device=hidden_states.device
+            )  # [B,10]
+            bbox_hidden_states = self.position_net(
+                boxes=bbox_raw,
+                masks=bbox_masks,
+                positive_embeddings=bbox_text_embeddings,
+            )  # "bbox": torch.Size([B, 300, 1536])
 
-            #bbox_ids固定为0
+            # bbox_ids固定为0
             if self.fix_bbox_ids:
-                #bbox_ids = torch.zeros(bbox_hidden_states.shape[0], bbox_hidden_states.shape[1], 3).to(device=bbox_hidden_states.device, dtype=bbox_hidden_states.dtype)
-                bbox_ids = -1 * torch.ones(bbox_hidden_states.shape[0], bbox_hidden_states.shape[1], 3).to(device=bbox_hidden_states.device, dtype=bbox_hidden_states.dtype)
+                # bbox_ids = torch.zeros(bbox_hidden_states.shape[0], bbox_hidden_states.shape[1], 3).to(device=bbox_hidden_states.device, dtype=bbox_hidden_states.dtype)
+                bbox_ids = -1 * torch.ones(
+                    bbox_hidden_states.shape[0], bbox_hidden_states.shape[1], 3
+                ).to(device=bbox_hidden_states.device, dtype=bbox_hidden_states.dtype)
             else:
                 # bbox_ids与其他ids不一样
-                bbox_ids = torch.zeros(bbox_hidden_states.shape[1], 3).to(device=bbox_hidden_states.device, dtype=bbox_hidden_states.dtype)
+                bbox_ids = torch.zeros(bbox_hidden_states.shape[1], 3).to(
+                    device=bbox_hidden_states.device, dtype=bbox_hidden_states.dtype
+                )
                 max_img_id = img_ids.max()
-                #print(f"max_img_id: {max_img_id}")
+                # print(f"max_img_id: {max_img_id}")
                 bbox_ids_bs = bbox_hidden_states.shape[1] // self.max_boxes_token_length
                 # 按批次填充bbox_ids
                 for i in range(bbox_ids_bs):
                     start_idx = i * self.max_boxes_token_length
                     end_idx = (i + 1) * self.max_boxes_token_length
                     bbox_ids[start_idx:end_idx] = max_img_id + 1 + i
-                #print("bbox_ids:", bbox_ids,bbox_ids.shape)
+                # print("bbox_ids:", bbox_ids,bbox_ids.shape)
 
             if bbox_ids.ndim == 3:
                 # logger.warning(
                 #     "Passing `bbox_ids` 3d torch.Tensor is deprecated."
                 #     "Please remove the batch dimension and pass it as a 2d torch Tensor"
                 # )
-                bbox_ids = bbox_ids[0] #[300,3]
+                bbox_ids = bbox_ids[0]  # [300,3]
 
             ids_for_bbox = torch.cat((bbox_ids, img_ids), dim=0)
             image_rotary_emb_for_bbox = self.pos_embed(ids_for_bbox)
@@ -805,8 +928,7 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
             bbox_masks = None
             image_rotary_emb_for_bbox = None
 
-        
-        #double
+        # double
         for index_block, block in enumerate(self.transformer_blocks):
             if torch.is_grad_enabled() and self.gradient_checkpointing:
 
@@ -819,17 +941,21 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
 
                     return custom_forward
 
-                ckpt_kwargs: Dict[str, Any] = {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-                encoder_hidden_states, hidden_states, bbox_hidden_states = torch.utils.checkpoint.checkpoint(
-                    create_custom_forward(block),
-                    hidden_states,
-                    encoder_hidden_states,
-                    temb,
-                    image_rotary_emb,
-                    bbox_hidden_states,
-                    image_rotary_emb_for_bbox,
-                    bbox_scale,
-                    **ckpt_kwargs
+                ckpt_kwargs: Dict[str, Any] = (
+                    {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
+                )
+                encoder_hidden_states, hidden_states, bbox_hidden_states = (
+                    torch.utils.checkpoint.checkpoint(
+                        create_custom_forward(block),
+                        hidden_states,
+                        encoder_hidden_states,
+                        temb,
+                        image_rotary_emb,
+                        bbox_hidden_states,
+                        image_rotary_emb_for_bbox,
+                        bbox_scale,
+                        **ckpt_kwargs,
+                    )
                 )
 
             else:
@@ -841,28 +967,35 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
                     bbox_hidden_states=bbox_hidden_states,
                     image_rotary_emb_for_bbox=image_rotary_emb_for_bbox,
                     bbox_scale=bbox_scale,
-                    joint_attention_kwargs=joint_attention_kwargs
-
-
+                    joint_attention_kwargs=joint_attention_kwargs,
                 )
 
             # controlnet residual
             if controlnet_block_samples is not None:
-                interval_control = len(self.transformer_blocks) / len(controlnet_block_samples)
+                interval_control = len(self.transformer_blocks) / len(
+                    controlnet_block_samples
+                )
                 interval_control = int(np.ceil(interval_control))
                 # For Xlabs ControlNet.
                 if controlnet_blocks_repeat:
                     hidden_states = (
-                        hidden_states + controlnet_block_samples[index_block % len(controlnet_block_samples)]
+                        hidden_states
+                        + controlnet_block_samples[
+                            index_block % len(controlnet_block_samples)
+                        ]
                     )
                 else:
-                    hidden_states = hidden_states + controlnet_block_samples[index_block // interval_control]
-        #single
+                    hidden_states = (
+                        hidden_states
+                        + controlnet_block_samples[index_block // interval_control]
+                    )
+        # single
         bbox_end_index = bbox_hidden_states.shape[1]
         txt_end_index = encoder_hidden_states.shape[1]
         hidden_states = torch.cat([encoder_hidden_states, hidden_states], dim=1)
         for index_block, block in enumerate(self.single_transformer_blocks):
             if torch.is_grad_enabled() and self.gradient_checkpointing:
+
                 def create_custom_forward(module, return_dict=None):
                     def custom_forward(*inputs):
                         if return_dict is not None:
@@ -872,8 +1005,10 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
 
                     return custom_forward
 
-                ckpt_kwargs: Dict[str, Any] = {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-                hidden_states,bbox_hidden_states = torch.utils.checkpoint.checkpoint(
+                ckpt_kwargs: Dict[str, Any] = (
+                    {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
+                )
+                hidden_states, bbox_hidden_states = torch.utils.checkpoint.checkpoint(
                     create_custom_forward(block),
                     hidden_states,
                     bbox_hidden_states,
@@ -886,28 +1021,42 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
                     **ckpt_kwargs,
                 )
             else:
-                hidden_states,bbox_hidden_states = block(
+                hidden_states, bbox_hidden_states = block(
                     hidden_states=hidden_states,
-                    bbox_hidden_states = bbox_hidden_states,
+                    bbox_hidden_states=bbox_hidden_states,
                     temb=temb,
                     image_rotary_emb=image_rotary_emb,
-                    image_rotary_emb_for_bbox =image_rotary_emb_for_bbox,
+                    image_rotary_emb_for_bbox=image_rotary_emb_for_bbox,
                     bbox_scale=bbox_scale,
-                    bbox_end_index = bbox_end_index,
-                    txt_end_index = txt_end_index,
+                    bbox_end_index=bbox_end_index,
+                    txt_end_index=txt_end_index,
                     joint_attention_kwargs=joint_attention_kwargs,
                 )
 
             # controlnet residual
             if controlnet_single_block_samples is not None:
-                interval_control = len(self.single_transformer_blocks) / len(controlnet_single_block_samples)
+                interval_control = len(self.single_transformer_blocks) / len(
+                    controlnet_single_block_samples
+                )
                 interval_control = int(np.ceil(interval_control))
                 hidden_states[:, encoder_hidden_states.shape[1] :, ...] = (
                     hidden_states[:, encoder_hidden_states.shape[1] :, ...]
                     + controlnet_single_block_samples[index_block // interval_control]
                 )
-        
 
+        hidden_states = hidden_states[:, encoder_hidden_states.shape[1] :, ...]
+
+        hidden_states = self.norm_out(hidden_states, temb)
+        output = self.proj_out(hidden_states)
+
+        if USE_PEFT_BACKEND:
+            # remove `lora_scale` from each PEFT layer
+            unscale_lora_layers(self, lora_scale)
+
+        if not return_dict:
+            return (output,)
+
+        return Transformer2DModelOutput(sample=output)
         hidden_states = hidden_states[:, encoder_hidden_states.shape[1] :, ...]
 
         hidden_states = self.norm_out(hidden_states, temb)
