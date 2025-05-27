@@ -5,7 +5,7 @@ import {
   WHITE,
   OBJ_COLOR_TRANS_DARK,
   ATTR_COLOR_TRANS_DARK,
-  REL_COLOR_TRANS_DARK
+  REL_COLOR_TRANS_DARK,
 } from "../constants";
 
 // styleUtils.js
@@ -21,12 +21,15 @@ export function getInstanceNodeStyle(type, options = {}) {
     background: WHITE,
   };
 
+  if (type === "object-group") {
+    return { ...base, background: OBJ_COLOR_TRANS_DARK };
+  }
   if (type === "attribute") {
     return {
       ...base,
       background: options.hasValue ? ATTR_COLOR_TRANS_DARK : WHITE,
       border: options.hasValue ? "0px solid" : "3px dashed",
-      // borderColor: options.hasValue ? null : ATTR_COLOR,  
+      // borderColor: options.hasValue ? null : ATTR_COLOR,
       fontStyle: options.hasValue ? "normal" : "italic",
     };
   }

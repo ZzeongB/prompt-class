@@ -1,5 +1,5 @@
 export function convertClassGroup(nodes, edges) {
-  const classGroups = nodes.filter((n) => n.type === "class-group");
+  const classGroups = nodes.filter((n) => n.type === "object-group");
 
   return classGroups.map((classNode) => {
     const classId = classNode.id;

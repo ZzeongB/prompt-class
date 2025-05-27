@@ -20,17 +20,22 @@ import {
   handleConnectEnd,
 } from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
+import { useInstanceGraph } from "../context/InstanceGraphContext.js";
 import { createNewObjectNode } from "../utils/node/nodeCreateUtils";
 import { createInstance } from "../utils/instanceBuilder";
 import InstanceNode from "../components/InstanceNode.js";
-import { syncMovedNodePositions, syncParentChildNodePositions } from "../utils/node/syncNodePositions.js";
+import {
+  syncMovedNodePositions,
+  syncParentChildNodePositions,
+} from "../utils/node/syncNodePositions.js";
+import { recalculateLayout } from "../utils/recalculateLayout.js";
 
 const edgeTypes = {
   main: DefaultEdge,
 };
 
 const nodeTypes = {
-  "class-group": ClassGroupNode,
+  "object-group": ClassGroupNode,
   "instance-group": InstanceGroupNode,
   class: ClassNode,
   instance: InstanceNode,
@@ -60,43 +65,112 @@ function getVisibleNodes(allNodes) {
 function InstanceBoard() {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
-  const { classNodes, classEdges, setClassNodes, setClassEdges } =
-    useClassGraph();
+  const { classNodes, classEdges } = useClassGraph();
+  const { instanceNodes, instanceEdges } = useInstanceGraph();
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  const processedInstanceIds = useRef(new Set());
+  const nodePositionMap = useRef(new Map()); // id -> {x, y}
+  const gapY = 100; // Y 간격
+
+  useEffect(() => {
+    const newNodesToAdd = [];
+    const newEdgesToAdd = [];
+
+    const filteredInstanceNodes = instanceNodes.filter(
+      (node) => node.type !== "resizable"
+    );
+
+    filteredInstanceNodes.forEach((node, index) => {
+      if (processedInstanceIds.current.has(node.id)) return; // skip already handled
+      console.log("Processeed Instance Node:", processedInstanceIds.current);
+
+      const classNode = classNodes.find((c) => c.id === node.data?.classId);
+      if (!classNode) return;
+
+      if (!nodePositionMap.current.has(node.id)) {
+        const position = {
+          x: 200,
+          y: 200 + index * gapY,
+        };
+        nodePositionMap.current.set(node.id, position);
+      }
+      const finalPosition = nodePositionMap.current.get(node.id);
+
+      const { newNodes, newEdges } = createInstance(
+        finalPosition,
+        classNode.id,
+        classNode.data.label || "New Instance",
+        classNode.type || "object",
+        screenToFlowPosition,
+        nodes,
+        classNodes,
+        classEdges,
+        false // resizable
+      );
+
+      newNodesToAdd.push(...newNodes);
+      newEdgesToAdd.push(...newEdges);
+
+      processedInstanceIds.current.add(node.id);
+    });
+
+    if (newNodesToAdd.length > 0) {
+      setNodes((prev) => {
+        console.log("Adding new nodes:", newNodesToAdd);
+        const updated = [...prev, ...newNodesToAdd];
+
+        // Recalculate layout after adding new nodes
+        return recalculateLayout({ nodes: updated });
+        // return updated;
+      });
+    }
+    if (newEdgesToAdd.length > 0) {
+      setEdges((prev) => [...prev, ...newEdgesToAdd]);
+    }
+  }, [instanceNodes, classNodes, classEdges]);
+
+  // useEffect(() => {
+  //   setNodes((prev) => {
+  //     recalculateLayout({ nodes: prev });
+  //   });
+  // }, [nodes, edges]);
 
   // useEffect(() => {
   //   setClassNodes(nodes);
   //   setClassEdges(edges);
   // }, [nodes, edges, setClassNodes, setClassEdges]);
 
-  // Handle drag and drop
-  const [id, , type, setType, , setGhostPos, label, setLabel, dragSource, ] = useDnD();
+  // //--------- Handle drag and drop ---------
+  // const [id, , type, setType, , setGhostPos, label, setLabel, dragSource, ] = useDnD();
 
-  const onMouseUp = (event) => {
-    if (dragSource !== "class") return;
-    if (id && type) {
-      const { newNodes, newEdges } = createInstance(
-        event,
-        id,
-        label,
-        type,
-        screenToFlowPosition,
-        nodes,
-        classNodes,
-        classEdges,
-        false, // resizable
-      );
+  // const onMouseUp = (event) => {
+  //   if (dragSource !== "class") return;
+  //   if (id && type) {
+  //     const { newNodes, newEdges } = createInstance(
+  //       event,
+  //       id,
+  //       label,
+  //       type,
+  //       screenToFlowPosition,
+  //       nodes,
+  //       classNodes,
+  //       classEdges,
+  //       false, // resizable
+  //     );
 
-      setNodes((prevNodes) => [...prevNodes, ...newNodes]);
-      setEdges((prevEdges) => [...prevEdges, ...newEdges]);
+  //     setNodes((prevNodes) => [...prevNodes, ...newNodes]);
+  //     setEdges((prevEdges) => [...prevEdges, ...newEdges]);
 
-      setType(null);
-      setLabel(null);
-      setGhostPos({ x: 0, y: 0 });
-    }
-  };
+  //     setType(null);
+  //     setLabel(null);
+  //     setGhostPos({ x: 0, y: 0 });
+  //   }
+  // }\
+  //  ---------------------------
+
   const onConnect = useCallback(
     (params) => handleConnect({ params, nodes, setNodes, setEdges }),
     [nodes, setNodes, setEdges]
@@ -116,44 +190,72 @@ function InstanceBoard() {
     [nodes, setNodes, setEdges, screenToFlowPosition]
   );
 
-  const handlePaneClick = useCallback(
-    (event) => {
-      if (event.button !== 0) return;
+  // const handleToggleCollapse = (id) => {
+  //   setNodes(
+  //     nodes.map((node) => {
+  //       if (node.id === id) {
+  //         const isCollapsed = !node.data?.collapsed;
+  //         return {
+  //           ...node,
+  //           data: {
+  //             ...node.data,
+  //             collapsed: isCollapsed,
+  //           },
+  //           style: {
+  //             ...node.style,
+  //             height: isCollapsed ? 50 : node.data?.expandedHeight ?? 200,
+  //           },
+  //         };
+  //       }
+  //       return node;
+  //     })
+  //   );
+  // };
 
-      const position = screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
+  // const handlePaneClick = useCallback(
+  //   (event) => {
+  //     if (event.button !== 0) return;
 
-      const newNode = createNewObjectNode({
-        position,
-        currentNodeCount: nodes.length,
-      });
+  //     const position = screenToFlowPosition({
+  //       x: event.clientX,
+  //       y: event.clientY,
+  //     });
 
-      if (newNode) {
-        setNodes((nds) => [...nds, newNode]);
-      }
-    },
-    [screenToFlowPosition, nodes.length, setNodes]
-  );
+  //     const newNode = createNewObjectNode({
+  //       position,
+  //       currentNodeCount: nodes.length,
+  //     });
+
+  //     if (newNode) {
+  //       setNodes((nds) => [...nds, newNode]);
+  //     }
+  //   },
+  //   [screenToFlowPosition, nodes.length, setNodes]
+  // );
 
   const handleNodesChange = useCallback(
-  (changes) => {
-    let syncedNodes = syncMovedNodePositions({ changes, prevNodes: nodes, edges });
-    syncedNodes = syncParentChildNodePositions({ changes, prevNodes: syncedNodes });
+    (changes) => {
+      let syncedNodes = syncMovedNodePositions({
+        changes,
+        prevNodes: nodes,
+        edges,
+      });
+      syncedNodes = syncParentChildNodePositions({
+        changes,
+        prevNodes: syncedNodes,
+      });
 
-    setNodes(syncedNodes);
-    onNodesChange(changes);
-  },
-  [nodes, setNodes, onNodesChange, edges]
-);
-
+      setNodes(syncedNodes);
+      onNodesChange(changes);
+    },
+    [nodes, setNodes, onNodesChange, edges]
+  );
 
   return (
     <div
       className="reactflow-wrapper"
       ref={reactFlowWrapper}
-      onMouseUp={onMouseUp}
+      // onMouseUp={onMouseUp}
     >
       <ReactFlow
         nodes={getVisibleNodes(nodes)}
@@ -162,7 +264,7 @@ function InstanceBoard() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
-        onPaneClick={handlePaneClick}
+        // onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}

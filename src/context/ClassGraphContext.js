@@ -6,9 +6,10 @@ const ClassGraphContext = createContext();
 export const ClassGraphProvider = ({ children }) => {
   const [classNodes, setClassNodes] = useState([]);
   const [classEdges, setClassEdges] = useState([]);
+  const [structuredClasses, setStructuredClasses] = useState([]);
 
   return (
-    <ClassGraphContext.Provider value={{ classNodes, setClassNodes, classEdges, setClassEdges }}>
+    <ClassGraphContext.Provider value={{ classNodes, setClassNodes, classEdges, setClassEdges, structuredClasses, setStructuredClasses }}>
       {children}
     </ClassGraphContext.Provider>
   );

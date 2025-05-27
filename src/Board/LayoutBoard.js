@@ -18,17 +18,16 @@ import {
   handleConnectEnd,
 } from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
+import { useInstanceGraph } from "../context/InstanceGraphContext";
 import { useImage } from "../context/ImageContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
 import { extractSentencesAndBoxes } from "../utils/instanceExtractor";
-import { generateImageFromInstanceData } from "../api/generateImage";
 import {
   handleMouseDown,
   handleMouseMove,
   handleMouseUp,
 } from "../utils/layout/handleTempLayout";
 import { createInstance } from "../utils/instanceBuilder";
-import { convertClassGroup } from "../utils/convertClassGroup.js";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -53,7 +52,8 @@ function LayoutBoard({ onImageGenerated }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
-  const { classNodes, classEdges } = useClassGraph();
+  const { classNodes, classEdges, structuredClasses } = useClassGraph();
+  const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
   const { setImage, setGlobalCaption } = useImage();
   const [dragState, setDragState] = useState(null);
 
@@ -67,6 +67,7 @@ function LayoutBoard({ onImageGenerated }) {
 
   const onMouseUp = (event) => {
     if (dragState?.rect && dragState?.start) {
+      console.log("dragState", dragState);
       handleMouseUp(
         dragState,
         setDragState,
@@ -76,6 +77,7 @@ function LayoutBoard({ onImageGenerated }) {
       );
       return;
     } else {
+      console.log("onMouseUp", event, id, type);
       if (id && type) {
         const { newNodes, newEdges } = createInstance(
           event,
@@ -85,11 +87,14 @@ function LayoutBoard({ onImageGenerated }) {
           screenToFlowPosition,
           nodes,
           classNodes,
-          classEdges
+          classEdges,
         );
 
         setNodes((prevNodes) => [...prevNodes, ...newNodes]);
         setEdges((prevEdges) => [...prevEdges, ...newEdges]);
+
+        setInstanceNodes((prevNodes) => [...prevNodes, ...newNodes]);
+        setInstanceEdges((prevEdges) => [...prevEdges, ...newEdges]);
 
         setType(null);
         setLabel(null);
@@ -133,18 +138,9 @@ function LayoutBoard({ onImageGenerated }) {
   );
 
   const handleClick = async () => {
-    console.log("classNodes", classNodes);
-    console.log("classEdges", classEdges);
-    const structuredClasses = convertClassGroup(classNodes, classEdges);
-    console.log("grouped",structuredClasses);
-
     const result = extractSentencesAndBoxes(
       nodes,
       edges,
-      // {
-      //   nodes: classNodes,
-      //   edges: classEdges,
-      // },
       structuredClasses,
       flowToScreenPosition
     );

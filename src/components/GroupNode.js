@@ -9,6 +9,7 @@ import { useDnD } from "../context/DragAndDropContext";
 export default function GroupNode({
   id,
   data,
+  onToggleCollapse,
   dragSourceType,
   forceType = null,
   withBackground = false,
@@ -35,29 +36,6 @@ export default function GroupNode({
 
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
-  };
-
-  const toggleCollapse = () => {
-    const nodes = getNodes();
-    setNodes(
-      nodes.map((node) => {
-        if (node.id === id) {
-          const isCollapsed = !node.data?.collapsed;
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              collapsed: isCollapsed,
-            },
-            style: {
-              ...node.style,
-              height: isCollapsed ? 50 : node.data?.expandedHeight ?? 200,
-            },
-          };
-        }
-        return node;
-      })
-    );
   };
 
   const color =
@@ -88,7 +66,7 @@ export default function GroupNode({
         ⠿
       </div>
       <div
-        onClick={toggleCollapse}
+        onClick={() => onToggleCollapse(id)}
         onMouseDown={onDragStart}
         className="nodrag"
         style={{

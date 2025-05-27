@@ -7,9 +7,9 @@ function ResizableNode({ data  }) {
     <div>
       <NodeResizer
         color={
-          data.type === "object"
+          data.type === "object" || data.type === "object-group"
             ? OBJ_COLOR
-            : data.type === "attribute"
+            : data.type === "attribute" || data.type === "attribute-group"
             ? ATTR_COLOR
             : REL_COLOR
         }

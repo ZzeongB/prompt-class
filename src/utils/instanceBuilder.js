@@ -15,7 +15,7 @@ export function createInstance(
 
   let newNodes = [];
   let newEdges = [];
-  if (type === "class-group") {
+  if (type === "object-group" && resizable === false) {
     const uniqueId = Date.now(); // 고유 ID 생성
     const groupNode = classNodes.find((n) => n.id === id);
     const childNodes = classNodes.filter((n) => n.parentNode === id);
@@ -23,10 +23,7 @@ export function createInstance(
     if (!groupNode) return { newNodes: [], newEdges: [] };
 
     // 1. 기준 위치 계산
-    const basePosition = screenToFlowPosition({
-      x: event.clientX,
-      y: event.clientY,
-    });
+    const basePosition = event;
     const deltaX = basePosition.x - groupNode.position.x;
     const deltaY = basePosition.y - groupNode.position.y;
 
@@ -47,8 +44,14 @@ export function createInstance(
       data: {
         ...groupNode.data,
         type: groupNode.data.type, // object 등 그대로
+        collapsed: true, // 초기 상태는 펼쳐진 상태
       },
       class: id,
+      updatedAt: new Date().toISOString(),
+      style: {
+        ...groupNode.style,
+        height: 50, // 그룹 높이 조정
+      }
     };
 
     // // 4. 자식 노드 변환
@@ -112,7 +115,9 @@ export function createInstance(
           id: newId,
           type: "instance",
           position: newPosition,
-          parentNode: n.parentNode ? `instance-${n.parentNode}-${uniqueId}` : undefined,
+          parentNode: n.parentNode
+            ? `instance-${n.parentNode}-${uniqueId}`
+            : undefined,
           extent: n.extent,
           data: {
             ...n.data,

@@ -21,13 +21,14 @@ import {
 import { useClassGraph } from "../context/ClassGraphContext";
 import { createNewObjectNode } from "../utils/node/nodeCreateUtils";
 import { syncMovedNodePositions, syncParentChildNodePositions } from "../utils/node/syncNodePositions.js";
+import { convertClassGroup } from "../utils/convertClassGroup.js";
 
 const edgeTypes = {
   main: DefaultEdge,
 };
 
 const nodeTypes = {
-  'class-group': ClassGroupNode,
+  'object-group': ClassGroupNode,
   class: ClassNode,
   instance: ClassNode,
 };
@@ -43,18 +44,12 @@ const defaultEdgeOptions = {
 function getVisibleNodes(allNodes) {
   const collapsed = new Set(
     allNodes
-      .filter((n) => n.type === "class-group" && n.data?.collapsed)
+      .filter((n) => n.type === "object-group" && n.data?.collapsed)
       .map((n) => n.id)
   );
 
-  console.log(allNodes.filter((n) => {
-    if (n.type === "class-group") return true;
-
-    return !collapsed.has(n.parentNode);
-  }))
-
   return allNodes.filter((n) => {
-    if (n.type === "class-group") return true;
+    if (n.type === "object-group") return true;
 
     return !collapsed.has(n.parentNode);
   });
@@ -64,7 +59,7 @@ function getVisibleNodes(allNodes) {
 function ClassBoard() {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
-  const { setClassNodes, setClassEdges } = useClassGraph();
+  const { setClassNodes, setClassEdges, setStructuredClasses } = useClassGraph();
 
   const { nodes: initialNodes, edges: initialEdges } = classToFlow(classSample);
 
@@ -74,7 +69,9 @@ function ClassBoard() {
   useEffect(() => {
     setClassNodes(nodes);
     setClassEdges(edges);
-  }, [nodes, edges, setClassNodes, setClassEdges]);
+    const structuredClasses = convertClassGroup(nodes, edges);
+    setStructuredClasses(structuredClasses);
+  }, [nodes, edges, setClassNodes, setClassEdges, setStructuredClasses]);
 
   const onConnect = useCallback(
     (params) => handleConnect({ params, nodes, setNodes, setEdges }),

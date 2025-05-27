@@ -41,7 +41,7 @@ export function classToFlow(classDefs) {
     // 2. 클래스 박스
     nodes.push({
       id: classId,
-      type: "class-group",
+      type: "object-group",
       data: {
         label: cls.name,
         collapsed: false,
