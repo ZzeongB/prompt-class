@@ -54,6 +54,8 @@ export function classToFlow(classDefs) {
         height: totalHeight,
         backgroundColor: "transparent",
         zIndex: -1,
+          pointerEvents: 'auto',
+
       },
     });
 

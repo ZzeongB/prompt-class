@@ -3,9 +3,9 @@ import {
   ATTR_COLOR,
   REL_COLOR,
   WHITE,
-  BORDER_COLOR,
-  EDGE_COLOR,
-  BACKGROUND_COLOR,
+  OBJ_COLOR_TRANS_DARK,
+  ATTR_COLOR_TRANS_DARK,
+  REL_COLOR_TRANS_DARK
 } from "../constants";
 
 // styleUtils.js
@@ -24,19 +24,19 @@ export function getInstanceNodeStyle(type, options = {}) {
   if (type === "attribute") {
     return {
       ...base,
-      background: options.hasValue ? ATTR_COLOR : WHITE,
+      background: options.hasValue ? ATTR_COLOR_TRANS_DARK : WHITE,
       border: options.hasValue ? "0px solid" : "3px dashed",
-      borderColor: options.hasValue ? null : ATTR_COLOR,  
+      // borderColor: options.hasValue ? null : ATTR_COLOR,  
       fontStyle: options.hasValue ? "normal" : "italic",
     };
   }
 
   if (type === "object") {
-    return { ...base, background: OBJ_COLOR };
+    return { ...base, background: OBJ_COLOR_TRANS_DARK };
   }
 
   if (type === "relationship") {
-    return { ...base, background: REL_COLOR };
+    return { ...base, background: REL_COLOR_TRANS_DARK };
   }
 
   if (type === "relationship-layout") {

@@ -13,12 +13,140 @@ export function createInstance(
 ) {
   if (!type || !label) return;
 
+  let newNodes = [];
+  let newEdges = [];
+  if (type === "class-group") {
+    const uniqueId = Date.now(); // 고유 ID 생성
+    const groupNode = classNodes.find((n) => n.id === id);
+    const childNodes = classNodes.filter((n) => n.parentNode === id);
+
+    if (!groupNode) return { newNodes: [], newEdges: [] };
+
+    // 1. 기준 위치 계산
+    const basePosition = screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    });
+    const deltaX = basePosition.x - groupNode.position.x;
+    const deltaY = basePosition.y - groupNode.position.y;
+
+    // 2. ID 매핑용 Map
+    const idMap = new Map();
+
+    // 3. 그룹 노드 먼저 변환
+    // 고유 ID 생성을 위해 시간 또는 UUID 등 사용 가능
+    // 시간 기반: 겹칠 확률이 낮음
+    const groupInstanceId = `instance-${groupNode.id}-${uniqueId}`;
+    idMap.set(groupNode.id, groupInstanceId);
+
+    const newGroupNode = {
+      ...groupNode,
+      id: groupInstanceId,
+      type: "instance-group",
+      position: basePosition,
+      data: {
+        ...groupNode.data,
+        type: groupNode.data.type, // object 등 그대로
+      },
+      class: id,
+    };
+
+    // // 4. 자식 노드 변환
+    // const newChildNodes = childNodes.map((n) => {
+    //   const newId = `instance-${n.id}`;
+    //   idMap.set(n.id, newId);
+
+    //   return {
+    //     ...n,
+    //     id: newId,
+    //     type: "instance",
+    //     position: {
+    //       x: n.position.x + deltaX,
+    //       y: n.position.y + deltaY,
+    //     },
+    //     parentNode: n.parentNode ? `instance-${n.parentNode}` : undefined,
+    //     extent: n.extent,
+    //     data: {
+    //       ...n.data,
+    //       type: n.data.type,
+    //     },
+    //   };
+    // });
+
+    const newChildNodes = childNodes
+      .map((n) => {
+        const newId = `instance-${n.id}-${uniqueId}`;
+        idMap.set(n.id, newId);
+
+        // 💡 위치 보정
+        const newPosition = {
+          x: n.position.x + deltaX,
+          y: n.position.y + deltaY,
+        };
+
+        // 💬 hasValue가 없는 attribute인 경우: 사용자 입력 받기
+        if (n.data.type === "attribute" && !n.data.hasValue) {
+          const inputValue = prompt(`${n.data.label} 값을 입력하세요`);
+          if (!inputValue) return null;
+
+          return {
+            ...n,
+            id: newId,
+            type: "instance",
+            position: newPosition,
+            parentNode: n.parentNode ? `instance-${n.parentNode}` : undefined,
+            extent: n.extent,
+            data: {
+              ...n.data,
+              value: inputValue,
+              hasValue: inputValue,
+              label: n.data.label,
+              type: "attribute",
+            },
+          };
+        }
+
+        // 그 외 일반 처리
+        return {
+          ...n,
+          id: newId,
+          type: "instance",
+          position: newPosition,
+          parentNode: n.parentNode ? `instance-${n.parentNode}-${uniqueId}` : undefined,
+          extent: n.extent,
+          data: {
+            ...n.data,
+            type: n.data.type,
+          },
+        };
+      })
+      .filter(Boolean); // ❌ 입력 안 한 경우 null이 생기지 않도록
+
+    // 5. 관련된 edge들도 가져오기
+    const allNodeIds = [groupNode.id, ...childNodes.map((n) => n.id)];
+    const newEdges = classEdges
+      .filter(
+        (e) => allNodeIds.includes(e.source) && allNodeIds.includes(e.target)
+      )
+      .map((e) => ({
+        ...e,
+        id: `instance-${e.id}-${uniqueId}`,
+        source: idMap.get(e.source),
+        target: idMap.get(e.target),
+      }));
+
+    return {
+      newNodes: [newGroupNode, ...newChildNodes],
+      newEdges,
+    };
+  }
+
   const position = screenToFlowPosition({
     x: event.clientX,
     y: event.clientY,
   });
 
-  const { newNodes, newEdges } = createInstanceWithAttributes(
+  ({ newNodes, newEdges } = createInstanceWithAttributes(
     id,
     label,
     type,
@@ -27,7 +155,7 @@ export function createInstance(
     classEdges,
     nodes.length,
     resizable
-  );
+  ));
 
   console.log("newNodes", newNodes);
   return {
@@ -100,9 +228,9 @@ export function createInstanceWithAttributes(
               y: position.y - 40,
             },
             data: {
-              label: `${attr.data.label}: ${inputValue}`,
+              label: attr.data.label,
               type: "attribute",
-              hasValue: true,
+              hasValue: inputValue,
               value: inputValue,
             },
           });

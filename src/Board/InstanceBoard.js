@@ -13,6 +13,7 @@ import { classSample } from "../classSample.ts";
 import DefaultEdge from "../components/DefaultEdge";
 import ClassNode from "../components/ClassNode";
 import ClassGroupNode from "../components/ClassGroupNode";
+import InstanceGroupNode from "../components/InstanceGroupNode";
 import { useDnD } from "../context/DragAndDropContext";
 import {
   handleConnect,
@@ -22,6 +23,7 @@ import { useClassGraph } from "../context/ClassGraphContext";
 import { createNewObjectNode } from "../utils/node/nodeCreateUtils";
 import { createInstance } from "../utils/instanceBuilder";
 import InstanceNode from "../components/InstanceNode.js";
+import { syncMovedNodePositions, syncParentChildNodePositions } from "../utils/node/syncNodePositions.js";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -29,6 +31,7 @@ const edgeTypes = {
 
 const nodeTypes = {
   "class-group": ClassGroupNode,
+  "instance-group": InstanceGroupNode,
   class: ClassNode,
   instance: InstanceNode,
 };
@@ -44,12 +47,12 @@ const defaultEdgeOptions = {
 function getVisibleNodes(allNodes) {
   const collapsed = new Set(
     allNodes
-      .filter((n) => n.type === "class-group" && n.data?.collapsed)
+      .filter((n) => n.type === "instance-group" && n.data?.collapsed)
       .map((n) => n.id)
   );
 
   return allNodes.filter((n) => {
-    if (n.type === "class-group") return true;
+    if (n.type === "instance-group") return true;
     return !collapsed.has(n.parentNode);
   });
 }
@@ -63,15 +66,16 @@ function InstanceBoard() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  useEffect(() => {
-    setClassNodes(nodes);
-    setClassEdges(edges);
-  }, [nodes, edges, setClassNodes, setClassEdges]);
+  // useEffect(() => {
+  //   setClassNodes(nodes);
+  //   setClassEdges(edges);
+  // }, [nodes, edges, setClassNodes, setClassEdges]);
 
   // Handle drag and drop
-  const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
+  const [id, , type, setType, , setGhostPos, label, setLabel, dragSource, ] = useDnD();
 
   const onMouseUp = (event) => {
+    if (dragSource !== "class") return;
     if (id && type) {
       const { newNodes, newEdges } = createInstance(
         event,
@@ -133,6 +137,18 @@ function InstanceBoard() {
     [screenToFlowPosition, nodes.length, setNodes]
   );
 
+  const handleNodesChange = useCallback(
+  (changes) => {
+    let syncedNodes = syncMovedNodePositions({ changes, prevNodes: nodes, edges });
+    syncedNodes = syncParentChildNodePositions({ changes, prevNodes: syncedNodes });
+
+    setNodes(syncedNodes);
+    onNodesChange(changes);
+  },
+  [nodes, setNodes, onNodesChange, edges]
+);
+
+
   return (
     <div
       className="reactflow-wrapper"
@@ -142,7 +158,7 @@ function InstanceBoard() {
       <ReactFlow
         nodes={getVisibleNodes(nodes)}
         edges={edges}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}

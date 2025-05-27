@@ -3,7 +3,7 @@ export const ATTR_COLOR = "#4DABF7";
 export const REL_COLOR = "#51CF66";
 
 
-function hexToRGBA(hex, alpha = 0.2) {
+function hexToRGBA(hex, alpha = 0.15) {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
@@ -13,6 +13,10 @@ function hexToRGBA(hex, alpha = 0.2) {
 export const OBJ_COLOR_TRANS = hexToRGBA(OBJ_COLOR);
 export const ATTR_COLOR_TRANS = hexToRGBA(ATTR_COLOR);
 export const REL_COLOR_TRANS = hexToRGBA(REL_COLOR);
+
+export const OBJ_COLOR_TRANS_DARK = hexToRGBA(OBJ_COLOR, 0.5);
+export const ATTR_COLOR_TRANS_DARK = hexToRGBA(ATTR_COLOR, 0.5);
+export const REL_COLOR_TRANS_DARK = hexToRGBA(REL_COLOR, 0.5);
 
 export const BORDER_COLOR = "#1a1a1a";
 export const BACKGROUND_COLOR = "#F8F8F8";

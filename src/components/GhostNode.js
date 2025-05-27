@@ -1,14 +1,18 @@
-import { OBJ_COLOR_TRANS, REL_COLOR_TRANS, ATTR_COLOR_TRANS } from "../utils/constants";
+import {
+  OBJ_COLOR_TRANS,
+  REL_COLOR_TRANS,
+  ATTR_COLOR_TRANS,
+} from "../utils/constants";
 import { useDnD } from "../context/DragAndDropContext";
 const GhostNode = () => {
-  const [, , type, , position, , label, ] = useDnD();
+  const [, , type, , position, , label] = useDnD();
 
   if (!type) return null;
 
   return (
     <div
       style={{
-        pointerEvents: 'none', // ✅ 이거 없으면 onDrop 안 먹힘
+        pointerEvents: "none", // ✅ 이거 없으면 onDrop 안 먹힘
         position: "fixed",
         top: position.y,
         left: position.x,
@@ -22,7 +26,14 @@ const GhostNode = () => {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: type === "attribute" ? ATTR_COLOR_TRANS : type === "object" ? OBJ_COLOR_TRANS : type === "relationship" ? REL_COLOR_TRANS : "#D6D6FF",
+        background:
+          type === "attribute"
+            ? ATTR_COLOR_TRANS
+            : (type === "object") | (type === "class-group")
+            ? OBJ_COLOR_TRANS
+            : type === "relationship"
+            ? REL_COLOR_TRANS
+            : "#D6D6FF",
         fontSize: "12px",
       }}
     >

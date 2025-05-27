@@ -7,9 +7,10 @@ export const DnDProvider = ({ children }) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [label, setLabel] = useState(null);
   const [id, setId] = useState(null);
+  const [dragSource, setDragSource] = useState(null);
 
   return (
-    <DnDContext.Provider value={[id, setId, type, setType, position, setPosition, label, setLabel]}>
+    <DnDContext.Provider value={[id, setId, type, setType, position, setPosition, label, setLabel, dragSource, setDragSource]}>
       {children}
     </DnDContext.Provider>
   );

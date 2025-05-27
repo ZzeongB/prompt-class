@@ -20,6 +20,7 @@ import {
 } from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { createNewObjectNode } from "../utils/node/nodeCreateUtils";
+import { syncMovedNodePositions, syncParentChildNodePositions } from "../utils/node/syncNodePositions.js";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -46,8 +47,15 @@ function getVisibleNodes(allNodes) {
       .map((n) => n.id)
   );
 
+  console.log(allNodes.filter((n) => {
+    if (n.type === "class-group") return true;
+
+    return !collapsed.has(n.parentNode);
+  }))
+
   return allNodes.filter((n) => {
     if (n.type === "class-group") return true;
+
     return !collapsed.has(n.parentNode);
   });
 }
@@ -108,12 +116,24 @@ function ClassBoard() {
     [screenToFlowPosition, nodes.length, setNodes]
   );
 
+  const handleNodesChange = useCallback(
+  (changes) => {
+    let syncedNodes = syncMovedNodePositions({ changes, prevNodes: nodes, edges });
+    syncedNodes = syncParentChildNodePositions({ changes, prevNodes: syncedNodes });
+
+    setNodes(syncedNodes);
+    onNodesChange(changes);
+  },
+  [nodes, setNodes, onNodesChange, edges]
+);
+
+
   return (
     <div className="reactflow-wrapper" ref={reactFlowWrapper}>
       <ReactFlow
         nodes={getVisibleNodes(nodes)}
         edges={edges}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
