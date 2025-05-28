@@ -21,8 +21,6 @@ function TempResizableNode({ id, data, width, height }) {
     false
   );
 
-  console.log("crop_box", crop_box);
-
   const { image, globalCaption } = useImage();
   return (
     <div>

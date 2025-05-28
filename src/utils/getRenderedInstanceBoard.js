@@ -6,6 +6,7 @@ export function getRenderedInstanceBoard({
   classNodes,
   classEdges,
   screenToFlowPosition,
+  collapsedClassMap = {},
 }) {
   const allNodes = [];
   const allEdges = [];
@@ -22,6 +23,10 @@ export function getRenderedInstanceBoard({
     const position = { x: 0, y: index * gapY };
     nodePositionMap.set(node.id, position);
 
+    const isCollapsed = collapsedClassMap.hasOwnProperty(node.data.instanceId)
+    ? collapsedClassMap[node.data.instanceId]
+    : true;
+
     const { newNodes, newEdges } = createInstance(
       position,
       classNode.id,
@@ -31,12 +36,16 @@ export function getRenderedInstanceBoard({
       [],
       classNodes,
       classEdges,
-      false
+      false,
+      node.id,
+      node.data.label || "Instance",
+      node.updatedAt,
+      isCollapsed
     );
 
     allNodes.push(...newNodes);
     allEdges.push(...newEdges);
   });
 
-  return {nodes: recalculateLayout({ nodes: allNodes }), edges: allEdges};
+  return { nodes: recalculateLayout({ nodes: allNodes }), edges: allEdges };
 }

@@ -10,14 +10,18 @@ export function createInstance(
   nodes,
   classNodes,
   classEdges,
-  resizable = true
+  resizable = true,
+  instanceId = null,
+  instanceLabel = null,
+  updatedAt = new Date().toISOString(),
+  collapsed = false
 ) {
   if (!type || !label) return;
 
   let newNodes = [];
   let newEdges = [];
+  const uniqueId = uuidv4(); // 고유 ID 생성
   if (type === "object-group" && resizable === false) {
-    const uniqueId = uuidv4(); // 고유 ID 생성
     const groupNode = classNodes.find((n) => n.id === id);
     const childNodes = classNodes.filter((n) => n.parentNode === id);
 
@@ -44,13 +48,16 @@ export function createInstance(
       position: basePosition,
       data: {
         ...groupNode.data,
+        label: instanceLabel || groupNode.data.label, // 인스턴스 라벨
         type: groupNode.data.type, // object 등 그대로
-        collapsed: groupNode.data.collapsed, // 초기 상태는 펼쳐진 상태
+        collapsed: collapsed, // 초기 상태는 펼쳐진 상태
+        instanceId: instanceId,
       },
       class: id,
-      updatedAt: new Date().toISOString(),
+      updatedAt: updatedAt,
       style: {
         ...groupNode.style,
+        height: collapsed ? 50 : groupNode.style.height, // collapsed 상태에 따라 높이 조정
       },
     };
 
@@ -92,8 +99,6 @@ export function createInstance(
           const inputValue = prompt(`${n.data.label} 값을 입력하세요`);
           if (!inputValue) return null;
 
-          console.log(n);
-
           return {
             ...n,
             id: newId,
@@ -109,7 +114,9 @@ export function createInstance(
               hasValue: inputValue,
               label: n.data.label,
               type: "attribute",
+              instanceId: instanceId,
             },
+            updatedAt: updatedAt  
           };
         }
 
@@ -126,7 +133,9 @@ export function createInstance(
           data: {
             ...n.data,
             type: n.data.type,
+            instanceId: instanceId,
           },
+          updatedAt: new Date().toISOString(),
         };
       })
       .filter(Boolean); // ❌ 입력 안 한 경우 null이 생기지 않도록
@@ -162,11 +171,10 @@ export function createInstance(
     position,
     classNodes,
     classEdges,
-    nodes.length,
+    uniqueId,
     resizable
   ));
 
-  console.log("newNodes", newNodes);
   return {
     newNodes,
     newEdges,
@@ -180,16 +188,18 @@ export function createInstanceWithAttributes(
   position,
   classNodes,
   classEdges,
-  currentNodeCount,
+  uniqueId,
   resizable = true
 ) {
-  const sharedId = `instance-${id.split("-")[1]}-${currentNodeCount}`;
+  const sharedId = `instance-${id.split("-")[1]}-${uniqueId}`;
 
   const newNode_data = {
     id: `${sharedId}`,
     type: "instance",
     position,
-    data: { label, type, sharedId, classId: id },
+    data: { label, type, sharedId, classId: id, instanceId: sharedId },
+    updatedAt: new Date().toISOString(),
+
     //   origin: [0.5, 0.5],
   };
 
@@ -197,7 +207,7 @@ export function createInstanceWithAttributes(
     id: `${sharedId}-resizable`,
     type: "resizable",
     position: { x: position.x, y: position.y + 30 },
-    data: { label, type, sharedId, classId: id },
+    data: { label, type, sharedId, classId: id, instanceId: sharedId },
     //   origin: [0.5, 0.5],
   };
 
@@ -242,6 +252,7 @@ export function createInstanceWithAttributes(
               hasValue: inputValue,
               value: inputValue,
             },
+            updatedAt: new Date().toISOString(),
           });
 
           newAttrEdges.push({

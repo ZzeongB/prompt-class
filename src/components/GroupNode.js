@@ -65,7 +65,9 @@ export default function GroupNode({
         ⠿
       </div>
       <div
-        onClick={() => onToggleCollapse(id)}
+        onClick={() => {
+          onToggleCollapse(id);
+        }}
         onMouseDown={onDragStart}
         className="nodrag"
         style={{

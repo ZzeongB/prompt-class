@@ -1,4 +1,10 @@
-import React, { useEffect, useCallback, useRef } from "react";
+import React, {
+  useEffect,
+  useCallback,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
 import {
   ReactFlow,
   useNodesState,
@@ -24,17 +30,10 @@ import {
   syncMovedNodePositions,
   syncParentChildNodePositions,
 } from "../utils/node/syncNodePositions.js";
-import { getRenderedInstanceBoard } from "../utils/syncInstancesWithClassGraph.js";
+import { getRenderedInstanceBoard } from "../utils/getRenderedInstanceBoard.js";
 
 const edgeTypes = {
   main: DefaultEdge,
-};
-
-const nodeTypes = {
-  "object-group": ClassGroupNode,
-  "instance-group": InstanceGroupNode,
-  class: ClassNode,
-  instance: InstanceNode,
 };
 
 const defaultEdgeOptions = {
@@ -67,12 +66,33 @@ function InstanceBoard() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
+  const [collapsedClassMap, setCollapsedClassMap] = useState({});
+
+  // useEffect(() => {
+  //   console.log("InstanceBoard mounted", nodes.filter((n) => n.type === "instance-group"));
+  // }, [nodes]);
+
+  const nodeTypes = useMemo(
+    () => ({
+      "object-group": ClassGroupNode,
+      "instance-group": (props) => (
+        <InstanceGroupNode
+          {...props}
+          setCollapsedClassMap={setCollapsedClassMap}
+        />
+      ),
+      class: ClassNode,
+      instance: InstanceNode,
+    }),
+    [setCollapsedClassMap]
+  );
   useEffect(() => {
     const { nodes: newNodes, edges: newEdges } = getRenderedInstanceBoard({
       instanceNodes,
       classNodes,
       classEdges,
       screenToFlowPosition,
+      collapsedClassMap,
     });
 
     setNodes(newNodes);

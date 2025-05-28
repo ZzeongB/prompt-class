@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import {
   Handle,
   Position,
@@ -8,7 +8,10 @@ import {
   useNodesState,
 } from "@xyflow/react";
 import { getInstanceNodeStyle } from "../utils/node/nodeStyleUtils";
-import {handleObjectLayoutSave, handleRelationshipLayoutSave} from "../utils/layout/handleLayoutSave";
+import {
+  handleObjectLayoutSave,
+  handleRelationshipLayoutSave,
+} from "../utils/layout/handleLayoutSave";
 
 function LayoutNode({ id, data }) {
   const {
@@ -26,9 +29,50 @@ function LayoutNode({ id, data }) {
 
   const label = data.label;
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editLabel, setEditLabel] = useState(label);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleLabelUpdate = () => {
+    setNodes((prevNodes) =>
+      prevNodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              data: { ...node.data, label: editLabel, hasValue: editLabel },
+            }
+          : node
+      )
+    );
+    setIsEditing(false);
+  };
   return (
-    <div>
-      <NodeToolbar isVisible={"enabled"}>
+    <div
+      onMouseEnter={(e) => {
+        setIsHovered(true);
+      }}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <NodeToolbar
+        isVisible={isHovered || isEditing}
+        position={Position.Top}
+        style={{ top: "10px" }}
+      >
+        {!isEditing ? (
+          <button
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={() => setIsEditing(true)}
+          >
+            ✏️ Edit
+          </button>
+        ) : (
+          <button
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={handleLabelUpdate}
+          >
+            💾 Save
+          </button>
+        )}
         {data.type !== "attribute" && (
           <button
             onMouseDown={(e) => e.stopPropagation()}
@@ -52,7 +96,18 @@ function LayoutNode({ id, data }) {
         </button>
       </NodeToolbar>
 
-      <div style={style}>{label}</div>
+      <div style={style}>
+        {isEditing ? (
+          <input
+            value={editLabel}
+            onChange={(e) => setEditLabel(e.target.value)}
+            style={{ width: "90%", fontSize: "14px" }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          label
+        )}
+      </div>
       {!connection.inProgress && (
         <Handle
           className="classHandle"

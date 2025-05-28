@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ReactFlow,
   useNodesState,
@@ -54,7 +54,6 @@ function LayoutBoard({ onImageGenerated }) {
   const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges, structuredClasses } = useClassGraph();
   const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
-  const { setImage, setGlobalCaption } = useImage();
   const [dragState, setDragState] = useState(null);
 
   const onMouseDown = (e) => {
@@ -79,15 +78,28 @@ function LayoutBoard({ onImageGenerated }) {
     } else {
       console.log("onMouseUp", event, id, type);
       if (id && type) {
+        // 기존 노드들의 라벨 모음
+        const existingLabels = nodes.map((n) => n.data?.label).filter(Boolean);
+
+        // 중복 라벨 처리
+        let baseLabel = label;
+        let uniqueLabel = baseLabel;
+        let count = 1;
+
+        while (existingLabels.includes(uniqueLabel)) {
+          uniqueLabel = `${baseLabel}${count}`;
+          count++;
+        }
+
         const { newNodes, newEdges } = createInstance(
           event,
           id,
-          label,
+          uniqueLabel,
           type,
           screenToFlowPosition,
           nodes,
           classNodes,
-          classEdges,
+          classEdges
         );
 
         setNodes((prevNodes) => [...prevNodes, ...newNodes]);

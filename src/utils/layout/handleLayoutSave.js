@@ -67,8 +67,6 @@ export const handleRelationshipLayoutSave = (
   const sourceObj = getNode(data.source);
   const targetObj = getNode(data.target);
 
-  console.log(data)
-
   if (!sourceObj || !targetObj) {
     console.warn("❗ 연결된 object 노드를 찾을 수 없습니다.");
     return;

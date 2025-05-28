@@ -14,9 +14,9 @@ export function recalculateLayout({ nodes }) {
     .filter((n) => groupTypes.has(n.type))
     .sort((a, b) => {
       const aTime =
-        a.data?.createdAt || parseInt(a.id.match(/\d+/)?.[0] || "0");
+        a.updatedAt || parseInt(a.id.match(/\d+/)?.[0] || "0");
       const bTime =
-        b.data?.createdAt || parseInt(b.id.match(/\d+/)?.[0] || "0");
+        b.updatedAt || parseInt(b.id.match(/\d+/)?.[0] || "0");
       return aTime - bTime;
     });
 

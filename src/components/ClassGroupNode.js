@@ -13,7 +13,6 @@ export default function ClassGroupNode(props) {
         const updated = prev.map((n) => {
           if (n.id === id) {
             const collapsed = !n.data?.collapsed;
-            console.log("Toggling collapse for node:", n.id, "to", collapsed);
             return {
               ...n,
               data: {

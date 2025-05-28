@@ -39,20 +39,18 @@ export function extractSentencesAndBoxes(
   flowToScreenPosition
 ) {
   const objectNodes = instanceNodes.filter(
-    (n) => n.type === "instance" && n.data.type === "object"
+    (n) => n.type === "instance" && (n.data.type === "object" || n.data.type === "object-group")
   );
   const resizableNodes = instanceNodes.filter(
-    (n) => n.type === "resizable" && n.data.type === "object"
+    (n) => n.type === "resizable" && (n.data.type === "object" || n.data.type === "object-group")
   );
 
   const sentences = [];
   const boxes = [];
 
   objectNodes.forEach((objNode) => {
-
     const classId = objNode.data.classId; // e.g., "class__두더지"
     const classEntry = classGraph.find((c) => `class-${c.class}` === classId);
-    console.log("classEntry", classEntry);
     if (!classEntry) return;
     const sentence = buildCompositionalSentence(classEntry);
     sentences.push(sentence);

@@ -4,15 +4,16 @@ import { recalculateLayout } from "../utils/recalculateLayout.js";
 import { useReactFlow, useUpdateNodeInternals } from "@xyflow/react";
 
 export default function InstanceGroupNode(props) {
+  const { setCollapsedClassMap, data } = props;
   const { setNodes } = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
 
   const handleToggleCollapse = (id) => {
+    let collapsed = !data?.collapsed ?? false;
     setNodes((prev) => {
       const updated = prev.map((n) => {
         if (n.id === id) {
-          const collapsed = !n.data?.collapsed;
-          console.log("Toggling collapse for node:", n.id, "to", collapsed);
+          collapsed = !n.data?.collapsed;
           return {
             ...n,
             data: {
@@ -33,10 +34,13 @@ export default function InstanceGroupNode(props) {
 
       const recalculated = recalculateLayout({ nodes: updated });
 
-      console.log("Recalculated layout:", recalculated);
-
       return recalculated;
     });
+
+    setCollapsedClassMap((prev) => ({
+      ...prev,
+      [data.instanceId]: collapsed,
+    }));
   };
 
   return (
