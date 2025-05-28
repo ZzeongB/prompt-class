@@ -142,7 +142,7 @@ function ClassBoard() {
         fitView
         connectionLineStyle={{ stroke: "#000" }}
         connectionLineType="bezier"
-        nodeOrigin={[0.5, 0.5]} // 노드 중앙 기준
+        nodeOrigin={[0, 0]} // 노드 중앙 기준
       />
     </div>
   );

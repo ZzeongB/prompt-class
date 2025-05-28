@@ -105,16 +105,16 @@ export function getPosition(
     case "class":
       return {
         x: classX,
-        y: height / 2 - 90,
+        y: -75,
       };
     case "object":
       return {
-        x: classX - 50,
+        x: classX + 25,
         y: objectBaseY,
       };
     case "attribute":
       return {
-        x: classX + 50,
+        x: classX + 125,
         y: objectBaseY + attrIndex * attrGapY,
       };
     case "relationship": {
@@ -123,7 +123,7 @@ export function getPosition(
       const centerY = (sourceY + targetY) / 2;
 
       return {
-        x: classX,
+        x: classX + 50,
         y: centerY,
       };
     }

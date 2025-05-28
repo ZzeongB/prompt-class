@@ -14,7 +14,6 @@ export default function GroupNode({
   forceType = null,
   withBackground = false,
 }) {
-  const { getNodes, setNodes } = useReactFlow();
   const [, setId, , setType, , setPosition, , setLabel, , setDragSource] =
     useDnD();
 

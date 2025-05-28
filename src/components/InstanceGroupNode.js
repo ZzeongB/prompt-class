@@ -12,6 +12,7 @@ export default function InstanceGroupNode(props) {
       const updated = prev.map((n) => {
         if (n.id === id) {
           const collapsed = !n.data?.collapsed;
+          console.log("Toggling collapse for node:", n.id, "to", collapsed);
           return {
             ...n,
             data: {
@@ -30,7 +31,11 @@ export default function InstanceGroupNode(props) {
       // ⚠️ 핵심: 높이 변경을 React Flow에게 알림
       updateNodeInternals(id);
 
-      return recalculateLayout({ nodes: updated });
+      const recalculated = recalculateLayout({ nodes: updated });
+
+      console.log("Recalculated layout:", recalculated);
+
+      return recalculated;
     });
   };
 

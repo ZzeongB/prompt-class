@@ -1,4 +1,5 @@
 // src/utils/instanceBuilder.js
+import { v4 as uuidv4 } from "uuid";
 
 export function createInstance(
   event,
@@ -16,7 +17,7 @@ export function createInstance(
   let newNodes = [];
   let newEdges = [];
   if (type === "object-group" && resizable === false) {
-    const uniqueId = Date.now(); // 고유 ID 생성
+    const uniqueId = uuidv4(); // 고유 ID 생성
     const groupNode = classNodes.find((n) => n.id === id);
     const childNodes = classNodes.filter((n) => n.parentNode === id);
 
@@ -44,14 +45,13 @@ export function createInstance(
       data: {
         ...groupNode.data,
         type: groupNode.data.type, // object 등 그대로
-        collapsed: true, // 초기 상태는 펼쳐진 상태
+        collapsed: groupNode.data.collapsed, // 초기 상태는 펼쳐진 상태
       },
       class: id,
       updatedAt: new Date().toISOString(),
       style: {
         ...groupNode.style,
-        height: 50, // 그룹 높이 조정
-      }
+      },
     };
 
     // // 4. 자식 노드 변환
@@ -92,12 +92,16 @@ export function createInstance(
           const inputValue = prompt(`${n.data.label} 값을 입력하세요`);
           if (!inputValue) return null;
 
+          console.log(n);
+
           return {
             ...n,
             id: newId,
             type: "instance",
             position: newPosition,
-            parentNode: n.parentNode ? `instance-${n.parentNode}` : undefined,
+            parentNode: n.parentNode
+              ? `instance-${n.parentNode}-${uniqueId}`
+              : undefined,
             extent: n.extent,
             data: {
               ...n.data,
@@ -253,7 +257,7 @@ export function createInstanceWithAttributes(
 
   if (resizable) {
     return {
-      newNodes: [newNode_data, newNode_resizable, ...newAttrNodes],
+      newNodes: [newNode_resizable, newNode_data, ...newAttrNodes],
       newEdges: newAttrEdges,
     };
   } else {

@@ -1,8 +1,7 @@
 export function recalculateLayout({ nodes }) {
   if (!nodes || nodes?.length === 0) return [];
-  console.log("Recalculating layout for nodes:", nodes);
   const gapY = 50;
-  let currentY = 200;
+  let currentY = 0;
 
   const groupTypes = new Set([
     "object-group",
@@ -26,7 +25,6 @@ export function recalculateLayout({ nodes }) {
 
   for (const group of groupNodes) {
     const groupHeight = group.style.height || 100;
-
     // 2. 그룹 위치
     const basePosition = {
       x: group.position.x,
