@@ -40,7 +40,7 @@ function TempResizableNode({ id, data, width, height }) {
           onMouseDown={(e) => e.stopPropagation()}
           onClick={() => deleteElements({ nodes: [{ id }] })}
         >
-          Delete node
+          Delete
         </button>
       </NodeToolbar>
       <NodeResizer color={EDGE_COLOR} minWidth={30} minHeight={30} />

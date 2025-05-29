@@ -12,7 +12,8 @@ import {
   handleObjectLayoutSave,
   handleRelationshipLayoutSave,
 } from "../utils/layout/handleLayoutSave";
-
+import HoverButton
+ from "./HoverButton";
 function LayoutNode({ id, data }) {
   const {
     deleteElements,
@@ -56,26 +57,26 @@ function LayoutNode({ id, data }) {
       <NodeToolbar
         isVisible={isHovered || isEditing}
         position={Position.Top}
-        style={{ top: "10px" }}
+        style={{ top: "10px", display: "flex", gap: "2px" }}
       >
         {!isEditing ? (
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
+          <HoverButton
+            title="Edit"
+            icon="✏️"
             onClick={() => setIsEditing(true)}
-          >
-            ✏️ Edit
-          </button>
+          />
         ) : (
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
+          <HoverButton
+            title="Save label"
+            icon="💾"
             onClick={handleLabelUpdate}
-          >
-            💾 Save
-          </button>
+          />
         )}
+
         {data.type !== "attribute" && (
-          <button
-            onMouseDown={(e) => e.stopPropagation()}
+          <HoverButton
+            title="Save layout"
+            icon="📐"
             onClick={() => {
               if (data.type === "object") {
                 handleObjectLayoutSave(id, getNode, setNodes, addEdges);
@@ -83,17 +84,15 @@ function LayoutNode({ id, data }) {
                 handleRelationshipLayoutSave(id, data, getNode, setNodes);
               }
             }}
-          >
-            Save layout
-          </button>
+          />
         )}
 
-        <button
-          onMouseDown={(e) => e.stopPropagation()}
+        <HoverButton
+          title="Delete"
+          icon="🗑"
+          danger
           onClick={() => deleteElements({ nodes: [{ id }] })}
-        >
-          Delete node
-        </button>
+        />
       </NodeToolbar>
 
       <div style={style}>

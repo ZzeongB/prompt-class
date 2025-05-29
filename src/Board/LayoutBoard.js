@@ -186,12 +186,12 @@ function LayoutBoard({ onImageGenerated }) {
         <div
           style={{
             position: "absolute",
-            top: `${dragState.rect.y}px`,
-            left: `${dragState.rect.x - 512}px`,
+            top: `${dragState.rect.y-40}px`,
+            left: `${dragState.rect.x-660}px`,
             width: `${dragState.rect.width}px`,
             height: `${dragState.rect.height}px`,
-            border: "2px dashed #007bff",
-            backgroundColor: "rgba(0, 123, 255, 0.1)",
+            border: "1px dashed #007bff",
+            backgroundColor: "rgba(0, 123, 255, 0.05)",
             zIndex: 1000,
           }}
         />
@@ -202,13 +202,25 @@ function LayoutBoard({ onImageGenerated }) {
           onMouseDown={(e) => e.stopPropagation()}
           onClick={handleClick}
           style={{
-            padding: "10px 20px",
+            padding: "10px 24px",
             fontSize: "16px",
+            fontWeight: "bold",
+            color: "#fff",
+            background: "linear-gradient(135deg, #BDB8FF, #A3D5FF)",
+            border: "none",
+            borderRadius: "12px",
+            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)",
             cursor: "pointer",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            backgroundColor: "#f0f0f0",
+            transition: "all 0.2s ease-in-out",
+            position: "absolute",
+            bottom: "-55px",
           }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.transform = "translateY(-3px)")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.transform = "translateY(0)")
+          }
         >
           이미지 만들기
         </button>
@@ -235,6 +247,8 @@ function LayoutBoard({ onImageGenerated }) {
           right: 512,
           bottom: 512,
         }}
+        proOptions={{ hideAttribution: true }}
+
       />
     </div>
   );

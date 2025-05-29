@@ -143,6 +143,8 @@ function ClassBoard() {
         connectionLineStyle={{ stroke: "#000" }}
         connectionLineType="bezier"
         nodeOrigin={[0, 0]} // 노드 중앙 기준
+        proOptions={{ hideAttribution: true }}
+
       />
     </div>
   );

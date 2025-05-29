@@ -1,10 +1,17 @@
 import React, { useState } from "react";
-import { Handle, Position, useConnection, useReactFlow, NodeToolbar } from "@xyflow/react";
+import {
+  Handle,
+  Position,
+  useConnection,
+  useReactFlow,
+  NodeToolbar,
+} from "@xyflow/react";
 import { useDnD } from "../context/DragAndDropContext";
 import {
   getClassNodeStyle,
   getInstanceNodeStyle,
 } from "../utils/node/nodeStyleUtils";
+import HoverButton from "./HoverButton";
 
 export default function BaseNode({ id, data, nodeType }) {
   const { getNodes, setNodes } = useReactFlow();
@@ -16,7 +23,8 @@ export default function BaseNode({ id, data, nodeType }) {
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
 
-  const [, setId, , setType, , setPosition, , setLabel, , setDragSource] = useDnD();
+  const [, setId, , setType, , setPosition, , setLabel, , setDragSource] =
+    useDnD();
 
   const style =
     nodeType === "class"
@@ -24,7 +32,8 @@ export default function BaseNode({ id, data, nodeType }) {
       : getInstanceNodeStyle(data.type, data);
 
   const onDragStart = (e) => {
-    if (e.target.closest(".drag-handle") || e.target.closest(".classHandle")) return;
+    if (e.target.closest(".drag-handle") || e.target.closest(".classHandle"))
+      return;
 
     setType(data.type);
     setLabel(data.label);
@@ -46,7 +55,12 @@ export default function BaseNode({ id, data, nodeType }) {
   const handleLabelUpdate = () => {
     setNodes((prevNodes) =>
       prevNodes.map((node) =>
-        node.id === id ? { ...node, data: { ...node.data, label: editLabel, hasValue: editLabel } } : node
+        node.id === id
+          ? {
+              ...node,
+              data: { ...node.data, label: editLabel, hasValue: editLabel },
+            }
+          : node
       )
     );
     setIsEditing(false);
@@ -62,13 +76,25 @@ export default function BaseNode({ id, data, nodeType }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <NodeToolbar isVisible={isHovered || isEditing} position={Position.Top} style={{top: "10px"}}>
-        {!isEditing ? (
-          <button onClick={() => setIsEditing(true)}>✏️ Edit</button>
-        ) : (
-          <button onClick={handleLabelUpdate}>💾 Save</button>
-        )}
-        <button onClick={handleDelete}>🗑 Delete</button>
+      <NodeToolbar
+        isVisible={isHovered || isEditing}
+        position={Position.Top}
+        style={{ top: "10px", display: "flex", gap: "2px" }}
+      >
+        {/* ✏️ or 💾 */}
+        <HoverButton
+          title={isEditing ? "Save label" : "Edit label"}
+          icon={isEditing ? "💾" : "✏️"}
+          onClick={isEditing ? handleLabelUpdate : () => setIsEditing(true)}
+        />
+
+        {/* 🗑 Delete */}
+        <HoverButton
+          title="Delete node"
+          icon="🗑"
+          onClick={handleDelete}
+          danger
+        />
       </NodeToolbar>
 
       <div
@@ -76,8 +102,7 @@ export default function BaseNode({ id, data, nodeType }) {
         style={{
           cursor: "move",
           position: "absolute",
-          top: "10px",
-          left: "-10px",
+          left: "-15px",
           width: "20px",
           height: "20px",
           display: "flex",
@@ -107,7 +132,12 @@ export default function BaseNode({ id, data, nodeType }) {
         )}
 
         {!connection.inProgress && (
-          <Handle className="classHandle" position={Position.Right} type="source" />
+          <Handle
+            className="classHandle"
+            position={Position.Right}
+            type="source"
+            style={{ top: "50%", transform: "translateY(-50%)", right: "-8px" }}
+          />
         )}
         {(!connection.inProgress || isTarget) && (
           <Handle
@@ -115,6 +145,7 @@ export default function BaseNode({ id, data, nodeType }) {
             position={Position.Right}
             type="target"
             isConnectableStart={false}
+            style={{ top: "50%", transform: "translateY(-50%)", right: "-8px" }}
           />
         )}
       </div>
