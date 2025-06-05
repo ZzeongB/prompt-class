@@ -137,31 +137,34 @@ function InstanceBoard() {
   );
 
   return (
-    <div
-      className="reactflow-wrapper"
-      ref={reactFlowWrapper}
-      // onMouseUp={onMouseUp}
-    >
-      <ReactFlow
-        nodes={getVisibleNodes(nodes)}
-        edges={edges}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onConnectEnd={onConnectEnd}
-        // onPaneClick={handlePaneClick}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        defaultEdgeOptions={defaultEdgeOptions}
-        // defaultNodeOptions={defaultNodeOptions}
-        fitView
-        connectionLineStyle={{ stroke: "#000" }}
-        connectionLineType="bezier"
-        nodeOrigin={[0, 0]} // 노드 중앙 기준
-        proOptions={{ hideAttribution: true }}
+   <div
+  className="reactflow-wrapper"
+  ref={reactFlowWrapper}
+>
+  <ReactFlow
+    nodes={getVisibleNodes(nodes)}
+    edges={edges}
+    onNodesChange={handleNodesChange}
+    onEdgesChange={onEdgesChange}
+    onConnect={onConnect}
+    onConnectEnd={onConnectEnd}
+    nodeTypes={nodeTypes}
+    edgeTypes={edgeTypes}
+    defaultEdgeOptions={defaultEdgeOptions}
+    connectionLineStyle={{ stroke: "#000" }}
+    connectionLineType="bezier"
+    nodeOrigin={[0, 0]}
+    proOptions={{ hideAttribution: true }}
 
-      />
-    </div>
+    fitView={false}
+  zoomOnScroll={false}
+  zoomOnPinch={false}
+  zoomOnDoubleClick={false}
+  panOnScroll={true}             // ✅ 스크롤로 pan 허용
+  panOnScrollMode="vertical"    // ✅ 세로 방향만 허용
+  />
+</div>
+
   );
 }
 

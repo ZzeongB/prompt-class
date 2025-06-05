@@ -20,15 +20,19 @@ import {
 } from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { createNewObjectNode } from "../utils/node/nodeCreateUtils";
-import { syncMovedNodePositions, syncParentChildNodePositions } from "../utils/node/syncNodePositions.js";
+import {
+  syncMovedNodePositions,
+  syncParentChildNodePositions,
+} from "../utils/node/syncNodePositions.js";
 import { convertClassGroup } from "../utils/convertClassGroup.js";
+import { getParentNodeForPosition } from "../utils/getParentNodeForPosition.js";
 
 const edgeTypes = {
   main: DefaultEdge,
 };
 
 const nodeTypes = {
-  'object-group': ClassGroupNode,
+  "object-group": ClassGroupNode,
   class: ClassNode,
   instance: ClassNode,
 };
@@ -55,11 +59,11 @@ function getVisibleNodes(allNodes) {
   });
 }
 
-
 function ClassBoard() {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
-  const { setClassNodes, setClassEdges, setStructuredClasses } = useClassGraph();
+  const { setClassNodes, setClassEdges, setStructuredClasses } =
+    useClassGraph();
 
   const { nodes: initialNodes, edges: initialEdges } = classToFlow(classSample);
 
@@ -71,6 +75,10 @@ function ClassBoard() {
     setClassEdges(edges);
     const structuredClasses = convertClassGroup(nodes, edges);
     setStructuredClasses(structuredClasses);
+
+    // console.log("nodes: ", nodes);
+    // console.log("edges: ", edges);
+    console.log("structured", structuredClasses)
   }, [nodes, edges, setClassNodes, setClassEdges, setStructuredClasses]);
 
   const onConnect = useCallback(
@@ -114,19 +122,69 @@ function ClassBoard() {
   );
 
   const handleNodesChange = useCallback(
-  (changes) => {
-    let syncedNodes = syncMovedNodePositions({ changes, prevNodes: nodes, edges });
-    syncedNodes = syncParentChildNodePositions({ changes, prevNodes: syncedNodes });
+    (changes) => {
+      let syncedNodes = syncMovedNodePositions({
+        changes,
+        prevNodes: nodes,
+        edges,
+      });
+      syncedNodes = syncParentChildNodePositions({
+        changes,
+        prevNodes: syncedNodes,
+      });
+      console.log("Syncing Nodes", syncedNodes)
 
-    setNodes(syncedNodes);
-    onNodesChange(changes);
-  },
-  [nodes, setNodes, onNodesChange, edges]
-);
+      syncedNodes = syncedNodes.map((node) => {
+        if (node.type === "object-group") return node; // class 노드 자체는 대상 아님
 
+        const classNodes = nodes.filter((n) => n.type === "object-group");
+        const newParent = getParentNodeForPosition(node, classNodes);
+        console.log("new parent", newParent)
 
+        // parentNode가 변경된 경우만 반영
+        if (newParent !== node.parentNode) {
+          return {
+            ...node,
+            parentNode: newParent || undefined,
+            extent: newParent ? "parent" : undefined,
+          };
+        }
+        return node;
+      });
+
+      console.log("Final synced", syncedNodes)
+
+      setNodes(syncedNodes);
+      onNodesChange(changes);
+    },
+    [nodes, setNodes, onNodesChange, edges]
+  );
+
+  const handleAddNode = () => {
+    const newId = `class-${nodes.length + 1}`;
+    const newNode = {
+      id: newId,
+      type: "object-group",
+      position: {
+        x: 0,
+        y: -150, // 아래로 계속 쌓이게
+      },
+      data: {
+        label: `New Node`,
+        collapsed: false,
+        expandedHeight: 20,
+        type: "object",
+      },
+    };
+
+    setNodes((prev) => [...prev, newNode]);
+  };
   return (
     <div className="reactflow-wrapper" ref={reactFlowWrapper}>
+      <div style={{ padding: "10px" }}>
+        <button onClick={handleAddNode}>➕ 새 노드 추가</button>
+      </div>
+
       <ReactFlow
         nodes={getVisibleNodes(nodes)}
         edges={edges}
@@ -144,7 +202,6 @@ function ClassBoard() {
         connectionLineType="bezier"
         nodeOrigin={[0, 0]} // 노드 중앙 기준
         proOptions={{ hideAttribution: true }}
-
       />
     </div>
   );

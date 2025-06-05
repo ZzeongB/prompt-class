@@ -59,7 +59,7 @@ export default function App() {
                   marginLeft: "20px",
                   // marginRight: "20px",
                   marginTop: "20px",
-                  background: "#fbfbfb",
+                  background: "#FEFEFE",
                   borderRadius: "8px",
                 }}
               >
@@ -90,14 +90,14 @@ export default function App() {
                 >
                   <img
                     src={imageSrc}
-                    alt="Generated"
+                    alt="No Image"
                     style={{
                       position: "absolute",
                       top: 0,
                       left: 0,
                       width: "100%",
                       height: "100%",
-                      zIndex: -9999,
+                      zIndex: 0,
                       opacity: 0.2, // 👈 여기! 0.0 (완전 투명) ~ 1.0 (불투명)
                       objectFit: "contain", // ✅ 비율 유지 + 잘리지 않음 (빈 여백 생길 수 있음)
                     }}
@@ -108,7 +108,7 @@ export default function App() {
                       height: "512px",
                       position: "relative",
                       flexShrink: 0, // 고정 너비 유지
-                      background: "#fcfcfc",
+                      background: imageSrc? "": "#FEFEFE",
                     }}
                   >
                     <LayoutBoardWithProvider onImageGenerated={setImageSrc} />
@@ -120,8 +120,8 @@ export default function App() {
                     flexGrow: 1,
                     marginLeft: "10px",
                     overflowY: "auto",
-                    background: "#FAFAFA",
-                    padding: "16px 20px",
+                    background: "#FEFEFE",
+                    // padding: "16px 20px",
                     borderRadius: "8px",
                     boxShadow: "-1px 0 4px rgba(0,0,0,0.04)",
                     display: "flex",

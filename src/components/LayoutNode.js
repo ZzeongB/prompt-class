@@ -12,8 +12,7 @@ import {
   handleObjectLayoutSave,
   handleRelationshipLayoutSave,
 } from "../utils/layout/handleLayoutSave";
-import HoverButton
- from "./HoverButton";
+import HoverButton from "./HoverButton";
 function LayoutNode({ id, data }) {
   const {
     deleteElements,
@@ -47,6 +46,18 @@ function LayoutNode({ id, data }) {
     );
     setIsEditing(false);
   };
+
+  const handleDelete = () => {
+    const nodes = getNodes(); // 전체 노드 받아오기
+    const sharedId = data.sharedId ?? id;
+
+    const nodesToDelete = nodes.filter(
+      (n) => n.id === id || n.data?.sharedId === sharedId
+    );
+
+    deleteElements({ nodes: nodesToDelete });
+  };
+
   return (
     <div
       onMouseEnter={(e) => {
@@ -64,6 +75,7 @@ function LayoutNode({ id, data }) {
             title="Edit"
             icon="✏️"
             onClick={() => setIsEditing(true)}
+            // stopPropagation prevents the toolbar from closing when clicking the button
           />
         ) : (
           <HoverButton
@@ -77,7 +89,7 @@ function LayoutNode({ id, data }) {
           <HoverButton
             title="Save layout"
             icon="📐"
-            onClick={() => {
+            onClick={(e) => {
               if (data.type === "object") {
                 handleObjectLayoutSave(id, getNode, setNodes, addEdges);
               } else if (data.type === "relationship") {
@@ -87,12 +99,7 @@ function LayoutNode({ id, data }) {
           />
         )}
 
-        <HoverButton
-          title="Delete"
-          icon="🗑"
-          danger
-          onClick={() => deleteElements({ nodes: [{ id }] })}
-        />
+        <HoverButton title="Delete" icon="🗑" danger onClick={handleDelete} />
       </NodeToolbar>
 
       <div style={style}>

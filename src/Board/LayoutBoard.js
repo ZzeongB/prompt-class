@@ -28,6 +28,7 @@ import {
   handleMouseUp,
 } from "../utils/layout/handleTempLayout";
 import { createInstance } from "../utils/instanceBuilder";
+import { generateImageFromInstanceData } from "../api/generateImage";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -48,13 +49,29 @@ const defaultEdgeOptions = {
 };
 
 function LayoutBoard({ onImageGenerated }) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState([
+//     {
+// data: {label: "resizable", type: "object-group", sharedId: "global", classId: "none", instanceId: "global"},
+// id: "global-resizable",
+// measured: {width: 500, height: 500},
+// position: {x: 5, y: 5},
+// type: "resizable"
+//     },{
+// data: {label: "Write global caption here!", type: "object-group", sharedId: "global", classId: "none", instanceId: "global"},
+// id: "global",
+// measured: {width: 62, height: 38},
+// position: {x: 0, y: 0},
+// type: "instance",
+// updatedAt: "2025-05-30T04:43:02.682Z"}
+  ]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges, structuredClasses } = useClassGraph();
   const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
   const [dragState, setDragState] = useState(null);
+  const [image, setImage] = useState();
+  const [globalCaption, setGlobalCaption] = useState("");
 
   const onMouseDown = (e) => {
     handleMouseDown(e, setDragState);
@@ -76,7 +93,6 @@ function LayoutBoard({ onImageGenerated }) {
       );
       return;
     } else {
-      console.log("onMouseUp", event, id, type);
       if (id && type) {
         // 기존 노드들의 라벨 모음
         const existingLabels = nodes.map((n) => n.data?.label).filter(Boolean);
@@ -159,19 +175,20 @@ function LayoutBoard({ onImageGenerated }) {
 
     console.log("result", result);
 
-    // try {
-    //   const response = await generateImageFromInstanceData(
-    //     result.sentences,
-    //     result.boxes
-    //   );
+    try {
+      const response = await generateImageFromInstanceData(
+        result.sentences,
+        result.boxes,
+        globalCaption,
+      );
 
-    //   console.log("response", response);
-    //   onImageGenerated(response.image); // 이미지 생성 후 부모 컴포넌트에 전달
-    //   setImage(response.image); // 상태 업데이트
-    //   setGlobalCaption(response.globalCaption); // 상태 업데이트
-    // } catch (err) {
-    //   console.error("Image generation failed", err);
-    // }
+      console.log("response", response);
+      onImageGenerated(response.image); // 이미지 생성 후 부모 컴포넌트에 전달
+      setImage(response.image); // 상태 업데이트
+      setGlobalCaption(response.globalCaption); // 상태 업데이트
+    } catch (err) {
+      console.error("Image generation failed", err);
+    }
   };
 
   return (
@@ -186,8 +203,8 @@ function LayoutBoard({ onImageGenerated }) {
         <div
           style={{
             position: "absolute",
-            top: `${dragState.rect.y-40}px`,
-            left: `${dragState.rect.x-660}px`,
+            top: `${dragState.rect.y - 40}px`,
+            left: `${dragState.rect.x - 660}px`,
             width: `${dragState.rect.width}px`,
             height: `${dragState.rect.height}px`,
             border: "1px dashed #007bff",
@@ -197,7 +214,24 @@ function LayoutBoard({ onImageGenerated }) {
         />
       )}
 
-      <div>
+<div style={{ position: "absolute", bottom: "-30px", width: "100%", display: "flex" }}>
+        <input
+    type="text"
+    value={globalCaption}
+    onChange={(e) => setGlobalCaption(e.target.value)}
+    placeholder="Write global caption here!"
+    style={{
+      width: "100%",
+      padding: "5px",
+      // marginBottom: "10px",
+      fontSize: "12px",
+      borderRadius: "8px",
+      border: "1px solid #ccc",
+      boxSizing: "border-box",
+    }}
+    onMouseDown={(e) => e.stopPropagation()} // 드래그 방지
+  />
+
         <button
           onMouseDown={(e) => e.stopPropagation()}
           onClick={handleClick}
@@ -206,14 +240,14 @@ function LayoutBoard({ onImageGenerated }) {
             fontSize: "16px",
             fontWeight: "bold",
             color: "#fff",
-            background: "linear-gradient(135deg, #BDB8FF, #A3D5FF)",
+            background: "linear-gradient(135deg, #9A90FF, #63B4FF)",
             border: "none",
             borderRadius: "12px",
             boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)",
             cursor: "pointer",
             transition: "all 0.2s ease-in-out",
             position: "absolute",
-            bottom: "-55px",
+            bottom: "-40px",
           }}
           onMouseEnter={(e) =>
             (e.currentTarget.style.transform = "translateY(-3px)")
@@ -248,7 +282,7 @@ function LayoutBoard({ onImageGenerated }) {
           bottom: 512,
         }}
         proOptions={{ hideAttribution: true }}
-
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
       />
     </div>
   );

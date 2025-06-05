@@ -25,7 +25,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 seed = 42
 batch_size = 1
 num_inference_steps = 50
-guidance_scale = 7.5
+guidance_scale = 3.5
 height = 512
 width = 512
 
@@ -35,6 +35,10 @@ os.makedirs(img_save_root, exist_ok=True)
 img_with_layout_save_root = os.path.join(save_root, "images_with_layout")
 os.makedirs(img_with_layout_save_root, exist_ok=True)
 
+from datetime import datetime
+now = datetime.now()
+timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+
 pipe = load_model(device)
 
 
@@ -42,8 +46,11 @@ pipe = load_model(device)
 def generate_caption_route():
     data = request.get_json()
     sentences = data.get("sentences", [])
+    global_caption = data.get("globalCaption", "")
+    
+    print("Successfully received data", data)
 
-    result = generate_global_caption_and_refinements(sentences)
+    result = generate_global_caption_and_refinements(sentences, global_caption)
 
     return jsonify(result)
 
@@ -56,7 +63,7 @@ def generate():
     region_bboxes_list = data.get("region_bboxes_list")
     print("Sucessfully received data", region_caption_list, region_bboxes_list)
 
-    filename = "Car"
+    filename = timestamp
 
     with torch.no_grad():
         images = pipe(
@@ -71,7 +78,7 @@ def generate():
         )
     images = images.images
 
-    print("Sucessfully generated images")
+    print("Sucessfully generated images about", global_caption)
 
     img_base64 = encode_image(images[0])
 

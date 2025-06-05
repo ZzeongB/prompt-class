@@ -8,7 +8,7 @@ function HoverButton({ title, icon, onClick, danger = false }) {
     ...toolbarButtonStyle,
     ...(hovered ? hoverStyle : {}),
     ...(danger && {
-    //   border: "1px solid #C62828",
+      //   border: "1px solid #C62828",
       backgroundColor: hovered
         ? "rgba(255, 200, 200, 0.95)"
         : "rgba(255, 235, 235, 0.85)",
@@ -20,9 +20,17 @@ function HoverButton({ title, icon, onClick, danger = false }) {
     <button
       title={title}
       style={baseStyle}
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onClick={(e) => {
+        e.stopPropagation(); // ✅ 여기
+        onClick?.();
+      }}
+      onMouseDown={(e) => e.stopPropagation()} // ✅ 여기도 추가해주면 안정적
+      onMouseEnter={(e) => {
+        setHovered(true);
+      }}
+      onMouseLeave={(e) => {
+        setHovered(false);
+      }}
     >
       {icon}
     </button>

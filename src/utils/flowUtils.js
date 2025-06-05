@@ -46,6 +46,7 @@ export function classToFlow(classDefs) {
         label: cls.name,
         collapsed: false,
         expandedHeight: totalHeight,
+        expandedWidth: 220,
         type: "object",
       },
       position: getPosition("class", classIndex, 0, 0, 0, totalHeight),

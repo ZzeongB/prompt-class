@@ -1,12 +1,12 @@
-export async function generateGlobalCaption(sentences) {
-  console.log("Global Caption API called with sentences:", sentences);
+export async function generateGlobalCaption(sentences, globalCaption) {
+  console.log("Global Caption API called with sentences:", sentences, globalCaption);
   const response = await fetch("http://127.0.0.1:5000/generate-caption", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     mode: "cors", // CORS 모드 명시
-    body: JSON.stringify({ sentences }),
+    body: JSON.stringify({ "sentences": sentences, "globalCaption": globalCaption }),
   });
 
   if (!response.ok) {

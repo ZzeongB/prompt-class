@@ -63,8 +63,8 @@ export function extractSentencesAndBoxes(
     const box = getNormalizedBox(
       resizableNode,
       flowToScreenPosition,
-      500,
-      0,
+      660,
+      40,
       true
     );
     boxes.push(box);
