@@ -3,6 +3,8 @@ import {
   Position,
   NodeResizeControl,
   NodeToolbar,
+  Handle,
+  useConnection,
 } from "@xyflow/react";
 import {
   OBJ_COLOR_TRANS,
@@ -28,17 +30,15 @@ export default function GroupNode({
   resizable = false,
 }) {
   const label = data.hasValue ? data.hasValue : data.label;
-
   const [, setId, , setType, , setPosition, , setLabel, , setDragSource] =
     useDnD();
-
   const [handlePos, setHandlePos] = useState("");
-
   const { setNodes } = useReactFlow();
-
   const [isEditing, setIsEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
+  const connection = useConnection();
+  const isTarget = connection.inProgress && connection.fromNode.id !== id;
 
   const onDragStart = (e) => {
     if (e.target.closest(".classHandle")) return;
@@ -131,7 +131,7 @@ export default function GroupNode({
 
   return (
     <div
-      style={{ position: "relative", pointerEvents: "auto", }}
+      style={{ position: "relative", pointerEvents: "auto" }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -213,6 +213,23 @@ export default function GroupNode({
           </>
         )}
       </div>
+      {!connection.inProgress && (
+        <Handle
+          className="classHandle"
+          position={Position.Right}
+          type="source"
+          style={{ top: "15px", transform: "translateY(-50%)", right: "-8px" }}
+        />
+      )}
+      {(!connection.inProgress || isTarget) && (
+        <Handle
+          className="classHandle"
+          position={Position.Right}
+          type="target"
+          isConnectableStart={false}
+          style={{ top: "15px", transform: "translateY(-50%)", right: "-8px" }}
+        />
+      )}
     </div>
   );
 }

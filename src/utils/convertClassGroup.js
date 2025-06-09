@@ -1,31 +1,44 @@
-export function convertClassGroup(nodes, edges) {
-  const classGroups = nodes.filter((n) => n.type === "object-group");
+export function convertClassGroup(nodes, edges, visited = new Set()) {
+  function buildGroup(groupId) {
+    if (visited.has(groupId)) return null;
+    visited.add(groupId);
 
-  return classGroups.map((classNode) => {
-    const classId = classNode.id;
-    const children = nodes.filter((n) => n.parentNode === classId);
+    const groupNode = nodes.find((n) => n.id === groupId);
+    if (!groupNode) return null;
 
-    const objects = children
-      .filter((n) => n.data.type === "object")
-      .map((obj) => {
-        // 이 object에 연결된 attribute 찾기
-        const attrEdges = edges.filter((e) => e.source === obj.id);
-        const attributes = attrEdges
-          .map((e) => nodes.find((n) => n.id === e.target))
-          .filter((n) => n?.data.type === "attribute")
-          .map((attr) => ({
-            name: attr.data.hasValue ? attr.data.hasValue : attr.data.label,
-            // value: attr.data.hasValue,
-          }));
+    const children = nodes.filter((n) => n.parentNode === groupId);
 
-        return {
-          name: obj.data.label,
-          attributes,
-        };
-      });
+    // 1. 먼저 object-group 자식들 수집
+    const groupChildren = children.filter((n) => n.type === "object-group");
+
+    // 2. object-group ID로 만든 Set
+    const excludedIds = new Set(groupChildren.map((n) => n.id));
+
+    // 3. object 노드 중에서, group ID와 중복되지 않는 애들만 수집
+    const objectNodes = children.filter(
+      (n) => n.data?.type === "object" && !excludedIds.has(n.id) // ✅ 여기!
+    );
+
+    const objectEntries = objectNodes.map((n) => ({ label: n.data?.label }));
+
+    const nestedGroupsAsObjects = groupChildren
+      .map((childGroup) => {
+        const nested = buildGroup(childGroup.id);
+        return nested
+          ? {
+              label: nested.class,
+              objects: nested.objects,
+              relations: nested.relations,
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    const allObjects = [...objectEntries, ...nestedGroupsAsObjects];
+    const memberIds = new Set(children.map((n) => n.id));
 
     const relations = children
-      .filter((n) => n.data.type === "relationship")
+      .filter((n) => n.data?.type === "relationship")
       .map((rel) => {
         const incoming = edges.find((e) => e.target === rel.id);
         const outgoing = edges.find((e) => e.source === rel.id);
@@ -33,17 +46,30 @@ export function convertClassGroup(nodes, edges) {
         const sourceNode = nodes.find((n) => n.id === incoming?.source);
         const targetNode = nodes.find((n) => n.id === outgoing?.target);
 
-        return {
-          name: rel.data.label,
-          source: sourceNode?.data.label,
-          target: targetNode?.data.label,
-        };
-      });
-
+        if (
+          sourceNode?.data?.type === "object" &&
+          targetNode?.data?.type === "object"
+        ) {
+          return {
+            name: rel.data.label,
+            source: sourceNode.data.label,
+            target: targetNode.data.label,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
     return {
-      class: classNode.data.label,
-      objects,
+      class: groupNode.data?.label,
+      objects: allObjects,
       relations,
     };
-  });
+  }
+
+  // top-level object-group들만 시작점
+  const topGroups = nodes.filter(
+    (n) => n.type === "object-group" && !n.parentNode
+  );
+
+  return topGroups.map((g) => buildGroup(g.id)).filter(Boolean);
 }
