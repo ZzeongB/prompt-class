@@ -69,8 +69,9 @@ export function getClassNodeStyle(type, options = {}) {
   if (type === "attribute") {
     return {
       ...base,
+      borderWidth: "3px",
+      borderStyle: options.hasValue ? "solid" : "dashed",
       borderColor: ATTR_COLOR,
-      border: options.hasValue ? "3px solid" : "3px dashed",
       fontStyle: options.hasValue ? "normal" : "italic",
     };
   }

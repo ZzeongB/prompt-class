@@ -14,12 +14,15 @@ export function createInstance(
   instanceId = null,
   instanceLabel = null,
   updatedAt = new Date().toISOString(),
-  collapsed = false
+  collapsed = false,
+  filledAttrMap = {}
 ) {
   if (!type || !label) return;
 
   let newNodes = [];
   let newEdges = [];
+  let newFilledAttrMap = {};
+
   const uniqueId = uuidv4(); // 고유 ID 생성
   if (type === "object-group" && resizable === false) {
     const groupNode = classNodes.find((n) => n.id === id);
@@ -96,8 +99,15 @@ export function createInstance(
 
         // 💬 hasValue가 없는 attribute인 경우: 사용자 입력 받기
         if (n.data.type === "attribute" && !n.data.hasValue) {
-          const inputValue = prompt(`${n.data.label} 값을 입력하세요`);
+          const attrValueFromMap =
+            filledAttrMap?.[instanceId]?.[n.id];
+
+          const inputValue = attrValueFromMap
+            ? attrValueFromMap
+            : prompt(`${n.data.label} 값을 입력하세요`);
           if (!inputValue) return null;
+          if(!newFilledAttrMap?.[instanceId]) newFilledAttrMap[instanceId] = {};
+          newFilledAttrMap[instanceId][n.id] = inputValue; // Save value
 
           return {
             ...n,
@@ -116,7 +126,7 @@ export function createInstance(
               type: "attribute",
               instanceId: instanceId,
             },
-            updatedAt: updatedAt  
+            updatedAt: updatedAt,
           };
         }
 
@@ -156,6 +166,7 @@ export function createInstance(
     return {
       newNodes: [newGroupNode, ...newChildNodes],
       newEdges,
+      newFilledAttrMap
     };
   }
 
@@ -189,10 +200,11 @@ export function createInstanceWithAttributes(
   classNodes,
   classEdges,
   uniqueId,
-  resizable = true
+  resizable = true,
 ) {
   const sharedId = `instance-${id.split("-")[1]}-${uniqueId}`;
 
+  console.log("createInstanceWithAttributes");
   const newNode_data = {
     id: `${sharedId}`,
     type: "instance",

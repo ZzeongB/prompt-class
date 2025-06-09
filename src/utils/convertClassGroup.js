@@ -14,7 +14,7 @@ export function convertClassGroup(nodes, edges) {
           .map((e) => nodes.find((n) => n.id === e.target))
           .filter((n) => n?.data.type === "attribute")
           .map((attr) => ({
-            name: attr.data.hasValue ? attr.data.hasValue : attr.data.value? attr.data.value : attr.data.label,
+            name: attr.data.hasValue ? attr.data.hasValue : attr.data.label,
             // value: attr.data.hasValue,
           }));
 

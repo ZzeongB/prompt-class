@@ -22,43 +22,61 @@ export default function BaseNode({ id, data, nodeType }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
-
-  const [, setId, , setType, , setPosition, , setLabel, , setDragSource] =
-    useDnD();
+  const [editMode, setEditMode] = useState("fixed"); // 'fixed' or 'blank'
 
   const style =
     nodeType === "class"
       ? getClassNodeStyle(data.type, data)
       : getInstanceNodeStyle(data.type, data);
 
+  // const [, setId, , setType, , setPosition, , setLabel, , setDragSource] =
+  //   useDnD();
   const onDragStart = (e) => {
-    if (e.target.closest(".drag-handle") || e.target.closest(".classHandle"))
-      return;
-
-    setType(data.type);
-    setLabel(data.label);
-    setId(id);
-    setDragSource(nodeType);
-
-    const onMouseMove = (e) => setPosition({ x: e.clientX, y: e.clientY });
-
-    const onMouseUp = () => {
-      setType(null);
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-    };
-
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+    // if (e.target.closest(".drag-handle") || e.target.closest(".classHandle"))
+    //   return;
+    // setType(data.type);
+    // setLabel(data.label);
+    // setId(id);
+    // setDragSource(nodeType);
+    // const onMouseMove = (e) => setPosition({ x: e.clientX, y: e.clientY });
+    // const onMouseUp = () => {
+    //   setType(null);
+    //   document.removeEventListener("mousemove", onMouseMove);
+    //   document.removeEventListener("mouseup", onMouseUp);
+    // };
+    // document.addEventListener("mousemove", onMouseMove);
+    // document.addEventListener("mouseup", onMouseUp);
   };
 
-  const handleLabelUpdate = () => {
+  const handleLabelUpdateFixed = () => {
     setNodes((prevNodes) =>
       prevNodes.map((node) =>
         node.id === id
           ? {
               ...node,
-              data: { ...node.data, label: editLabel, hasValue: editLabel },
+              data: {
+                ...node.data,
+                label: editLabel,
+                hasValue: editLabel,
+              },
+            }
+          : node
+      )
+    );
+    setIsEditing(false);
+  };
+
+  const handleLabelUpdateBlank = () => {
+    setNodes((prevNodes) =>
+      prevNodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                label: editLabel,
+                hasValue: false,
+              },
             }
           : node
       )
@@ -83,10 +101,21 @@ export default function BaseNode({ id, data, nodeType }) {
       >
         {/* ✏️ or 💾 */}
         <HoverButton
-          title={isEditing ? "Save label" : "Edit label"}
+          title={isEditing ? "Save as fixed value" : "Edit label"}
           icon={isEditing ? "💾" : "✏️"}
-          onClick={isEditing ? handleLabelUpdate : () => setIsEditing(true)}
+          onClick={
+            isEditing ? handleLabelUpdateFixed : () => setIsEditing(true)
+          }
         />
+
+        {/* 🌀 Blank attribute로 전환 */}
+        {data.type === "attribute" && isEditing && (
+          <HoverButton
+            title="Convert to blank attribute"
+            icon="🌀"
+            onClick={handleLabelUpdateBlank}
+          />
+        )}
 
         {/* 🗑 Delete */}
         <HoverButton

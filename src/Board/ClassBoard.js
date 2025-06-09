@@ -26,6 +26,7 @@ import {
 } from "../utils/node/syncNodePositions.js";
 import { convertClassGroup } from "../utils/convertClassGroup.js";
 import { getParentNodeForPosition } from "../utils/getParentNodeForPosition.js";
+import { all } from "axios";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -78,7 +79,7 @@ function ClassBoard() {
 
     // console.log("nodes: ", nodes);
     // console.log("edges: ", edges);
-    console.log("structured", structuredClasses)
+    console.log("structured", structuredClasses);
   }, [nodes, edges, setClassNodes, setClassEdges, setStructuredClasses]);
 
   const onConnect = useCallback(
@@ -132,27 +133,41 @@ function ClassBoard() {
         changes,
         prevNodes: syncedNodes,
       });
-      console.log("Syncing Nodes", syncedNodes)
+      console.log("Syncing Nodes", syncedNodes);
 
       syncedNodes = syncedNodes.map((node) => {
-        if (node.type === "object-group") return node; // class 노드 자체는 대상 아님
+        if (node.type === "object-group") return node;
 
         const classNodes = nodes.filter((n) => n.type === "object-group");
-        const newParent = getParentNodeForPosition(node, classNodes);
-        console.log("new parent", newParent)
 
-        // parentNode가 변경된 경우만 반영
-        if (newParent !== node.parentNode) {
+        const newParent = getParentNodeForPosition(node, classNodes);
+        const newParentNode = classNodes.find((c) => c.id === newParent);
+
+        const prevParent = node.parentNode;
+        const prevParentNode = classNodes.find((c) => c.id === prevParent);
+
+        const isPrevCollapsed = prevParentNode?.data?.collapsed;
+        const isNewCollapsed = newParentNode?.data?.collapsed;
+
+        // ✅ 이전에 속한 parent가 collapse 중이면 무조건 유지
+        if (isPrevCollapsed) return node;
+
+        // ✅ 새로 들어갈 parent가 collapsed 상태면 막음 (선택사항)
+        if (isNewCollapsed) return node;
+
+        // ✅ parent가 달라졌을 때만 변경
+        if (newParent !== prevParent) {
           return {
             ...node,
             parentNode: newParent || undefined,
             extent: newParent ? "parent" : undefined,
           };
         }
+
         return node;
       });
 
-      console.log("Final synced", syncedNodes)
+      console.log("Final synced", syncedNodes);
 
       setNodes(syncedNodes);
       onNodesChange(changes);

@@ -44,18 +44,27 @@ const defaultEdgeOptions = {
   },
 };
 
-function getVisibleNodes(allNodes) {
+function markHiddenNodes(allNodes) {
   const collapsed = new Set(
     allNodes
       .filter((n) => n.type === "instance-group" && n.data?.collapsed)
       .map((n) => n.id)
   );
 
-  return allNodes.filter((n) => {
-    if (n.type === "instance-group") return true;
-    return !collapsed.has(n.parentNode);
+  return allNodes.map((n) => {
+    const isHidden = collapsed.has(n.parentNode);
+    return {
+      ...n,
+      hidden: isHidden,
+      style: {
+        ...n.style,
+        opacity: isHidden ? 0 : 1,
+        pointerEvents: isHidden ? "none" : "auto",
+      },
+    };
   });
 }
+
 
 function InstanceBoard() {
   const reactFlowWrapper = useRef(null);
@@ -67,9 +76,10 @@ function InstanceBoard() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const [collapsedClassMap, setCollapsedClassMap] = useState({});
+  const [filledAttrMap, setFilledAttrMap] = useState({});
 
   // useEffect(() => {
-  //   console.log("InstanceBoard mounted", nodes.filter((n) => n.type === "instance-group"));
+  //   console.log("InstanceBoard mounted", nodes);
   // }, [nodes]);
 
   const nodeTypes = useMemo(
@@ -87,16 +97,18 @@ function InstanceBoard() {
     [setCollapsedClassMap]
   );
   useEffect(() => {
-    const { nodes: newNodes, edges: newEdges } = getRenderedInstanceBoard({
+    const { nodes: newNodes, edges: newEdges, filledAttrMap: newFilledAttrMap } = getRenderedInstanceBoard({
       instanceNodes,
       classNodes,
       classEdges,
       screenToFlowPosition,
       collapsedClassMap,
+      filledAttrMap,
     });
 
     setNodes(newNodes);
     setEdges(newEdges);
+    setFilledAttrMap(newFilledAttrMap)
   }, [instanceNodes, classNodes, classEdges]);
 
   const onConnect = useCallback(
@@ -142,7 +154,7 @@ function InstanceBoard() {
   ref={reactFlowWrapper}
 >
   <ReactFlow
-    nodes={getVisibleNodes(nodes)}
+    nodes={markHiddenNodes(nodes)}
     edges={edges}
     onNodesChange={handleNodesChange}
     onEdgesChange={onEdgesChange}

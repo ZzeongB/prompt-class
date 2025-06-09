@@ -107,7 +107,7 @@ function LayoutBoard({ onImageGenerated }) {
           count++;
         }
 
-        const { newNodes, newEdges } = createInstance(
+        const { newNodes, newEdges, _ } = createInstance(
           event,
           id,
           uniqueLabel,
