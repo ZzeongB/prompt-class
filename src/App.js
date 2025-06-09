@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import GhostNode from "./components/GhostNode";
+import BaselineBoardWithProvider from "./Board/BaselineBoard";
 import ClassBoardWithProvider from "./Board/ClassBoard";
 import InstanceBoardWithProvider from "./Board/InstanceBoard";
 import LayoutBoardWithProvider from "./Board/LayoutBoard";
@@ -64,6 +65,7 @@ export default function App() {
                 }}
               >
                 <ClassBoardWithProvider />
+                {/* <BaselineBoardWithProvider /> */}
               </div>
               <div
                 style={{

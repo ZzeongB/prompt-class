@@ -35,10 +35,6 @@ os.makedirs(img_save_root, exist_ok=True)
 img_with_layout_save_root = os.path.join(save_root, "images_with_layout")
 os.makedirs(img_with_layout_save_root, exist_ok=True)
 
-from datetime import datetime
-now = datetime.now()
-timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-
 pipe = load_model(device)
 
 
@@ -62,6 +58,10 @@ def generate():
     region_caption_list = data.get("region_caption_list")
     region_bboxes_list = data.get("region_bboxes_list")
     print("Sucessfully received data", region_caption_list, region_bboxes_list)
+
+    from datetime import datetime
+    now = datetime.now()
+    timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
     filename = timestamp
 

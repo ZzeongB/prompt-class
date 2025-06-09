@@ -8,18 +8,18 @@ import {
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { classToFlow } from "../utils/flowUtils";
+import { classToFlow } from "../utils/flowUtils.js";
 import { classSample } from "../classSample.ts";
-import DefaultEdge from "../components/DefaultEdge";
-import ClassNode from "../components/ClassNode";
-import ClassGroupNode from "../components/ClassGroupNode";
-import { useDnD } from "../context/DragAndDropContext";
+import DefaultEdge from "../components/DefaultEdge.js";
+import ClassNode from "../components/ClassNode.js";
+import ClassGroupNode from "../components/ClassGroupNode.js";
+import { useDnD } from "../context/DragAndDropContext.js";
 import {
   handleConnect,
   handleConnectEnd,
-} from "../utils/node/nodeConnectHandlers";
-import { useClassGraph } from "../context/ClassGraphContext";
-import { createNewObjectNode } from "../utils/node/nodeCreateUtils";
+} from "../utils/node/nodeConnectHandlers.js";
+import { useClassGraph } from "../context/ClassGraphContext.js";
+import { createNewObjectNode } from "../utils/node/nodeCreateUtils.js";
 import {
   syncMovedNodePositions,
   syncParentChildNodePositions,
@@ -59,16 +59,15 @@ function getVisibleNodes(allNodes) {
   });
 }
 
-function ClassBoard() {
+function BaselineBoard() {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
   const { setClassNodes, setClassEdges, setStructuredClasses } =
     useClassGraph();
+  // const { nodes: initialNodes, edges: initialEdges } = classToFlow(classSample);
 
-  const { nodes: initialNodes, edges: initialEdges } = classToFlow(classSample);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   useEffect(() => {
     setClassNodes(nodes);
@@ -78,7 +77,7 @@ function ClassBoard() {
 
     // console.log("nodes: ", nodes);
     // console.log("edges: ", edges);
-    console.log("structured", structuredClasses)
+    console.log("structured", structuredClasses);
   }, [nodes, edges, setClassNodes, setClassEdges, setStructuredClasses]);
 
   const onConnect = useCallback(
@@ -132,14 +131,14 @@ function ClassBoard() {
         changes,
         prevNodes: syncedNodes,
       });
-      console.log("Syncing Nodes", syncedNodes)
+      console.log("Syncing Nodes", syncedNodes);
 
       syncedNodes = syncedNodes.map((node) => {
         if (node.type === "object-group") return node; // class 노드 자체는 대상 아님
 
         const classNodes = nodes.filter((n) => n.type === "object-group");
         const newParent = getParentNodeForPosition(node, classNodes);
-        console.log("new parent", newParent)
+        console.log("new parent", newParent);
 
         // parentNode가 변경된 경우만 반영
         if (newParent !== node.parentNode) {
@@ -152,7 +151,7 @@ function ClassBoard() {
         return node;
       });
 
-      console.log("Final synced", syncedNodes)
+      console.log("Final synced", syncedNodes);
 
       setNodes(syncedNodes);
       onNodesChange(changes);
@@ -167,7 +166,7 @@ function ClassBoard() {
       type: "object-group",
       position: {
         x: 0,
-        y: -150, // 아래로 계속 쌓이게
+        y: 0, // 아래로 계속 쌓이게
       },
       data: {
         label: `New Node ${nodes.length + 1}`,
@@ -176,6 +175,8 @@ function ClassBoard() {
         type: "object",
       },
     };
+
+    console.log("new node");
 
     setNodes((prev) => [...prev, newNode]);
   };
@@ -190,9 +191,9 @@ function ClassBoard() {
         edges={edges}
         onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onConnectEnd={onConnectEnd}
-        onPaneClick={handlePaneClick}
+        // onConnect={onConnect}
+        // onConnectEnd={onConnectEnd}
+        // onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
@@ -207,12 +208,12 @@ function ClassBoard() {
   );
 }
 
-function ClassBoardWithProvider() {
+function BaselineBoardWithProvider() {
   const [, , type, , ghostPos, setGhostPos, label, setLabel] = useDnD();
 
   return (
     <ReactFlowProvider>
-      <ClassBoard
+      <BaselineBoard
         type={type}
         ghostPos={ghostPos}
         setGhostPos={setGhostPos}
@@ -223,4 +224,4 @@ function ClassBoardWithProvider() {
   );
 }
 
-export default ClassBoardWithProvider;
+export default BaselineBoardWithProvider;

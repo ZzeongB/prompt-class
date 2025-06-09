@@ -50,19 +50,19 @@ const defaultEdgeOptions = {
 
 function LayoutBoard({ onImageGenerated }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([
-//     {
-// data: {label: "resizable", type: "object-group", sharedId: "global", classId: "none", instanceId: "global"},
-// id: "global-resizable",
-// measured: {width: 500, height: 500},
-// position: {x: 5, y: 5},
-// type: "resizable"
-//     },{
-// data: {label: "Write global caption here!", type: "object-group", sharedId: "global", classId: "none", instanceId: "global"},
-// id: "global",
-// measured: {width: 62, height: 38},
-// position: {x: 0, y: 0},
-// type: "instance",
-// updatedAt: "2025-05-30T04:43:02.682Z"}
+    //     {
+    // data: {label: "resizable", type: "object-group", sharedId: "global", classId: "none", instanceId: "global"},
+    // id: "global-resizable",
+    // measured: {width: 500, height: 500},
+    // position: {x: 5, y: 5},
+    // type: "resizable"
+    //     },{
+    // data: {label: "Write global caption here!", type: "object-group", sharedId: "global", classId: "none", instanceId: "global"},
+    // id: "global",
+    // measured: {width: 62, height: 38},
+    // position: {x: 0, y: 0},
+    // type: "instance",
+    // updatedAt: "2025-05-30T04:43:02.682Z"}
   ]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
@@ -179,7 +179,7 @@ function LayoutBoard({ onImageGenerated }) {
       const response = await generateImageFromInstanceData(
         result.sentences,
         result.boxes,
-        globalCaption,
+        globalCaption
       );
 
       console.log("response", response);
@@ -214,23 +214,30 @@ function LayoutBoard({ onImageGenerated }) {
         />
       )}
 
-<div style={{ position: "absolute", bottom: "-30px", width: "100%", display: "flex" }}>
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-30px",
+          width: "100%",
+          display: "flex",
+        }}
+      >
         <input
-    type="text"
-    value={globalCaption}
-    onChange={(e) => setGlobalCaption(e.target.value)}
-    placeholder="Write global caption here!"
-    style={{
-      width: "100%",
-      padding: "5px",
-      // marginBottom: "10px",
-      fontSize: "12px",
-      borderRadius: "8px",
-      border: "1px solid #ccc",
-      boxSizing: "border-box",
-    }}
-    onMouseDown={(e) => e.stopPropagation()} // 드래그 방지
-  />
+          type="text"
+          value={globalCaption}
+          onChange={(e) => setGlobalCaption(e.target.value)}
+          placeholder="Write global caption here!"
+          style={{
+            width: "100%",
+            padding: "5px",
+            // marginBottom: "10px",
+            fontSize: "12px",
+            borderRadius: "8px",
+            border: "1px solid #ccc",
+            boxSizing: "border-box",
+          }}
+          onMouseDown={(e) => e.stopPropagation()} // 드래그 방지
+        />
 
         <button
           onMouseDown={(e) => e.stopPropagation()}
@@ -281,6 +288,14 @@ function LayoutBoard({ onImageGenerated }) {
           right: 512,
           bottom: 512,
         }}
+        translateExtent={[
+          [0, 0],
+          [512, 512],
+        ]}
+        nodeExtent={[
+          [-50, -50],
+          [540, 540],
+        ]} // 노드 배치 가능한 범위 제한
         proOptions={{ hideAttribution: true }}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
       />

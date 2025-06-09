@@ -1,4 +1,9 @@
-import { useReactFlow, NodeResizer, NodeResizeControl } from "@xyflow/react";
+import {
+  useReactFlow,
+  Position,
+  NodeResizeControl,
+  NodeToolbar,
+} from "@xyflow/react";
 import {
   OBJ_COLOR_TRANS,
   REL_COLOR_TRANS,
@@ -6,6 +11,7 @@ import {
 } from "../utils/constants";
 import { useDnD } from "../context/DragAndDropContext";
 import { useState } from "react";
+import HoverButton from "./HoverButton";
 
 const controlStyle = {
   background: "transparent",
@@ -21,12 +27,18 @@ export default function GroupNode({
   withBackground = false,
   resizable = false,
 }) {
+  const label = data.hasValue ? data.hasValue : data.label;
+
   const [, setId, , setType, , setPosition, , setLabel, , setDragSource] =
     useDnD();
 
   const [handlePos, setHandlePos] = useState("");
 
   const { setNodes } = useReactFlow();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editLabel, setEditLabel] = useState(label);
+  const [isHovered, setIsHovered] = useState(false);
 
   const onDragStart = (e) => {
     if (e.target.closest(".classHandle")) return;
@@ -98,8 +110,51 @@ export default function GroupNode({
       ? REL_COLOR_TRANS
       : ATTR_COLOR_TRANS;
 
+  const handleLabelUpdate = () => {
+    setNodes((prevNodes) =>
+      prevNodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              id: `class-${editLabel}`,
+              data: { ...node.data, label: editLabel, hasValue: editLabel },
+            }
+          : node
+      )
+    );
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id));
+  };
+
   return (
-    <div style={{ position: "relative" }}>
+    <div
+      style={{ position: "relative" }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <NodeToolbar
+        isVisible={isHovered || isEditing}
+        position={Position.Top}
+        style={{ top: "25px", left: "-20px", display: "flex", gap: "2px" }}
+      >
+        {/* ✏️ or 💾 */}
+        <HoverButton
+          title={isEditing ? "Save label" : "Edit label"}
+          icon={isEditing ? "💾" : "✏️"}
+          onClick={isEditing ? handleLabelUpdate : () => setIsEditing(true)}
+        />
+
+        {/* 🗑 Delete */}
+        <HoverButton
+          title="Delete node"
+          icon="🗑"
+          onClick={handleDelete}
+          danger
+        />
+      </NodeToolbar>
       {resizable ? (
         <NodeResizeControl
           style={controlStyle}
@@ -145,7 +200,18 @@ export default function GroupNode({
           ...(withBackground ? { background: color } : {}),
         }}
       >
-        <strong>{data.label}</strong> {data.collapsed ? "▶" : "▼"}
+        {isEditing ? (
+          <input
+            value={editLabel}
+            onChange={(e) => setEditLabel(e.target.value)}
+            style={{ width: "90%", fontSize: "14px" }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <>
+            <strong>{data.label}</strong> {data.collapsed ? "▶" : "▼"}
+          </>
+        )}
       </div>
     </div>
   );

@@ -47,28 +47,49 @@ export function extractSentencesAndBoxes(
 
   const sentences = [];
   const boxes = [];
+  // ✅ Case 1: objectNodes가 존재하는 경우 (일반 처리)
+  if (objectNodes.length > 0) {
+    objectNodes.forEach((objNode) => {
+      const classId = objNode.data.classId; // e.g., "class__두더지"
+      const classEntry = classGraph.find((c) => `class-${c.class}` === classId);
+      if (!classEntry) return;
+      const sentence = buildCompositionalSentence(classEntry);
+      sentences.push(sentence);
 
-  objectNodes.forEach((objNode) => {
-    const classId = objNode.data.classId; // e.g., "class__두더지"
-    const classEntry = classGraph.find((c) => `class-${c.class}` === classId);
-    if (!classEntry) return;
-    const sentence = buildCompositionalSentence(classEntry);
-    sentences.push(sentence);
+      // 박스 추출
+      const resizableNode = resizableNodes.find(
+        (n) => n.id.split("-resizable")[0] === objNode.id
+      );
 
-    // 3. 박스 추출
-    const resizableNode = resizableNodes.find(
-      (n) => n.id.split("-resizable")[0] === objNode.id
+      const box = getNormalizedBox(
+        resizableNode,
+        flowToScreenPosition,
+        660,
+        40,
+        true
+      );
+      boxes.push(box);
+    });
+  }
+
+  // ✅ Case 2: objectNodes가 없는 경우 (베이스라인)
+  else {
+    // classId 가진 instance node들만 추출
+    const baselineNodes = instanceNodes.filter(
+      (n) => n.type === "instance" && n.data?.classId
     );
 
-    const box = getNormalizedBox(
-      resizableNode,
-      flowToScreenPosition,
-      660,
-      40,
-      true
-    );
-    boxes.push(box);
-  });
+    baselineNodes.forEach((node) => {
+      const classId = node.data.classId;
+      const classEntry = classGraph.find((c) => `class-${c.class}` === classId);
+      if (!classEntry) return;
+
+      const sentence = buildCompositionalSentence(classEntry);
+      sentences.push(sentence);
+    });
+
+    // box는 없음
+  }
 
   return { sentences, boxes };
 }
