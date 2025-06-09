@@ -25,9 +25,9 @@ import {
   syncParentChildNodePositions,
 } from "../utils/node/syncNodePositions.js";
 import { convertClassGroup } from "../utils/convertClassGroup.js";
-import { getParentNodeForPosition } from "../utils/getParentNodeForPosition.js";
-import { all } from "axios";
+import { getParentNodeForPosition } from "../utils/node/getParentNodeForPosition.js";
 
+import { sortNodesByDepth } from "../utils/node/sortNodeByDepth.js";
 const edgeTypes = {
   main: DefaultEdge,
 };
@@ -46,18 +46,27 @@ const defaultEdgeOptions = {
   },
 };
 
-function getVisibleNodes(allNodes) {
-  const collapsed = new Set(
+export function getVisibleNodes(allNodes) {
+  // 모든 collapsed 노드 ID를 미리 수집
+  const collapsedSet = new Set(
     allNodes
       .filter((n) => n.type === "object-group" && n.data?.collapsed)
       .map((n) => n.id)
   );
 
-  return allNodes.filter((n) => {
-    if (n.type === "object-group") return true;
+  // 재귀적으로 조상을 따라 올라가면서 하나라도 collapsed면 false 반환
+  const isVisible = (node) => {
+    let current = node;
 
-    return !collapsed.has(n.parentNode);
-  });
+    while (current?.parentNode) {
+      if (collapsedSet.has(current.parentNode)) return false;
+      current = allNodes.find((n) => n.id === current.parentNode);
+    }
+
+    return true;
+  };
+
+  return allNodes.filter(isVisible);
 }
 
 function ClassBoard() {
@@ -133,13 +142,10 @@ function ClassBoard() {
         changes,
         prevNodes: syncedNodes,
       });
-      console.log("Syncing Nodes", syncedNodes);
 
       syncedNodes = syncedNodes.map((node) => {
-        if (node.type === "object-group") return node;
-
-        const classNodes = nodes.filter((n) => n.type === "object-group");
-
+        // if (node.type === "object-group") return node;
+        const classNodes = syncedNodes.filter((n) => n.type === "object-group");
         const newParent = getParentNodeForPosition(node, classNodes);
         const newParentNode = classNodes.find((c) => c.id === newParent);
 
@@ -167,9 +173,10 @@ function ClassBoard() {
         return node;
       });
 
-      console.log("Final synced", syncedNodes);
-
-      setNodes(syncedNodes);
+      // console.log("Final synced", syncedNodes);
+      const sorted = sortNodesByDepth(syncedNodes); // ✅ 깊이순 정렬
+      console.log("sorted", sorted);
+      setNodes(sorted);
       onNodesChange(changes);
     },
     [nodes, setNodes, onNodesChange, edges]

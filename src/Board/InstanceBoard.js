@@ -5,6 +5,8 @@ import React, {
   useState,
   useMemo,
 } from "react";
+import isEqual from "lodash.isequal";
+
 import {
   ReactFlow,
   useNodesState,
@@ -65,6 +67,15 @@ function markHiddenNodes(allNodes) {
   });
 }
 
+function extractNodeSummary(nodes) {
+  return nodes.map((n) => ({
+    id: n.id,
+    label: n.data.label,
+    type: n.data.type,
+    hasValue: n.data.hasValue ?? null,
+    parentNode: n.parentNode ?? null,
+  }));
+}
 
 function InstanceBoard() {
   const reactFlowWrapper = useRef(null);
@@ -77,6 +88,10 @@ function InstanceBoard() {
 
   const [collapsedClassMap, setCollapsedClassMap] = useState({});
   const [filledAttrMap, setFilledAttrMap] = useState({});
+  const prevClassRef = useRef({
+    nodeSummary: [],
+    edgeSummary: [],
+  });
 
   // useEffect(() => {
   //   console.log("InstanceBoard mounted", nodes);
@@ -96,8 +111,32 @@ function InstanceBoard() {
     }),
     [setCollapsedClassMap]
   );
+  // classGraph 변경 감지 (중요 필드만)
   useEffect(() => {
-    const { nodes: newNodes, edges: newEdges, filledAttrMap: newFilledAttrMap } = getRenderedInstanceBoard({
+    const nodeSummary = extractNodeSummary(classNodes);
+    const edgeSummary = classEdges.map((e) => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      label: e.label ?? null,
+    }));
+
+    const classChanged =
+      !isEqual(prevClassRef.current.nodeSummary, nodeSummary) ||
+      !isEqual(prevClassRef.current.edgeSummary, edgeSummary);
+
+    if (!classChanged) return;
+
+    prevClassRef.current = {
+      nodeSummary,
+      edgeSummary,
+    };
+
+    const {
+      nodes: newNodes,
+      edges: newEdges,
+      filledAttrMap: newFilledAttrMap,
+    } = getRenderedInstanceBoard({
       instanceNodes,
       classNodes,
       classEdges,
@@ -108,8 +147,28 @@ function InstanceBoard() {
 
     setNodes(newNodes);
     setEdges(newEdges);
-    setFilledAttrMap(newFilledAttrMap)
-  }, [instanceNodes, classNodes, classEdges]);
+    setFilledAttrMap(newFilledAttrMap);
+  }, [classNodes, classEdges]);
+
+  // instanceNodes 바뀔 때는 무조건 반영
+  useEffect(() => {
+    const {
+      nodes: newNodes,
+      edges: newEdges,
+      filledAttrMap: newFilledAttrMap,
+    } = getRenderedInstanceBoard({
+      instanceNodes,
+      classNodes,
+      classEdges,
+      screenToFlowPosition,
+      collapsedClassMap,
+      filledAttrMap,
+    });
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+    setFilledAttrMap(newFilledAttrMap);
+  }, [instanceNodes]);
 
   const onConnect = useCallback(
     (params) => handleConnect({ params, nodes, setNodes, setEdges }),
@@ -149,34 +208,29 @@ function InstanceBoard() {
   );
 
   return (
-   <div
-  className="reactflow-wrapper"
-  ref={reactFlowWrapper}
->
-  <ReactFlow
-    nodes={markHiddenNodes(nodes)}
-    edges={edges}
-    onNodesChange={handleNodesChange}
-    onEdgesChange={onEdgesChange}
-    onConnect={onConnect}
-    onConnectEnd={onConnectEnd}
-    nodeTypes={nodeTypes}
-    edgeTypes={edgeTypes}
-    defaultEdgeOptions={defaultEdgeOptions}
-    connectionLineStyle={{ stroke: "#000" }}
-    connectionLineType="bezier"
-    nodeOrigin={[0, 0]}
-    proOptions={{ hideAttribution: true }}
-
-    fitView={false}
-  zoomOnScroll={false}
-  zoomOnPinch={false}
-  zoomOnDoubleClick={false}
-  panOnScroll={true}             // ✅ 스크롤로 pan 허용
-  panOnScrollMode="vertical"    // ✅ 세로 방향만 허용
-  />
-</div>
-
+    <div className="reactflow-wrapper" ref={reactFlowWrapper}>
+      <ReactFlow
+        nodes={markHiddenNodes(nodes)}
+        edges={edges}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
+        connectionLineStyle={{ stroke: "#000" }}
+        connectionLineType="bezier"
+        nodeOrigin={[0, 0]}
+        proOptions={{ hideAttribution: true }}
+        fitView={false}
+        zoomOnScroll={false}
+        zoomOnPinch={false}
+        zoomOnDoubleClick={false}
+        panOnScroll={true} // ✅ 스크롤로 pan 허용
+        panOnScrollMode="vertical" // ✅ 세로 방향만 허용
+      />
+    </div>
   );
 }
 

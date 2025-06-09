@@ -131,7 +131,7 @@ export default function GroupNode({
 
   return (
     <div
-      style={{ position: "relative" }}
+      style={{ position: "relative", pointerEvents: "auto", }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

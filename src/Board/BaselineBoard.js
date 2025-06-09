@@ -25,7 +25,7 @@ import {
   syncParentChildNodePositions,
 } from "../utils/node/syncNodePositions.js";
 import { convertClassGroup } from "../utils/convertClassGroup.js";
-import { getParentNodeForPosition } from "../utils/getParentNodeForPosition.js";
+import { getParentNodeForPosition } from "../utils/node/getParentNodeForPosition.js";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -131,7 +131,6 @@ function BaselineBoard() {
         changes,
         prevNodes: syncedNodes,
       });
-      console.log("Syncing Nodes", syncedNodes);
 
       syncedNodes = syncedNodes.map((node) => {
         if (node.type === "object-group") return node; // class 노드 자체는 대상 아님
@@ -150,8 +149,6 @@ function BaselineBoard() {
         }
         return node;
       });
-
-      console.log("Final synced", syncedNodes);
 
       setNodes(syncedNodes);
       onNodesChange(changes);
