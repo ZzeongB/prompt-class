@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import InstanceTree from "../components/InstanceTree.js";
 import { useInstanceGraph } from "../context/InstanceGraphContext.js";
 import { useClassGraph } from "../context/ClassGraphContext.js";
-import { getRenderedInstanceBoard } from "../utils/getRenderedInstanceBoard.js";
+import { getRenderedInstanceBoard } from "../utils/instance/getRenderedInstanceBoard.js";
 
 function InstanceTreeBoard() {
   const { classNodes, classEdges } = useClassGraph();

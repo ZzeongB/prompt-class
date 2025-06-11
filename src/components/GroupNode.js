@@ -116,7 +116,7 @@ export default function GroupNode({
         node.id === id
           ? {
               ...node,
-              id: `class-${editLabel}`,
+              // id: `class-${editLabel}`,
               data: { ...node.data, label: editLabel, hasValue: editLabel },
             }
           : node

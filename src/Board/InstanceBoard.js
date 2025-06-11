@@ -32,7 +32,7 @@ import {
   syncMovedNodePositions,
   syncParentChildNodePositions,
 } from "../utils/node/syncNodePositions.js";
-import { getRenderedInstanceBoard } from "../utils/getRenderedInstanceBoard.js";
+import { getRenderedInstanceBoard } from "../utils/instance/getRenderedInstanceBoard.js";
 
 const edgeTypes = {
   main: DefaultEdge,

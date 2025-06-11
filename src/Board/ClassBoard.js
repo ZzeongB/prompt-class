@@ -24,7 +24,7 @@ import {
   syncMovedNodePositions,
   syncParentChildNodePositions,
 } from "../utils/node/syncNodePositions.js";
-import { convertClassGroup } from "../utils/convertClassGroup.js";
+import { convertClassGroup } from "../utils/group/convertClassGroup.js";
 import { getParentNodeForPosition } from "../utils/node/getParentNodeForPosition.js";
 
 import { sortNodesByDepth } from "../utils/node/sortNodeByDepth.js";

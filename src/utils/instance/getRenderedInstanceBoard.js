@@ -1,5 +1,5 @@
 import { createInstance } from "./instanceBuilder";
-import { recalculateLayout } from "./recalculateLayout";
+import { recalculateLayout } from "../layout/recalculateLayout";
 
 export function getRenderedInstanceBoard({
   instanceNodes,

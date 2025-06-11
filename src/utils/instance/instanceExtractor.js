@@ -1,4 +1,5 @@
-import { getNormalizedBox } from "./node/getNormalizedBox";
+import { getNormalizedBox } from "../node/getNormalizedBox";
+import { buildGroup } from "../group/buildGroup";  // 분리된 유틸 import
 
 function buildCompositionalSentence(classEntry) {
   const objectNameMap = {};
@@ -10,15 +11,16 @@ function buildCompositionalSentence(classEntry) {
   });
 
   const objectsInRelations = new Set();
-  const relationSentences = classEntry.relations?.map((rel) => {
-    const source = objectNameMap[rel.source] || rel.source;
-    const target = objectNameMap[rel.target] || rel.target;
+  const relationSentences =
+    classEntry.relations?.map((rel) => {
+      const source = objectNameMap[rel.source] || rel.source;
+      const target = objectNameMap[rel.target] || rel.target;
 
-    objectsInRelations.add(rel.source);
-    objectsInRelations.add(rel.target);
+      objectsInRelations.add(rel.source);
+      objectsInRelations.add(rel.target);
 
-    return `${source} ${rel.name} ${target}`;
-  }) ?? [];
+      return `${source} ${rel.name} ${target}`;
+    }) ?? [];
 
   const standaloneObjects = classEntry.objects
     .filter((obj) => !objectsInRelations.has(obj.name))
@@ -35,28 +37,34 @@ function buildCompositionalSentence(classEntry) {
 export function extractSentencesAndBoxes(
   instanceNodes,
   instanceEdges,
-  classGraph,
+  classGraphNodes,
+  classGraphEdges,
   flowToScreenPosition
 ) {
   const objectNodes = instanceNodes.filter(
-    (n) => n.type === "instance" && (n.data.type === "object" || n.data.type === "object-group")
+    (n) =>
+      (n.type === "instance" || n.type === "instance-group") &&
+      (n.data.type === "object" || n.data.type === "object-group")
   );
+
   const resizableNodes = instanceNodes.filter(
-    (n) => n.type === "resizable" && (n.data.type === "object" || n.data.type === "object-group")
+    (n) =>
+      n.type === "resizable" &&
+      (n.data.type === "object" || n.data.type === "object-group")
   );
 
   const sentences = [];
   const boxes = [];
-  // ✅ Case 1: objectNodes가 존재하는 경우 (일반 처리)
+
   if (objectNodes.length > 0) {
     objectNodes.forEach((objNode) => {
-      const classId = objNode.data.classId; // e.g., "class__두더지"
-      const classEntry = classGraph.find((c) => `class-${c.class}` === classId);
-      if (!classEntry) return;
-      const sentence = buildCompositionalSentence(classEntry);
+      const groupId = objNode.data.classId;
+      const structuredClass = buildGroup(groupId, classGraphNodes, classGraphEdges);
+      if (!structuredClass) return;
+
+      const sentence = buildCompositionalSentence(structuredClass);
       sentences.push(sentence);
 
-      // 박스 추출
       const resizableNode = resizableNodes.find(
         (n) => n.id.split("-resizable")[0] === objNode.id
       );
@@ -70,25 +78,19 @@ export function extractSentencesAndBoxes(
       );
       boxes.push(box);
     });
-  }
-
-  // ✅ Case 2: objectNodes가 없는 경우 (베이스라인)
-  else {
-    // classId 가진 instance node들만 추출
+  } else {
     const baselineNodes = instanceNodes.filter(
       (n) => n.type === "instance" && n.data?.classId
     );
 
     baselineNodes.forEach((node) => {
-      const classId = node.data.classId;
-      const classEntry = classGraph.find((c) => `class-${c.class}` === classId);
-      if (!classEntry) return;
+      const groupId = node.data.classId;
+      const structuredClass = buildGroup(groupId, classGraphNodes, classGraphEdges);
+      if (!structuredClass) return;
 
-      const sentence = buildCompositionalSentence(classEntry);
+      const sentence = buildCompositionalSentence(structuredClass);
       sentences.push(sentence);
     });
-
-    // box는 없음
   }
 
   return { sentences, boxes };

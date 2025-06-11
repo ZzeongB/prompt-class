@@ -21,13 +21,13 @@ import { useClassGraph } from "../context/ClassGraphContext";
 import { useInstanceGraph } from "../context/InstanceGraphContext";
 import { useImage } from "../context/ImageContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
-import { extractSentencesAndBoxes } from "../utils/instanceExtractor";
+import { extractSentencesAndBoxes } from "../utils/instance/instanceExtractor";
 import {
   handleMouseDown,
   handleMouseMove,
   handleMouseUp,
 } from "../utils/layout/handleTempLayout";
-import { createInstance } from "../utils/instanceBuilder";
+import { createInstance } from "../utils/instance/instanceBuilder";
 import { generateImageFromInstanceData } from "../api/generateImage";
 
 const edgeTypes = {
@@ -119,7 +119,7 @@ function LayoutBoard({ onImageGenerated }) {
           classEdges
         );
 
-        console.log("Layout newNodes", newNodes)
+        console.log("Layout newNodes", newNodes);
 
         setNodes((prevNodes) => [...prevNodes, ...newNodes]);
         setEdges((prevEdges) => [...prevEdges, ...newEdges]);
@@ -169,10 +169,12 @@ function LayoutBoard({ onImageGenerated }) {
   );
 
   const handleClick = async () => {
+    console.log("input", nodes, structuredClasses, classNodes);
     const result = extractSentencesAndBoxes(
       nodes,
       edges,
-      structuredClasses,
+      classNodes,
+      classEdges,
       flowToScreenPosition
     );
 

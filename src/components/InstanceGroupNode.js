@@ -1,6 +1,6 @@
 // InstanceGroupNode.js
 import GroupNode from "./GroupNode";
-import { recalculateLayout } from "../utils/recalculateLayout.js";
+import { recalculateLayout } from "../utils/layout/recalculateLayout";
 import { useReactFlow, useUpdateNodeInternals } from "@xyflow/react";
 
 export default function InstanceGroupNode(props) {
