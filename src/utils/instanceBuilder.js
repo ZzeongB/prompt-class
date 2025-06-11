@@ -1,292 +1,197 @@
-// src/utils/instanceBuilder.js
 import { v4 as uuidv4 } from "uuid";
 
-export function createInstance(
-  event,
-  id,
-  label,
-  type,
-  screenToFlowPosition,
-  nodes,
-  classNodes,
-  classEdges,
-  resizable = true,
-  instanceId = null,
-  instanceLabel = null,
-  updatedAt = new Date().toISOString(),
-  collapsed = false,
-  filledAttrMap = {}
-) {
-  if (!type || !label) return;
+// 공통 attribute value 입력 받기
+function getAttributeValue(attrLabel, filledAttrMap, instanceId, attrId) {
+  const existingValue = filledAttrMap?.[instanceId]?.[attrId];
+  if (existingValue) return existingValue;
 
-  let newNodes = [];
-  let newEdges = [];
-  let newFilledAttrMap = {};
+  const inputValue = prompt(`${attrLabel} 값을 입력하세요`);
+  if (!inputValue) return null;
 
-  const uniqueId = uuidv4(); // 고유 ID 생성
-  if (type === "object-group" && resizable === false) {
-    const groupNode = classNodes.find((n) => n.id === id);
-    const childNodes = classNodes.filter((n) => n.parentNode === id);
+  if (!filledAttrMap[instanceId]) filledAttrMap[instanceId] = {};
+  filledAttrMap[instanceId][attrId] = inputValue;
 
-    if (!groupNode) return { newNodes: [], newEdges: [] };
+  return inputValue;
+}
 
-    // 1. 기준 위치 계산
-    const basePosition = event;
-    const deltaX = basePosition.x - groupNode.position.x;
-    const deltaY = basePosition.y - groupNode.position.y;
+// attribute node 생성
+function createAttributeInstance(attr, position, sharedId, instanceId, filledAttrMap, updatedAt) {
+  const inputValue = getAttributeValue(attr.data.label, filledAttrMap, instanceId, attr.id);
+  if (!inputValue) return null;
 
-    // 2. ID 매핑용 Map
-    const idMap = new Map();
+  const attrNodeId = `${sharedId}-attr-${attr.data.label}`;
 
-    // 3. 그룹 노드 먼저 변환
-    // 고유 ID 생성을 위해 시간 또는 UUID 등 사용 가능
-    // 시간 기반: 겹칠 확률이 낮음
-    const groupInstanceId = `instance-${groupNode.id}-${uniqueId}`;
-    idMap.set(groupNode.id, groupInstanceId);
+  return {
+    id: attrNodeId,
+    type: "instance",
+    position: {
+      x: position.x + Math.random() * 10,
+      y: position.y - 40,
+    },
+    data: {
+      label: attr.data.label,
+      type: "attribute",
+      hasValue: inputValue,
+      value: inputValue,
+      instanceId,
+    },
+    updatedAt,
+  };
+}
 
-    const newGroupNode = {
-      ...groupNode,
-      id: groupInstanceId,
-      type: "instance-group",
-      position: basePosition,
-      data: {
-        ...groupNode.data,
-        label: instanceLabel || groupNode.data.label, // 인스턴스 라벨
-        type: groupNode.data.type, // object 등 그대로
-        collapsed: collapsed, // 초기 상태는 펼쳐진 상태
-        instanceId: instanceId,
-      },
-      class: id,
-      updatedAt: updatedAt,
-      style: {
-        ...groupNode.style,
-        height: collapsed ? 50 : groupNode.style.height, // collapsed 상태에 따라 높이 조정
-      },
-    };
+// 일반 object instance 생성
+function createSimpleInstance(event, id, label, type, screenToFlowPosition, classNodes, classEdges, resizable, instanceId, updatedAt) {
+  const uniqueId = uuidv4();
+  const sharedId = `instance-${id.split("-")[1]}-${uniqueId}`;
+  const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
-    // // 4. 자식 노드 변환
-    // const newChildNodes = childNodes.map((n) => {
-    //   const newId = `instance-${n.id}`;
-    //   idMap.set(n.id, newId);
+  const newNode = {
+    id: sharedId,
+    type: type === "object-group" ? "instance-group" : "instance",
+    position,
+    data: {
+      label,
+      type: type === "object-group" ? "object" : type,
+      sharedId,
+      classId: id,
+      instanceId: sharedId,
+    },
+    updatedAt,
+  };
 
-    //   return {
-    //     ...n,
-    //     id: newId,
-    //     type: "instance",
-    //     position: {
-    //       x: n.position.x + deltaX,
-    //       y: n.position.y + deltaY,
-    //     },
-    //     parentNode: n.parentNode ? `instance-${n.parentNode}` : undefined,
-    //     extent: n.extent,
-    //     data: {
-    //       ...n.data,
-    //       type: n.data.type,
-    //     },
-    //   };
-    // });
+  const originalClassNode = classNodes.find(n => n.data.label === label && n.data.type === "object");
+  const connectedAttrNodes = originalClassNode
+    ? classEdges
+        .filter(e => e.source === originalClassNode.id || e.target === originalClassNode.id)
+        .map(e => classNodes.find(n => n.id === (e.source === originalClassNode.id ? e.target : e.source)))
+        .filter(n => n && n.data.type === "attribute")
+    : [];
 
-    const newChildNodes = childNodes
-      .map((n) => {
-        const newId = `instance-${n.id}-${uniqueId}`;
-        idMap.set(n.id, newId);
+  const newAttrNodes = [];
+  const newAttrEdges = [];
 
-        // 💡 위치 보정
-        const newPosition = {
-          x: n.position.x + deltaX,
-          y: n.position.y + deltaY,
-        };
+  for (const attr of connectedAttrNodes) {
+    if (!attr.data.hasValue) {
+      const attrNode = createAttributeInstance(attr, position, sharedId, sharedId, {}, updatedAt);
+      if (attrNode) {
+        newAttrNodes.push(attrNode);
+        newAttrEdges.push({
+          id: `${newNode.id}-${attrNode.id}`,
+          source: newNode.id,
+          target: attrNode.id,
+          label: "property",
+        });
+      }
+    }
+  }
 
-        // 💬 hasValue가 없는 attribute인 경우: 사용자 입력 받기
-        if (n.data.type === "attribute" && !n.data.hasValue) {
-          const attrValueFromMap =
-            filledAttrMap?.[instanceId]?.[n.id];
+  const nodes = resizable
+    ? [{ id: `${sharedId}-resizable`, type: "resizable", position: { x: position.x, y: position.y + 30 }, data: newNode.data }, newNode, ...newAttrNodes]
+    : [newNode, ...newAttrNodes];
 
-          const inputValue = attrValueFromMap
-            ? attrValueFromMap
-            : prompt(`${n.data.label} 값을 입력하세요`);
-          if (!inputValue) return null;
-          if(!newFilledAttrMap?.[instanceId]) newFilledAttrMap[instanceId] = {};
-          newFilledAttrMap[instanceId][n.id] = inputValue; // Save value
+  return { newNodes: nodes, newEdges: newAttrEdges };
+}
 
-          return {
-            ...n,
-            id: newId,
-            type: "instance",
-            position: newPosition,
-            parentNode: n.parentNode
-              ? `instance-${n.parentNode}-${uniqueId}`
-              : undefined,
-            extent: n.extent,
-            data: {
-              ...n.data,
-              value: inputValue,
-              hasValue: inputValue,
-              label: n.data.label,
-              type: "attribute",
-              instanceId: instanceId,
-            },
-            updatedAt: updatedAt,
-          };
-        }
+// object-group + resizable = false 일 때 복제
+function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, instanceLabel, updatedAt, collapsed, filledAttrMap) {
+  const uniqueId = uuidv4();
+  const groupNode = classNodes.find(n => n.id === id);
+  const childNodes = classNodes.filter(n => n.parentNode === id);
+  if (!groupNode) return { newNodes: [], newEdges: [] };
 
-        // 그 외 일반 처리
+  const basePosition = event;
+  const deltaX = basePosition.x - groupNode.position.x;
+  const deltaY = basePosition.y - groupNode.position.y;
+  const idMap = new Map();
+
+  const groupInstanceId = `instance-${groupNode.id}-${uniqueId}`;
+  idMap.set(groupNode.id, groupInstanceId);
+
+  const newGroupNode = {
+    ...groupNode,
+    id: groupInstanceId,
+    type: "instance-group",
+    position: basePosition,
+    data: {
+      ...groupNode.data,
+      label: instanceLabel || groupNode.data.label,
+      type: groupNode.data.type,
+      collapsed,
+      instanceId,
+    },
+    class: id,
+    updatedAt,
+    style: { ...groupNode.style, height: collapsed ? 50 : groupNode.style.height },
+  };
+
+  const newChildNodes = childNodes
+    .map(n => {
+      const newId = `instance-${n.id}-${uniqueId}`;
+      idMap.set(n.id, newId);
+
+      const newPosition = { x: n.position.x + deltaX, y: n.position.y + deltaY };
+
+      if (n.data.type === "attribute" && !n.data.hasValue) {
+        const inputValue = getAttributeValue(n.data.label, filledAttrMap, instanceId, n.id);
+        if (!inputValue) return null;
+
         return {
           ...n,
           id: newId,
           type: "instance",
           position: newPosition,
-          parentNode: n.parentNode
-            ? `instance-${n.parentNode}-${uniqueId}`
-            : undefined,
+          parentNode: n.parentNode ? `instance-${n.parentNode}-${uniqueId}` : undefined,
           extent: n.extent,
           data: {
             ...n.data,
-            type: n.data.type,
-            instanceId: instanceId,
+            value: inputValue,
+            hasValue: inputValue,
+            label: n.data.label,
+            type: "attribute",
+            instanceId,
           },
-          updatedAt: new Date().toISOString(),
+          updatedAt,
         };
-      })
-      .filter(Boolean); // ❌ 입력 안 한 경우 null이 생기지 않도록
+      }
 
-    // 5. 관련된 edge들도 가져오기
-    const allNodeIds = [groupNode.id, ...childNodes.map((n) => n.id)];
-    const newEdges = classEdges
-      .filter(
-        (e) => allNodeIds.includes(e.source) && allNodeIds.includes(e.target)
-      )
-      .map((e) => ({
-        ...e,
-        id: `instance-${e.id}-${uniqueId}`,
-        source: idMap.get(e.source),
-        target: idMap.get(e.target),
-      }));
+      return {
+        ...n,
+        id: newId,
+        type: "instance",
+        position: newPosition,
+        parentNode: n.parentNode ? `instance-${n.parentNode}-${uniqueId}` : undefined,
+        extent: n.extent,
+        data: { ...n.data, type: n.data.type, instanceId },
+        updatedAt,
+      };
+    })
+    .filter(Boolean);
 
-    return {
-      newNodes: [newGroupNode, ...newChildNodes],
-      newEdges,
-      newFilledAttrMap
-    };
-  }
+  const allNodeIds = [groupNode.id, ...childNodes.map(n => n.id)];
+  const newEdges = classEdges
+    .filter(e => allNodeIds.includes(e.source) && allNodeIds.includes(e.target))
+    .map(e => ({
+      ...e,
+      id: `instance-${e.id}-${uniqueId}`,
+      source: idMap.get(e.source),
+      target: idMap.get(e.target),
+    }));
 
-  const position = screenToFlowPosition({
-    x: event.clientX,
-    y: event.clientY,
-  });
-
-  ({ newNodes, newEdges } = createInstanceWithAttributes(
-    id,
-    label,
-    type,
-    position,
-    classNodes,
-    classEdges,
-    uniqueId,
-    resizable
-  ));
-
-  return {
-    newNodes,
-    newEdges,
-  };
+  return { newNodes: [newGroupNode, ...newChildNodes], newEdges, newFilledAttrMap: filledAttrMap };
 }
 
-export function createInstanceWithAttributes(
-  id,
-  label,
-  type,
-  position,
-  classNodes,
-  classEdges,
-  uniqueId,
-  resizable = true,
+// 최종 entry point
+export function createInstance(
+  event, id, label, type, screenToFlowPosition,
+  nodes, classNodes, classEdges,
+  resizable = true, instanceId = null, instanceLabel = null,
+  updatedAt = new Date().toISOString(), collapsed = false, filledAttrMap = {}
 ) {
-  const sharedId = `instance-${id.split("-")[1]}-${uniqueId}`;
+  if (!type || !label) return;
 
-  console.log("createInstanceWithAttributes");
-  const newNode_data = {
-    id: `${sharedId}`,
-    type: "instance",
-    position,
-    data: { label, type, sharedId, classId: id, instanceId: sharedId },
-    updatedAt: new Date().toISOString(),
-
-    //   origin: [0.5, 0.5],
-  };
-
-  const newNode_resizable = {
-    id: `${sharedId}-resizable`,
-    type: "resizable",
-    position: { x: position.x, y: position.y + 30 },
-    data: { label, type, sharedId, classId: id, instanceId: sharedId },
-    //   origin: [0.5, 0.5],
-  };
-
-  const newAttrNodes = [];
-  const newAttrEdges = [];
-
-  const originalClassNode = classNodes.find(
-    (n) => n.data.label === label && n.data.type === "object"
-  );
-
-  if (originalClassNode) {
-    const connectedAttrEdges = classEdges.filter(
-      (e) =>
-        e.source === originalClassNode.id || e.target === originalClassNode.id
-    );
-
-    const connectedAttrNodes = connectedAttrEdges
-      .map((e) =>
-        classNodes.find(
-          (n) =>
-            n.id === (e.source === originalClassNode.id ? e.target : e.source)
-        )
-      )
-      .filter((n) => n && n.data.type === "attribute");
-
-    for (const attr of connectedAttrNodes) {
-      if (!attr.data.hasValue) {
-        const inputValue = prompt(`${attr.data.label} 값을 입력하세요`);
-        if (inputValue) {
-          const attrNodeId = `${sharedId}-attr-${attr.data.label}`;
-
-          newAttrNodes.push({
-            id: attrNodeId,
-            type: "instance",
-            position: {
-              x: position.x + Math.random() * 10,
-              y: position.y - 40,
-            },
-            data: {
-              label: attr.data.label,
-              type: "attribute",
-              hasValue: inputValue,
-              value: inputValue,
-            },
-            updatedAt: new Date().toISOString(),
-          });
-
-          newAttrEdges.push({
-            id: `${newNode_data.id}-${attrNodeId}`,
-            source: newNode_data.id,
-            target: attrNodeId,
-            label: "property",
-          });
-        }
-      }
-    }
-  }
-
-  if (resizable) {
-    return {
-      newNodes: [newNode_resizable, newNode_data, ...newAttrNodes],
-      newEdges: newAttrEdges,
-    };
+  if (type === "object-group" && resizable === false) {
+    return cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, instanceLabel, updatedAt, collapsed, filledAttrMap);
   } else {
-    return {
-      newNodes: [newNode_data, ...newAttrNodes],
-      newEdges: newAttrEdges,
-    };
+    return createSimpleInstance(event, id, label, type, screenToFlowPosition, classNodes, classEdges, resizable, instanceId, updatedAt);
   }
 }

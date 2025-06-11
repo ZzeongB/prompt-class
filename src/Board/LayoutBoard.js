@@ -38,6 +38,7 @@ const nodeTypes = {
   instance: LayoutNode,
   resizable: ResizableNode,
   tmpResizable: TempResizableNode,
+  "instance-group": LayoutNode,
 };
 
 const defaultEdgeOptions = {
@@ -117,6 +118,8 @@ function LayoutBoard({ onImageGenerated }) {
           classNodes,
           classEdges
         );
+
+        console.log("Layout newNodes", newNodes)
 
         setNodes((prevNodes) => [...prevNodes, ...newNodes]);
         setEdges((prevEdges) => [...prevEdges, ...newEdges]);
