@@ -9,6 +9,8 @@ from openai import OpenAI
 from src.models.transformer_flux_SiamLayout import FluxTransformer2DModel
 from src.pipeline.pipeline_flux_CreatiLayout import CreatiLayoutFluxPipeline
 
+from utils.prompt import caption_prompt
+
 load_dotenv()
 client = OpenAI(
     api_key=os.environ["OPENAI_API_KEY"],  # this is also the default, it can be omitted
@@ -95,27 +97,7 @@ def generate_global_caption_and_refinements(sentences, global_caption=""):
     region_desc = chr(10).join([f"{i+1}. {s}" for i, s in enumerate(sentences)])
     caption_block = f"\nPreliminary global description:\n{global_caption}" if has_caption else ""
 
-    prompt = f"""You are an assistant that helps generate clean and natural language prompts for image generation, based on region-level descriptions of visual content.{" A preliminary global description of the style or context is also provided." if has_caption else ""}
-
-Example for global caption: Corporate branding style Winston Churchill looking at iPhone. . Professional, clean, modern, sleek, minimalist, business-oriented, highly detailed
-
-Your task:
-1. Correct each region-level description to be grammatically correct and natural, without adding new details.
-2. Then, write one sentence that summarizes the overall image based on the corrected descriptions{" and the preliminary global description" if has_caption else ""}. This sentence will be used as a text-to-image generation prompt.
-
-Original region descriptions:
-{region_desc}{caption_block}
-
-Please return the result in this format:
-
-Corrected region descriptions:
-1. ...
-2. ...
-...
-
-Global image description:
-..."""
-
+    prompt = caption_prompt(has_caption, region_desc, caption_block)
     # Save prompt
     with open(f"log_{timestamp}.txt", "w", encoding="utf-8") as f:
         f.write(prompt)

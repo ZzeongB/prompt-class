@@ -28,7 +28,7 @@ function buildCompositionalSentence(classEntry) {
 
   // Class 이름 삽입
   const classLabel = classEntry.class.toLowerCase();
-  return `Illustration of ${classLabel}: ${fullContent}`;
+  return `${classLabel}: ${fullContent}`;
 }
 
 

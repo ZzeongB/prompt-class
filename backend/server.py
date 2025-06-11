@@ -17,6 +17,24 @@ from utils.server_utils import (
     generate_global_caption_and_refinements,
     load_model,
 )
+import logging
+from datetime import datetime
+now = datetime.now()
+timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+filename = timestamp
+
+# 로그 디렉토리 생성
+log_dir = "logs"
+os.makedirs(log_dir, exist_ok=True)
+
+# 로거 설정
+log_filename = os.path.join(log_dir, f"server_log_{timestamp}.log")
+logging.basicConfig(
+    filename=log_filename,
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
@@ -43,11 +61,12 @@ def generate_caption_route():
     data = request.get_json()
     sentences = data.get("sentences", [])
     global_caption = data.get("globalCaption", "")
-    
-    print("Successfully received data", data)
+
+    logger.info(f"Received generate-caption request: {data}")
 
     result = generate_global_caption_and_refinements(sentences, global_caption)
 
+    logger.info(f"Generated captions: {result}")
     return jsonify(result)
 
 
@@ -57,13 +76,8 @@ def generate():
     global_caption = data.get("global_caption")
     region_caption_list = data.get("region_caption_list")
     region_bboxes_list = data.get("region_bboxes_list")
-    print("Sucessfully received data", region_caption_list, region_bboxes_list)
 
-    from datetime import datetime
-    now = datetime.now()
-    timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-
-    filename = timestamp
+    logger.info(f"Received generate request: global_caption={global_caption}, regions={region_caption_list}, boxes={region_bboxes_list}")
 
     with torch.no_grad():
         images = pipe(
@@ -78,16 +92,16 @@ def generate():
         )
     images = images.images
 
-    print("Sucessfully generated images about", global_caption)
+    logger.info("Successfully generated images.")
 
     img_base64 = encode_image(images[0])
 
     for j, image in enumerate(images):
-        image.save(os.path.join(img_save_root, f"{filename}_{j}.png"))
+        image_path = os.path.join(img_save_root, f"{filename}_{j}.png")
+        image.save(image_path)
+        logger.info(f"Saved image: {image_path}")
 
-        img_with_layout_save_name = os.path.join(
-            img_with_layout_save_root, f"{filename}_{j}.png"
-        )
+        img_with_layout_save_name = os.path.join(img_with_layout_save_root, f"{filename}_{j}.png")
 
         white_image = Image.new("RGB", (width, height), color="rgb(256,256,256)")
         show_input = {
@@ -105,8 +119,7 @@ def generate():
         new_image.paste(bbox_visualization_img, (0, 0))
         new_image.paste(image_with_bbox, (width, 0))
         new_image.save(img_with_layout_save_name)
-
-    print("Sucessfully saved images")
+        logger.info(f"Saved image with layout: {img_with_layout_save_name}")
 
     return jsonify({"image": img_base64, "globalCaption": global_caption})
 
@@ -117,7 +130,8 @@ def describe_region():
     base64_image = data.get("image", "")
     crop_box = data.get("crop_box", [])
     global_caption = data.get("global_caption", "")
-    print("Sucessfully received data", crop_box, global_caption)
+
+    logger.info(f"Received describe request: crop_box={crop_box}, global_caption={global_caption}")
 
     # decode base64 image
     image_bytes = base64.b64decode(base64_image)
@@ -125,14 +139,12 @@ def describe_region():
 
     # crop region
     region = full_image.crop(crop_box)
-
-    # save region image
     region_path = os.path.join(img_save_root, "_region.png")
     region.save(region_path)
-    print("Sucessfully saved region image")
+    logger.info(f"Saved region image: {region_path}")
 
     response_text = generate_description(region, global_caption)
-    print("Response from OpenAI:", response_text)
+    logger.info(f"Response from OpenAI: {response_text}")
 
     return jsonify({"description": response_text})
 
