@@ -188,9 +188,9 @@ export function createInstance(
 ) {
   if (!type || !label) return;
 
-  if (type === "object-group" && resizable === false) {
+  if (type === "object-group" && resizable === false) { // from InstanceBoard
     return cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, instanceLabel, updatedAt, collapsed, filledAttrMap);
-  } else {
+  } else { // from LayoutBoard
     return createSimpleInstance(event, id, label, type, screenToFlowPosition, classNodes, classEdges, resizable, instanceId, updatedAt);
   }
 }
