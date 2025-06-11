@@ -10,6 +10,7 @@ import { ClassGraphProvider } from "./context/ClassGraphContext";
 import { InstanceGraphProvider } from "./context/InstanceGraphContext";
 import { ImageProivder } from "./context/ImageContext";
 import { DnDProvider } from "./context/DragAndDropContext";
+import InstanceTreeBoard from "./Board/InstanceTreeBoard";
 
 export default function App() {
   const [imageSrc, setImageSrc] = useState("");
@@ -110,7 +111,7 @@ export default function App() {
                       height: "512px",
                       position: "relative",
                       flexShrink: 0, // 고정 너비 유지
-                      background: imageSrc? "": "#FEFEFE",
+                      background: imageSrc ? "" : "#FEFEFE",
                     }}
                   >
                     <LayoutBoardWithProvider onImageGenerated={setImageSrc} />
@@ -134,7 +135,8 @@ export default function App() {
                     marginBottom: "12px", // LayoutBoard와의 거리
                   }}
                 >
-                  <InstanceBoardWithProvider />
+                  {/* <InstanceBoardWithProvider /> */}
+                  <InstanceTreeBoard />
                 </div>
               </div>
               {/* </div> */}

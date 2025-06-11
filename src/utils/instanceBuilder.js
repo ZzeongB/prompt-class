@@ -95,14 +95,29 @@ function createSimpleInstance(event, id, label, type, screenToFlowPosition, clas
 
   return { newNodes: nodes, newEdges: newAttrEdges };
 }
+function collectAllDescendants(nodes, parentId) {
+  const result = [];
 
-// object-group 복제
+  function dfs(currentId) {
+    const children = nodes.filter(n => n.parentNode === currentId);
+    for (const child of children) {
+      result.push(child);
+      dfs(child.id);  // 재귀적으로 탐색
+    }
+  }
+
+  dfs(parentId);
+  return result;
+}
+
 function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, instanceLabel, updatedAt, collapsed, filledAttrMap) {
   const uniqueId = uuidv4();
   const groupNode = classNodes.find(n => n.id === id);
   if (!groupNode) return { newNodes: [], newEdges: [] };
 
-  const childNodes = classNodes.filter(n => n.parentNode === id);
+  // ✅ 모든 하위 노드까지 재귀 수집
+  const allDescendants = collectAllDescendants(classNodes, id);
+
   const deltaX = event.x - groupNode.position.x;
   const deltaY = event.y - groupNode.position.y;
 
@@ -110,6 +125,7 @@ function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, ins
   const groupInstanceId = `instance-${groupNode.id}-${uniqueId}`;
   idMap.set(groupNode.id, groupInstanceId);
 
+  // 최상위 group 복제
   const newGroupNode = {
     ...groupNode,
     id: groupInstanceId,
@@ -127,11 +143,19 @@ function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, ins
     style: { ...groupNode.style, height: collapsed ? 50 : groupNode.style.height },
   };
 
-  const newChildNodes = childNodes.map(n => {
+  // 모든 하위 노드 복제 (object, attribute, object-group 포함)
+  const newChildNodes = allDescendants.map(n => {
     const newId = `instance-${n.id}-${uniqueId}`;
     idMap.set(n.id, newId);
 
-    const newPosition = { x: n.position.x + deltaX, y: n.position.y + deltaY };
+    const originalParent = n.parentNode;
+    const newParent = originalParent ? idMap.get(originalParent) : groupInstanceId;
+
+    const newPosition = {
+      x: n.position.x + deltaX,
+      y: n.position.y + deltaY,
+    };
+
     const baseData = {
       ...n.data,
       type: n.data.type,
@@ -142,12 +166,13 @@ function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, ins
     if (n.data.type === "attribute" && !n.data.hasValue) {
       const inputValue = getAttributeValue(n.data.label, filledAttrMap, instanceId, n.id);
       if (!inputValue) return null;
+
       return {
         ...n,
         id: newId,
         type: "instance",
         position: newPosition,
-        parentNode: n.parentNode ? `instance-${n.parentNode}-${uniqueId}` : undefined,
+        parentNode: newParent,
         extent: n.extent,
         data: { ...baseData, value: inputValue, hasValue: inputValue },
         updatedAt,
@@ -157,16 +182,17 @@ function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, ins
     return {
       ...n,
       id: newId,
-      type: "instance",
+      type: n.type === "object-group" ? "instance-group" : "instance",
       position: newPosition,
-      parentNode: n.parentNode ? `instance-${n.parentNode}-${uniqueId}` : undefined,
+      parentNode: newParent,
       extent: n.extent,
       data: baseData,
       updatedAt,
     };
   }).filter(Boolean);
 
-  const allNodeIds = [groupNode.id, ...childNodes.map(n => n.id)];
+  // 엣지도 재구성 (모든 descendants 기반으로)
+  const allNodeIds = [groupNode.id, ...allDescendants.map(n => n.id)];
   const newEdges = classEdges
     .filter(e => allNodeIds.includes(e.source) && allNodeIds.includes(e.target))
     .map(e => ({
