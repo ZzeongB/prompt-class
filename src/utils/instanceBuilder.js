@@ -8,26 +8,21 @@ function getAttributeValue(attrLabel, filledAttrMap, instanceId, attrId) {
   const inputValue = prompt(`${attrLabel} 값을 입력하세요`);
   if (!inputValue) return null;
 
-  if (!filledAttrMap[instanceId]) filledAttrMap[instanceId] = {};
+  filledAttrMap[instanceId] ??= {};
   filledAttrMap[instanceId][attrId] = inputValue;
 
   return inputValue;
 }
 
-// attribute node 생성
-function createAttributeInstance(attr, position, sharedId, instanceId, filledAttrMap, updatedAt) {
+// attribute instance 생성
+function createAttributeNode(attr, position, sharedId, instanceId, filledAttrMap, updatedAt) {
   const inputValue = getAttributeValue(attr.data.label, filledAttrMap, instanceId, attr.id);
   if (!inputValue) return null;
 
-  const attrNodeId = `${sharedId}-attr-${attr.data.label}`;
-
   return {
-    id: attrNodeId,
+    id: `${sharedId}-attr-${attr.data.label}`,
     type: "instance",
-    position: {
-      x: position.x + Math.random() * 10,
-      y: position.y - 40,
-    },
+    position: { x: position.x + Math.random() * 10, y: position.y - 40 },
     data: {
       label: attr.data.label,
       type: "attribute",
@@ -37,6 +32,16 @@ function createAttributeInstance(attr, position, sharedId, instanceId, filledAtt
     },
     updatedAt,
   };
+}
+
+// classNode에서 attribute 연결 찾기
+function getConnectedAttributes(classNode, classNodes, classEdges) {
+  if (!classNode) return [];
+
+  return classEdges
+    .filter(e => e.source === classNode.id || e.target === classNode.id)
+    .map(e => classNodes.find(n => n.id === (e.source === classNode.id ? e.target : e.source)))
+    .filter(n => n?.data?.type === "attribute");
 }
 
 // 일반 object instance 생성
@@ -59,20 +64,15 @@ function createSimpleInstance(event, id, label, type, screenToFlowPosition, clas
     updatedAt,
   };
 
-  const originalClassNode = classNodes.find(n => n.data.label === label && n.data.type === "object");
-  const connectedAttrNodes = originalClassNode
-    ? classEdges
-        .filter(e => e.source === originalClassNode.id || e.target === originalClassNode.id)
-        .map(e => classNodes.find(n => n.id === (e.source === originalClassNode.id ? e.target : e.source)))
-        .filter(n => n && n.data.type === "attribute")
-    : [];
+  const classNode = classNodes.find(n => n.data.label === label && n.data.type === "object");
+  const connectedAttrNodes = getConnectedAttributes(classNode, classNodes, classEdges);
 
   const newAttrNodes = [];
   const newAttrEdges = [];
-
+  
   for (const attr of connectedAttrNodes) {
     if (!attr.data.hasValue) {
-      const attrNode = createAttributeInstance(attr, position, sharedId, sharedId, {}, updatedAt);
+      const attrNode = createAttributeNode(attr, position, sharedId, sharedId, {}, updatedAt);
       if (attrNode) {
         newAttrNodes.push(attrNode);
         newAttrEdges.push({
@@ -86,24 +86,27 @@ function createSimpleInstance(event, id, label, type, screenToFlowPosition, clas
   }
 
   const nodes = resizable
-    ? [{ id: `${sharedId}-resizable`, type: "resizable", position: { x: position.x, y: position.y + 30 }, data: newNode.data }, newNode, ...newAttrNodes]
+    ? [
+        { id: `${sharedId}-resizable`, type: "resizable", position: { x: position.x, y: position.y + 30 }, data: newNode.data },
+        newNode,
+        ...newAttrNodes,
+      ]
     : [newNode, ...newAttrNodes];
 
   return { newNodes: nodes, newEdges: newAttrEdges };
 }
 
-// object-group + resizable = false 일 때 복제
+// object-group 복제
 function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, instanceLabel, updatedAt, collapsed, filledAttrMap) {
   const uniqueId = uuidv4();
   const groupNode = classNodes.find(n => n.id === id);
-  const childNodes = classNodes.filter(n => n.parentNode === id);
   if (!groupNode) return { newNodes: [], newEdges: [] };
 
-  const basePosition = event;
-  const deltaX = basePosition.x - groupNode.position.x;
-  const deltaY = basePosition.y - groupNode.position.y;
-  const idMap = new Map();
+  const childNodes = classNodes.filter(n => n.parentNode === id);
+  const deltaX = event.x - groupNode.position.x;
+  const deltaY = event.y - groupNode.position.y;
 
+  const idMap = new Map();
   const groupInstanceId = `instance-${groupNode.id}-${uniqueId}`;
   idMap.set(groupNode.id, groupInstanceId);
 
@@ -111,7 +114,7 @@ function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, ins
     ...groupNode,
     id: groupInstanceId,
     type: "instance-group",
-    position: basePosition,
+    position: event,
     data: {
       ...groupNode.data,
       label: instanceLabel || groupNode.data.label,
@@ -124,36 +127,21 @@ function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, ins
     style: { ...groupNode.style, height: collapsed ? 50 : groupNode.style.height },
   };
 
-  const newChildNodes = childNodes
-    .map(n => {
-      const newId = `instance-${n.id}-${uniqueId}`;
-      idMap.set(n.id, newId);
+  const newChildNodes = childNodes.map(n => {
+    const newId = `instance-${n.id}-${uniqueId}`;
+    idMap.set(n.id, newId);
 
-      const newPosition = { x: n.position.x + deltaX, y: n.position.y + deltaY };
+    const newPosition = { x: n.position.x + deltaX, y: n.position.y + deltaY };
+    const baseData = {
+      ...n.data,
+      type: n.data.type,
+      instanceId,
+      label: n.data.label,
+    };
 
-      if (n.data.type === "attribute" && !n.data.hasValue) {
-        const inputValue = getAttributeValue(n.data.label, filledAttrMap, instanceId, n.id);
-        if (!inputValue) return null;
-
-        return {
-          ...n,
-          id: newId,
-          type: "instance",
-          position: newPosition,
-          parentNode: n.parentNode ? `instance-${n.parentNode}-${uniqueId}` : undefined,
-          extent: n.extent,
-          data: {
-            ...n.data,
-            value: inputValue,
-            hasValue: inputValue,
-            label: n.data.label,
-            type: "attribute",
-            instanceId,
-          },
-          updatedAt,
-        };
-      }
-
+    if (n.data.type === "attribute" && !n.data.hasValue) {
+      const inputValue = getAttributeValue(n.data.label, filledAttrMap, instanceId, n.id);
+      if (!inputValue) return null;
       return {
         ...n,
         id: newId,
@@ -161,11 +149,22 @@ function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, ins
         position: newPosition,
         parentNode: n.parentNode ? `instance-${n.parentNode}-${uniqueId}` : undefined,
         extent: n.extent,
-        data: { ...n.data, type: n.data.type, instanceId },
+        data: { ...baseData, value: inputValue, hasValue: inputValue },
         updatedAt,
       };
-    })
-    .filter(Boolean);
+    }
+
+    return {
+      ...n,
+      id: newId,
+      type: "instance",
+      position: newPosition,
+      parentNode: n.parentNode ? `instance-${n.parentNode}-${uniqueId}` : undefined,
+      extent: n.extent,
+      data: baseData,
+      updatedAt,
+    };
+  }).filter(Boolean);
 
   const allNodeIds = [groupNode.id, ...childNodes.map(n => n.id)];
   const newEdges = classEdges
@@ -180,7 +179,7 @@ function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, ins
   return { newNodes: [newGroupNode, ...newChildNodes], newEdges, newFilledAttrMap: filledAttrMap };
 }
 
-// 최종 entry point
+// entry point
 export function createInstance(
   event, id, label, type, screenToFlowPosition,
   nodes, classNodes, classEdges,
