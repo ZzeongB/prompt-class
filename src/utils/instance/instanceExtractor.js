@@ -4,46 +4,60 @@ import { buildGroup } from "../group/buildGroup"; // 분리된 유틸 import
 function buildCompositionalSentence(classEntry) {
   const objectNameMap = {};
 
+  // ✅ object-level sentence 먼저 준비
   classEntry.objects.forEach((obj) => {
-    if (obj.objects) {
-      // nested group인 경우 → 재귀 호출로 먼저 문장 생성
-      const nestedSentence = buildCompositionalSentence(obj);
+    let nestedSentence = null;
+
+    // nested object인 경우 → 재귀 호출
+    if (obj.objects && obj.objects.length > 0) {
+      nestedSentence = buildCompositionalSentence({
+        class: obj.label,
+        attributes: obj.attributes,
+        objects: obj.objects,
+        relations: obj.relations,
+      });
       objectNameMap[obj.label] = nestedSentence;
     } else {
-      // 일반 object
+      // leaf object
       const modifiers = (obj.attributes || []).map((attr) => {
-        if (attr.value) {
-          return `${attr.value}`;
-        } else {
-          return attr.name; // 값 없을 경우 이름만
-        }
+        return attr.value ? `${attr.value}` : attr.name;
       });
-
       const fullName = [...modifiers, obj.label].join(" ");
       objectNameMap[obj.label] = fullName;
     }
   });
 
+  // ✅ relation sentence
   const objectsInRelations = new Set();
+  const relationSentences =
+    (classEntry.relations || []).map((rel) => {
+      const source = objectNameMap[rel.source] || rel.source;
+      const target = objectNameMap[rel.target] || rel.target;
 
-  const relationSentences = (classEntry.relations || []).map((rel) => {
-    const source = objectNameMap[rel.source] || rel.source;
-    const target = objectNameMap[rel.target] || rel.target;
+      objectsInRelations.add(rel.source);
+      objectsInRelations.add(rel.target);
 
-    objectsInRelations.add(rel.source);
-    objectsInRelations.add(rel.target);
+      return `${source} ${rel.name} ${target}`;
+    });
 
-    return `${source} ${rel.name} ${target}`;
-  });
-
+  // ✅ standalone objects (관계에 등장하지 않은 object)
   const standaloneObjects = classEntry.objects
     .filter((obj) => !objectsInRelations.has(obj.label))
     .map((obj) => objectNameMap[obj.label]);
 
-  const fullContent = [...relationSentences, ...standaloneObjects].join(", ");
+  // ✅ group-level attributes → 가장 앞에 modifier로 붙이기
+  const groupModifiers = (classEntry.attributes || []).map((attr) => {
+    return attr.value ? `${attr.value}` : attr.name;
+  });
 
-  return `${classEntry.class}: ${fullContent}`;
+  const content = [...relationSentences, ...standaloneObjects].join(", ");
+  const fullSentence = [...groupModifiers, classEntry.class.toLowerCase()]
+    .filter((s) => s && s.length > 0)
+    .join(" ");
+
+  return `${fullSentence}: ${content}`;
 }
+
 
 export function extractSentencesAndBoxes(
   instanceNodes,
