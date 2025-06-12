@@ -63,7 +63,7 @@ export function handleConnectEnd({
       id,
       position: screenToFlowPosition({ x: clientX, y: clientY }),
       type: type,
-      data: { label, type: "attribute", hasValue: true },
+      data: { label, type: "attribute", hasValue: label },
       origin: [0.5, 0.0],
     };
 

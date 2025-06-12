@@ -4,44 +4,45 @@ import { buildGroup } from "../group/buildGroup"; // 분리된 유틸 import
 function buildCompositionalSentence(classEntry) {
   const objectNameMap = {};
 
-  // (1) 먼저 이 레벨의 object를 처리
   classEntry.objects.forEach((obj) => {
-    const modifiers = obj.attributes?.map((attr) => attr.name) || [];
-    const fullName = [...modifiers, obj.name].join(" ");
-    objectNameMap[obj.name] = fullName;
+    if (obj.objects) {
+      // nested group인 경우 → 재귀 호출로 먼저 문장 생성
+      const nestedSentence = buildCompositionalSentence(obj);
+      objectNameMap[obj.label] = nestedSentence;
+    } else {
+      // 일반 object
+      const modifiers = (obj.attributes || []).map((attr) => {
+        if (attr.value) {
+          return `${attr.value}`;
+        } else {
+          return attr.name; // 값 없을 경우 이름만
+        }
+      });
+
+      const fullName = [...modifiers, obj.label].join(" ");
+      objectNameMap[obj.label] = fullName;
+    }
   });
 
   const objectsInRelations = new Set();
-  const relationSentences =
-    classEntry.relations?.map((rel) => {
-      const source = objectNameMap[rel.source] || rel.source;
-      const target = objectNameMap[rel.target] || rel.target;
 
-      objectsInRelations.add(rel.source);
-      objectsInRelations.add(rel.target);
+  const relationSentences = (classEntry.relations || []).map((rel) => {
+    const source = objectNameMap[rel.source] || rel.source;
+    const target = objectNameMap[rel.target] || rel.target;
 
-      return `${source} ${rel.name} ${target}`;
-    }) ?? [];
+    objectsInRelations.add(rel.source);
+    objectsInRelations.add(rel.target);
+
+    return `${source} ${rel.name} ${target}`;
+  });
 
   const standaloneObjects = classEntry.objects
-    .filter((obj) => !objectsInRelations.has(obj.name))
-    .map((obj) => objectNameMap[obj.name]);
+    .filter((obj) => !objectsInRelations.has(obj.label))
+    .map((obj) => objectNameMap[obj.label]);
 
-  // (2) 하위 그룹도 재귀적으로 처리
-  const nestedSentences =
-    classEntry.groups?.map((subGroup) => {
-      return buildCompositionalSentence(subGroup);
-    }) ?? [];
+  const fullContent = [...relationSentences, ...standaloneObjects].join(", ");
 
-  // (3) 현재 레벨 + 하위 그룹을 모두 합침
-  const fullContent = [
-    ...relationSentences,
-    ...standaloneObjects,
-    ...nestedSentences,
-  ].join(", ");
-
-  const classLabel = classEntry.class.toLowerCase();
-  return `${classLabel}: ${fullContent}`;
+  return `${classEntry.class}: ${fullContent}`;
 }
 
 export function extractSentencesAndBoxes(
@@ -74,6 +75,7 @@ export function extractSentencesAndBoxes(
         classGraphNodes,
         classGraphEdges
       );
+      console.log("structuredClass", structuredClass);
       if (!structuredClass) return;
 
       const sentence = buildCompositionalSentence(structuredClass);

@@ -6,57 +6,81 @@ export function buildGroup(groupId, nodes, edges, visited = new Set()) {
   if (!groupNode) return null;
 
   const children = nodes.filter((n) => n.parentNode === groupId);
+  const attributeNodes = children.filter((n) => n.data?.type === "attribute");
+  const relationNodes = children.filter((n) => n.data?.type === "relationship");
 
-  const groupChildren = children.filter((n) => n.type === "object-group");
-  const excludedIds = new Set(groupChildren.map((n) => n.id));
-
-  const objectNodes = children.filter(
-    (n) => n.data?.type === "object" && !excludedIds.has(n.id)
+  // ✅ object 후보: object-node + object-group-node 둘 다!
+  const objectCandidates = children.filter(n =>
+    (n.data?.type === "object" || n.type === "object-group")
   );
 
-  const objectEntries = objectNodes.map((n) => ({ label: n.data?.label }));
+  const objectEntries = objectCandidates.map((objNode) => {
+    const objectId = objNode.id;
 
-  const nestedGroupsAsObjects = groupChildren
-    .map((childGroup) => {
-      const nested = buildGroup(childGroup.id, nodes, edges, visited);
-      return nested
-        ? {
-            label: nested.class,
-            objects: nested.objects,
-            relations: nested.relations,
-          }
-        : null;
-    })
-    .filter(Boolean);
-
-  const allObjects = [...objectEntries, ...nestedGroupsAsObjects];
-
-  const relations = children
-    .filter((n) => n.data?.type === "relationship")
-    .map((rel) => {
-      const incoming = edges.find((e) => e.target === rel.id);
-      const outgoing = edges.find((e) => e.source === rel.id);
-
-      const sourceNode = nodes.find((n) => n.id === incoming?.source);
-      const targetNode = nodes.find((n) => n.id === outgoing?.target);
-
-      if (
-        sourceNode?.data?.type === "object" &&
-        targetNode?.data?.type === "object"
-      ) {
+    // ✅ attributes 연결 (edge 기반)
+    const connectedAttrEdges = edges.filter(e => e.source === objectId);
+    const connectedAttributes = connectedAttrEdges
+      .map(e => {
+        const attrNode = nodes.find(n => n.id === e.target && n.data?.type === "attribute");
+        if (!attrNode) return null;
         return {
-          name: rel.data.label,
-          source: sourceNode.data.label,
-          target: targetNode.data.label,
+          name: attrNode.data?.label,
+          value: attrNode.data?.hasValue ?? null,
         };
+      })
+      .filter(Boolean);
+
+    // ✅ nested object-group 재귀적 처리
+    let nestedObjects = [];
+    let nestedRelations = [];
+    if (objNode.type === "object-group") {
+      const nested = buildGroup(objNode.id, nodes, edges, visited);
+      if (nested) {
+        nestedObjects = nested.objects ?? [];
+        nestedRelations = nested.relations ?? [];
       }
-      return null;
-    })
-    .filter(Boolean);
+    }
+
+    return {
+      class: objNode.data?.label,
+      label: objNode.data?.label,
+      attributes: connectedAttributes,
+      objects: nestedObjects,
+      relations: nestedRelations,
+    };
+  });
+
+  // ✅ group 자체 attribute (아무 object에도 연결되지 않은 것)
+  const connectedAttrIds = edges.map(e => e.target);
+  const groupAttributes = attributeNodes
+    .filter(attrNode => !connectedAttrIds.includes(attrNode.id))
+    .map(attrNode => ({
+      name: attrNode.data?.label,
+      value: attrNode.data?.hasValue ?? null,
+    }));
+
+  // ✅ group scope의 relation 수집
+  const relations = relationNodes.map((rel) => {
+    const incoming = edges.find((e) => e.target === rel.id);
+    const outgoing = edges.find((e) => e.source === rel.id);
+
+    const sourceNode = nodes.find((n) => n.id === incoming?.source);
+    const targetNode = nodes.find((n) => n.id === outgoing?.target);
+
+    if (sourceNode?.data?.type && targetNode?.data?.type) {
+      return {
+        name: rel.data.label,
+        source: sourceNode.data.label,
+        target: targetNode.data.label,
+      };
+    }
+    return null;
+  }).filter(Boolean);
 
   return {
     class: groupNode.data?.label,
-    objects: allObjects,
+    attributes: groupAttributes,
+    objects: objectEntries,
     relations,
   };
 }

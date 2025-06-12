@@ -54,7 +54,7 @@ export const classSample: AnyClass[] = [
   },
   {
     type: "object-class",
-    name: "두더지",
+    name: "Mole",
     objects: [
       { name: "mole", attributes: [{ name: "color", value: "black" }] },
       { name: "glasses", attributes: [{ name: "size", value: "small" }] },
