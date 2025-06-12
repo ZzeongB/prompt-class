@@ -96,6 +96,10 @@ def generate():
 
     img_base64 = encode_image(images[0])
 
+    now = datetime.now()
+    timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+    filename = timestamp
+
     for j, image in enumerate(images):
         image_path = os.path.join(img_save_root, f"{filename}_{j}.png")
         image.save(image_path)

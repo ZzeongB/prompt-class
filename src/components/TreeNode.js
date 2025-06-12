@@ -10,8 +10,15 @@ import {
   REL_COLOR_TRANS_DARK,
 } from "../utils/constants";
 
-export default function TreeNode({ node }) {
+export default function TreeNode({ node, depth = 0 }) {
   const [expanded, setExpanded] = useState(true);
+  const children = node.children ?? [];
+  const hasChildren = children.length > 0;
+
+  const INDENT = 20;
+  const NODE_WIDTH = 70;
+  const BOX_HEIGHT = 10;
+  const LINE_WIDTH = 2;
 
   const type =
     node.type === "instance-group" || node.type === "object-group"
@@ -19,107 +26,75 @@ export default function TreeNode({ node }) {
       : node.data?.type ?? node.type;
   const hasValue = node.data?.hasValue ?? false;
 
-  const base = {
-    borderRadius: 8,
+  const MAX_NODE_WIDTH = 300; // 최대 폭 제한
+
+  const baseBoxStyle = {
+    borderRadius: 4,
     padding: "6px 10px",
-    fontWeight: "bold",
-    fontSize: "14px",
-    minWidth: "50px",
+    // fontWeight: "bold",
+    fontSize: "15px",
+    height: BOX_HEIGHT,
+    maxWidth: MAX_NODE_WIDTH,
     textAlign: "center",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     boxShadow: "1px 1px 3px rgba(0,0,0,0.1)",
     transition: "all 0.2s",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    width: "fit-content", // ✅ 바로 핵심
   };
 
-  let style = { ...base, background: WHITE };
+  let boxStyle = { ...baseBoxStyle, background: WHITE };
 
   if (type === "instance-group" || type === "object-group") {
-    style = {
-      ...base,
+    boxStyle = {
+      ...baseBoxStyle,
       background: OBJ_COLOR_TRANS,
       border: `3px solid ${OBJ_COLOR}`,
     };
   }
   if (type === "object") {
-    style = {
-      ...base,
+    boxStyle = {
+      ...baseBoxStyle,
       background: OBJ_COLOR_TRANS_DARK,
     };
   }
   if (type === "attribute") {
-    style = {
-      ...base,
+    boxStyle = {
+      ...baseBoxStyle,
       background: hasValue ? ATTR_COLOR_TRANS_DARK : WHITE,
       fontStyle: hasValue ? "normal" : "italic",
     };
   }
   if (type === "relationship") {
-    style = {
-      ...base,
+    boxStyle = {
+      ...baseBoxStyle,
       background: REL_COLOR_TRANS_DARK,
     };
   }
 
-  const children = node.children ?? [];
-  const hasChildren = children.length > 0;
-
-  return (
-    <div style={{ marginTop: 15 }}>
-      {/* 그룹 아닐 때 */}
-      {!(type === "instance-group" || type === "object-group") && (
-        <div style={{ display: "flex", alignItems: "center" }}>
-          {hasChildren && (
-            <div
-              onClick={() => setExpanded(!expanded)}
-              style={{
-                width: 20,
-                height: 20,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                cursor: "pointer",
-                fontWeight: "bold",
-              }}
-            >
-              {expanded ? "▼" : "▶"}
-            </div>
-          )}
-          <div style={{ ...style, marginLeft: hasChildren ? 0 : 20 }}>
-            {type === "attribute" ? node.data?.hasValue : node.data?.label}
-          </div>
-        </div>
-      )}
-
-      {/* 그룹일 때 */}
-      {(type === "instance-group" || type === "object-group") && (
+  // 그룹 노드 렌더링 (margin 제거)
+  if (type === "instance-group" || type === "object-group") {
+    return (
+      <div style={{ marginTop: 10, marginLeft: depth * INDENT }}>
         <div
           style={{
-            // border: `2px solid ${OBJ_COLOR}`,
-            borderRadius: 10,
             padding: 10,
+            borderRadius: 10,
             background: OBJ_COLOR_TRANS,
             boxShadow: "1px 1px 5px rgba(0,0,0,0.1)",
-            marginLeft: 10,
-            marginRight: 10,
-            marginTop: 5,
-            flexGrow: 1,
+            position: "relative",
           }}
         >
-          {/* 라벨 + 토글 한줄에 */}
           <div
-            style={{
-              // ...base,
-              // background: OBJ_COLOR_TRANS_DARK,
-              marginBottom: 10,
-              display: "flex",
-              fontWeight: "bold",
-              fontSize: "14px",
-              // justifyContent: "space-between",
-            }}
+            style={{ display: "flex", alignItems: "center", marginBottom: 10 }}
           >
-            <div>{node.data?.label}</div>
+            <div style={{ fontWeight: "bold", fontSize: "14px" }}>
+              {node.data?.label}
+            </div>
             {hasChildren && (
               <div
                 onClick={() => setExpanded(!expanded)}
@@ -139,27 +114,57 @@ export default function TreeNode({ node }) {
             )}
           </div>
 
-          {/* children */}
           {expanded && hasChildren && (
-            <div style={{ marginLeft: 10 }}>
+            <div>
               {children.map((child) => (
-                <TreeNode key={child.id} node={child} />
+                <TreeNode key={child.id} node={child} depth={depth + 1} />
               ))}
             </div>
           )}
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* 일반 노드 children */}
-      {expanded &&
-        hasChildren &&
-        !(type === "instance-group" || type === "object-group") && (
-          <div style={{ marginLeft: 30 }}>
-            {children.map((child) => (
-              <TreeNode key={child.id} node={child} />
-            ))}
-          </div>
-        )}
+  // 일반 노드 렌더링 (연결선 포함)
+  return (
+    <div style={{ position: "relative", marginTop: 10, marginLeft: INDENT }}>
+      <div style={boxStyle}>
+        {type === "attribute" ? node.data?.hasValue : node.data?.label}
+      </div>
+
+      {hasChildren && (
+        <div>
+          {children.map((child) => (
+            <div key={child.id} style={{ position: "relative" }}>
+              {/* 수직선 */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: -BOX_HEIGHT,
+                  left: 10,
+                  width: LINE_WIDTH,
+                  height: BOX_HEIGHT * 2 + 1,
+                  background: "#999",
+                  // zIndex: 0,
+                }}
+              />
+              {/* 수평선 */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: BOX_HEIGHT,
+                  left: 10,
+                  width: INDENT - 10,
+                  height: LINE_WIDTH,
+                  background: "#999",
+                }}
+              />
+              <TreeNode node={child} depth={depth} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

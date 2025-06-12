@@ -1,9 +1,10 @@
 import { getNormalizedBox } from "../node/getNormalizedBox";
-import { buildGroup } from "../group/buildGroup";  // 분리된 유틸 import
+import { buildGroup } from "../group/buildGroup"; // 분리된 유틸 import
 
 function buildCompositionalSentence(classEntry) {
   const objectNameMap = {};
 
+  // (1) 먼저 이 레벨의 object를 처리
   classEntry.objects.forEach((obj) => {
     const modifiers = obj.attributes?.map((attr) => attr.name) || [];
     const fullName = [...modifiers, obj.name].join(" ");
@@ -26,13 +27,22 @@ function buildCompositionalSentence(classEntry) {
     .filter((obj) => !objectsInRelations.has(obj.name))
     .map((obj) => objectNameMap[obj.name]);
 
-  const fullContent = [...relationSentences, ...standaloneObjects].join(", ");
+  // (2) 하위 그룹도 재귀적으로 처리
+  const nestedSentences =
+    classEntry.groups?.map((subGroup) => {
+      return buildCompositionalSentence(subGroup);
+    }) ?? [];
 
-  // Class 이름 삽입
+  // (3) 현재 레벨 + 하위 그룹을 모두 합침
+  const fullContent = [
+    ...relationSentences,
+    ...standaloneObjects,
+    ...nestedSentences,
+  ].join(", ");
+
   const classLabel = classEntry.class.toLowerCase();
   return `${classLabel}: ${fullContent}`;
 }
-
 
 export function extractSentencesAndBoxes(
   instanceNodes,
@@ -59,7 +69,11 @@ export function extractSentencesAndBoxes(
   if (objectNodes.length > 0) {
     objectNodes.forEach((objNode) => {
       const groupId = objNode.data.classId;
-      const structuredClass = buildGroup(groupId, classGraphNodes, classGraphEdges);
+      const structuredClass = buildGroup(
+        groupId,
+        classGraphNodes,
+        classGraphEdges
+      );
       if (!structuredClass) return;
 
       const sentence = buildCompositionalSentence(structuredClass);
@@ -85,7 +99,11 @@ export function extractSentencesAndBoxes(
 
     baselineNodes.forEach((node) => {
       const groupId = node.data.classId;
-      const structuredClass = buildGroup(groupId, classGraphNodes, classGraphEdges);
+      const structuredClass = buildGroup(
+        groupId,
+        classGraphNodes,
+        classGraphEdges
+      );
       if (!structuredClass) return;
 
       const sentence = buildCompositionalSentence(structuredClass);

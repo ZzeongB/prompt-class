@@ -12,7 +12,7 @@ export default function InstanceTree({ nodes, edges }) {
   console.log("treeData", treeData)
 
   return (
-    <div>
+    <div style={{margin: 10}}>
       {treeData.map(rootNode => (
         <TreeNode key={rootNode.id} node={rootNode} />
       ))}

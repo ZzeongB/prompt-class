@@ -202,30 +202,29 @@ function ClassBoard() {
     setNodes((prev) => [...prev, newNode]);
   };
   return (
-    <div className="reactflow-wrapper" ref={reactFlowWrapper}>
+    <div className="reactflow-wrapper" ref={reactFlowWrapper} style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "10px" }}>
         <button onClick={handleAddNode}>➕ 새 노드 추가</button>
       </div>
-
-      <ReactFlow
-        nodes={getVisibleNodes(nodes)}
-        edges={edges}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onConnectEnd={onConnectEnd}
-        onPaneClick={handlePaneClick}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        defaultEdgeOptions={defaultEdgeOptions}
-        // defaultNodeOptions={defaultNodeOptions}
-        fitView
-        connectionLineStyle={{ stroke: "#000" }}
-        connectionLineType="bezier"
-        nodeOrigin={[0, 0]} // 노드 중앙 기준
-        proOptions={{ hideAttribution: true }}
-      />
-    </div>
+        <ReactFlow
+          nodes={getVisibleNodes(nodes)}
+          edges={edges}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onConnectEnd={onConnectEnd}
+          onPaneClick={handlePaneClick}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          defaultEdgeOptions={defaultEdgeOptions}
+          // defaultNodeOptions={defaultNodeOptions}
+          fitView
+          connectionLineStyle={{ stroke: "#000" }}
+          connectionLineType="bezier"
+          nodeOrigin={[0, 0]} // 노드 중앙 기준
+          proOptions={{ hideAttribution: true }}
+        />
+      </div>
   );
 }
 
