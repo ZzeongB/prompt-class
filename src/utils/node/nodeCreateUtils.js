@@ -1,17 +1,16 @@
 // src/utils/nodeCreateUtils.js
 export function createNewObjectNode({ position, currentNodeCount }) {
   const defaultId = `object-${currentNodeCount}`;
-  const label = promptForNodeLabel(defaultId);
-  if (!label) return null;
-
+  
   return {
     id: defaultId,
     type: "class",
     position,
     origin: [0.5, 0.5],
     data: {
-      label,
+      label: defaultId,
       type: "object",
+      justCreated: true,
     },
   };
 }
@@ -28,13 +27,12 @@ export function createRelationshipNode({
   nodeCount,
 }) {
   const id = `rel-${nodeCount}`;
-  const label = promptForNodeLabel(id);
 
   const newNode = {
     id,
     type: "class",
     position,
-    data: { label, type: "relationship", source: sourceNode.id, target: targetNode.id },
+    data: { label: id, type: "relationship", source: sourceNode.id, target: targetNode.id, justCreated: true },
     origin: [0.5, 0.5],
   };
 

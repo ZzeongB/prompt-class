@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Handle,
   Position,
@@ -25,6 +25,19 @@ export default function BaseNode({ id, data, nodeType }) {
   const [isHovered, setIsHovered] = useState(false);
   const [editMode, setEditMode] = useState("fixed"); // 'fixed' or 'blank'
 
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+  useEffect(() => {
+    if (data.justCreated) {
+      setIsEditing(true);
+    }
+  }, [data.justCreated]);
   const style =
     nodeType === "class"
       ? getClassNodeStyle(data.type, data)
@@ -59,6 +72,7 @@ export default function BaseNode({ id, data, nodeType }) {
                 ...node.data,
                 label: editLabel,
                 hasValue: editLabel,
+                justCreated: false,
               },
             }
           : node
@@ -90,14 +104,14 @@ export default function BaseNode({ id, data, nodeType }) {
   };
 
   const handleDuplicateNode = () => {
-  setNodes((prev) => {
-    const target = prev.find((n) => n.id === id);
-    if (!target) return prev;
+    setNodes((prev) => {
+      const target = prev.find((n) => n.id === id);
+      if (!target) return prev;
 
-    const { duplicated } = duplicateNodesWithMapping([target]);
-    return [...prev, ...duplicated];
-  });
-};
+      const { duplicated } = duplicateNodesWithMapping([target]);
+      return [...prev, ...duplicated];
+    });
+  };
 
   return (
     <div
@@ -166,6 +180,7 @@ export default function BaseNode({ id, data, nodeType }) {
       >
         {isEditing ? (
           <input
+            ref={inputRef}
             value={editLabel}
             onChange={(e) => setEditLabel(e.target.value)}
             style={{ width: "90%", fontSize: "14px" }}
