@@ -129,53 +129,57 @@ function ClassBoard() {
 
   const handleNodesChange = useCallback(
     (changes) => {
-      let syncedNodes = syncMovedNodePositions({
+      // 1. 위치 이동 동기화
+      let nextNodes = syncMovedNodePositions({
         changes,
         prevNodes: nodes,
         edges,
       });
-      syncedNodes = syncParentChildNodePositions({
+
+      // 2. 자식 노드 위치 동기화
+      nextNodes = syncParentChildNodePositions({
         changes,
-        prevNodes: syncedNodes,
+        prevNodes: nextNodes,
       });
 
-      syncedNodes = syncedNodes.map((node) => {
-        // if (node.type === "object-group") return node;
-        const classNodes = syncedNodes.filter((n) => n.type === "object-group");
-        const newParent = getParentNodeForPosition(node, classNodes);
-        const newParentNode = classNodes.find((c) => c.id === newParent);
+      // 3. 부모 할당 다시 계산
+      const classGroupNodes = nextNodes.filter(
+        (n) => n.type === "object-group"
+      );
 
+      nextNodes = nextNodes.map((node) => {
+        const newParent = getParentNodeForPosition(node, classGroupNodes);
         const prevParent = node.parentNode;
-        const prevParentNode = classNodes.find((c) => c.id === prevParent);
 
-        const isPrevCollapsed = prevParentNode?.data?.collapsed;
-        const isNewCollapsed = newParentNode?.data?.collapsed;
+        if (newParent === prevParent) return node;
 
-        // ✅ 이전에 속한 parent가 collapse 중이면 무조건 유지
-        if (isPrevCollapsed) return node;
+        const prevParentNode = classGroupNodes.find((n) => n.id === prevParent);
+        const newParentNode = classGroupNodes.find((n) => n.id === newParent);
 
-        // ✅ 새로 들어갈 parent가 collapsed 상태면 막음 (선택사항)
-        if (isNewCollapsed) return node;
+        const wasCollapsed = prevParentNode?.data?.collapsed;
+        const willCollapse = newParentNode?.data?.collapsed;
 
-        // ✅ parent가 달라졌을 때만 변경
-        if (newParent !== prevParent) {
-          return {
-            ...node,
-            parentNode: newParent || undefined,
-            extent: newParent ? "parent" : undefined,
-          };
-        }
+        // 이전 parent가 collapse 상태면 그대로 유지
+        if (wasCollapsed) return node;
 
-        return node;
+        // 새 parent가 collapsed면 무시 (선택사항)
+        if (willCollapse) return node;
+
+        return {
+          ...node,
+          parentNode: newParent || undefined,
+          extent: newParent ? "parent" : undefined,
+        };
       });
 
-      // console.log("Final synced", syncedNodes);
-      const sorted = sortNodesByDepth(syncedNodes); // ✅ 깊이순 정렬
-      console.log("sorted", sorted);
+      // 4. 깊이순 정렬
+      const sorted = sortNodesByDepth(nextNodes);
+
+      // 5. 반영
       setNodes(sorted);
       onNodesChange(changes);
     },
-    [nodes, setNodes, onNodesChange, edges]
+    [nodes, edges, setNodes, onNodesChange]
   );
 
   const handleAddNode = () => {
@@ -198,29 +202,33 @@ function ClassBoard() {
     setNodes((prev) => [...prev, newNode]);
   };
   return (
-    <div className="reactflow-wrapper" ref={reactFlowWrapper} style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div
+      className="reactflow-wrapper"
+      ref={reactFlowWrapper}
+      style={{ height: "100%", display: "flex", flexDirection: "column" }}
+    >
       <div style={{ padding: "10px" }}>
         <button onClick={handleAddNode}>➕ 새 노드 추가</button>
       </div>
-        <ReactFlow
-          nodes={getVisibleNodes(nodes)}
-          edges={edges}
-          onNodesChange={handleNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onConnectEnd={onConnectEnd}
-          onPaneClick={handlePaneClick}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          defaultEdgeOptions={defaultEdgeOptions}
-          // defaultNodeOptions={defaultNodeOptions}
-          fitView
-          connectionLineStyle={{ stroke: "#000" }}
-          connectionLineType="bezier"
-          nodeOrigin={[0, 0]} // 노드 중앙 기준
-          proOptions={{ hideAttribution: true }}
-        />
-      </div>
+      <ReactFlow
+        nodes={getVisibleNodes(nodes)}
+        edges={edges}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
+        onPaneClick={handlePaneClick}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
+        // defaultNodeOptions={defaultNodeOptions}
+        fitView
+        connectionLineStyle={{ stroke: "#000" }}
+        connectionLineType="bezier"
+        nodeOrigin={[0, 0]} // 노드 중앙 기준
+        proOptions={{ hideAttribution: true }}
+      />
+    </div>
   );
 }
 

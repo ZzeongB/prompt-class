@@ -1,28 +1,23 @@
 export function generateId(originalId) {
-  return `${originalId}-copy-${Math.random().toString(36).slice(2, 7)}`;
+  return `${originalId}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
 export function duplicateNodesWithMapping(
   nodes,
-  { offset = { x: 30, y: 0 }, sharedIdBase = null, parentNodeMap = {} } = {}
+  { offset = { x: 0, y: 300 }, parentNodeMap = {} } = {}
 ) {
   const idMap = {};
-  const newSharedId = sharedIdBase
-    ? `${sharedIdBase}-copy-${Math.random().toString(36).slice(2, 7)}`
-    : null;
+  const randomId = Math.random().toString(36).slice(2, 7);
 
   const groupNode = nodes.find((n) => !n.parentNode); // 최상위 group
-  const groupPosition = groupNode?.position ?? { x: 0, y: 0 };
 
   const duplicated = nodes.map((node, idx) => {
-    const newId = generateId(node.id);
+    const newId = `${node.id}-${randomId}`;
     idMap[node.id] = newId;
 
     const position = node.position ?? { x: 0, y: 0 };
-
-    // 🟡 자식이면 부모 기준 상대 좌표 계산
     const isChild = node.parentNode === groupNode?.id;
-    
+
     return {
       ...node,
       id: newId,
@@ -34,24 +29,20 @@ export function duplicateNodesWithMapping(
       },
       data: {
         ...node.data,
-        label: `${node.data.label} (copy)`,
-        ...(newSharedId ? { sharedId: newSharedId } : {}),
+        label: node.id == groupNode.id? `${node.data.label} (Copy)` : `${node.data.label}`,
       },
     };
   });
 
-  console.log("duplicated: ", duplicated);
-  console.log("idMap", idMap);
-
-  return { duplicated, idMap, newSharedId };
+  return { duplicated, idMap, randomId };
 }
 
-export function duplicateEdges(edges, idMap) {
+export function duplicateEdges(edges, idMap, randomId) {
   return edges
     .filter((e) => idMap[e.source] && idMap[e.target])
     .map((edge) => ({
       ...edge,
-      id: generateId(edge.id),
+      id: `${edge.id}-${randomId}`,
       source: idMap[edge.source],
       target: idMap[edge.target],
     }));

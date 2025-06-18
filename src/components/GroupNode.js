@@ -140,15 +140,15 @@ export default function GroupNode({
     const groupNode = allNodes.find((n) => n.id === id);
     const children = allNodes.filter((n) => n.parentNode === id);
 
-    const { duplicated, idMap } = duplicateNodesWithMapping(
+    const { duplicated, idMap, randomId } = duplicateNodesWithMapping(
       [groupNode, ...children],
       {
         sharedIdBase: groupNode.data?.sharedId ?? id,
-        offset: { x: 300, y: 0 },
+        offset: { x: 0, y: 350 },
       }
     );
 
-    const duplicatedRelatedEdges = duplicateEdges(allEdges, idMap);
+    const duplicatedRelatedEdges = duplicateEdges(allEdges, idMap, randomId);
 
     setNodes((prev) => [...prev, ...duplicated]);
     setEdges((prev) => [...prev, ...duplicatedRelatedEdges]);
