@@ -12,6 +12,7 @@ import {
   getInstanceNodeStyle,
 } from "../utils/node/nodeStyleUtils";
 import HoverButton from "./HoverButton";
+import { duplicateNodesWithMapping } from "../utils/node/duplicateUtils";
 
 export default function BaseNode({ id, data, nodeType }) {
   const { getNodes, setNodes } = useReactFlow();
@@ -88,6 +89,16 @@ export default function BaseNode({ id, data, nodeType }) {
     setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id));
   };
 
+  const handleDuplicateNode = () => {
+  setNodes((prev) => {
+    const target = prev.find((n) => n.id === id);
+    if (!target) return prev;
+
+    const { duplicated } = duplicateNodesWithMapping([target]);
+    return [...prev, ...duplicated];
+  });
+};
+
   return (
     <div
       style={{ ...style, position: "relative" }}
@@ -116,7 +127,11 @@ export default function BaseNode({ id, data, nodeType }) {
             onClick={handleLabelUpdateBlank}
           />
         )}
-
+        <HoverButton
+          title="Duplicate node"
+          icon="📄"
+          onClick={handleDuplicateNode}
+        />
         {/* 🗑 Delete */}
         <HoverButton
           title="Delete node"

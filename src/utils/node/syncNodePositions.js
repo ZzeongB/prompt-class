@@ -114,12 +114,21 @@ export function syncParentChildNodePositions({ changes, prevNodes }) {
       };
 
       const descendants = collectDescendants(movedNode.id, updatedNodes);
+      console.log("Descendants for moved", movedNode.id, descendants, delta)
 
       updatedNodes = updatedNodes.map((node) => {
         if (descendants.some((desc) => desc.id === node.id)) {
+          console.log("\tNewPosition", node.position,{
+              x: node.position.x + delta.x,
+              y: node.position.y + delta.y,
+            })
           return {
             ...node,
             position: {
+              x: node.position.x + delta.x,
+              y: node.position.y + delta.y,
+            },
+            positionAbsolute: {
               x: node.position.x + delta.x,
               y: node.position.y + delta.y,
             },
@@ -127,6 +136,8 @@ export function syncParentChildNodePositions({ changes, prevNodes }) {
         }
         return node;
       });
+
+      console.log("updatedNodes", updatedNodes);
     }
   });
 

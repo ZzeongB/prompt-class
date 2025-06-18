@@ -14,6 +14,10 @@ import {
 import { useDnD } from "../context/DragAndDropContext";
 import { useState } from "react";
 import HoverButton from "./HoverButton";
+import {
+  duplicateNodesWithMapping,
+  duplicateEdges,
+} from "../utils/node/duplicateUtils";
 
 const controlStyle = {
   background: "transparent",
@@ -33,7 +37,7 @@ export default function GroupNode({
   const [, setId, , setType, , setPosition, , setLabel, , setDragSource] =
     useDnD();
   const [handlePos, setHandlePos] = useState("");
-  const { setNodes } = useReactFlow();
+  const { setNodes, getNodes, getEdges, setEdges } = useReactFlow();
   const [isEditing, setIsEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
@@ -129,6 +133,27 @@ export default function GroupNode({
     setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id));
   };
 
+  const handleDuplicateNode = () => {
+    const allNodes = getNodes();
+    const allEdges = getEdges();
+
+    const groupNode = allNodes.find((n) => n.id === id);
+    const children = allNodes.filter((n) => n.parentNode === id);
+
+    const { duplicated, idMap } = duplicateNodesWithMapping(
+      [groupNode, ...children],
+      {
+        sharedIdBase: groupNode.data?.sharedId ?? id,
+        offset: { x: 300, y: 0 },
+      }
+    );
+
+    const duplicatedRelatedEdges = duplicateEdges(allEdges, idMap);
+
+    setNodes((prev) => [...prev, ...duplicated]);
+    setEdges((prev) => [...prev, ...duplicatedRelatedEdges]);
+  };
+
   return (
     <div
       style={{ position: "relative", pointerEvents: "auto" }}
@@ -146,7 +171,11 @@ export default function GroupNode({
           icon={isEditing ? "💾" : "✏️"}
           onClick={isEditing ? handleLabelUpdate : () => setIsEditing(true)}
         />
-
+        <HoverButton
+          title="Duplicate node"
+          icon="📄"
+          onClick={handleDuplicateNode}
+        />
         {/* 🗑 Delete */}
         <HoverButton
           title="Delete node"

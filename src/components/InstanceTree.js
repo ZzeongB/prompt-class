@@ -8,9 +8,6 @@ import TreeNode from './TreeNode';
 export default function InstanceTree({ nodes, edges }) {
   const treeData = buildTree(nodes, edges);
 
-  console.log("nodes", nodes)
-  console.log("treeData", treeData)
-
   return (
     <div style={{margin: 10}}>
       {treeData.map(rootNode => (

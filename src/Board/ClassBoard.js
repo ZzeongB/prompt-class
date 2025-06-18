@@ -85,10 +85,6 @@ function ClassBoard() {
     setClassEdges(edges);
     const structuredClasses = convertClassGroup(nodes, edges);
     setStructuredClasses(structuredClasses);
-
-    // console.log("nodes: ", nodes);
-    // console.log("edges: ", edges);
-    console.log("structured", structuredClasses);
   }, [nodes, edges, setClassNodes, setClassEdges, setStructuredClasses]);
 
   const onConnect = useCallback(

@@ -13,6 +13,8 @@ import {
   handleRelationshipLayoutSave,
 } from "../utils/layout/handleLayoutSave";
 import HoverButton from "./HoverButton";
+import { duplicateNodesWithMapping } from "../utils/node/duplicateUtils";
+
 function LayoutNode({ id, data }) {
   const {
     deleteElements,
@@ -57,6 +59,22 @@ function LayoutNode({ id, data }) {
 
     deleteElements({ nodes: nodesToDelete });
   };
+  
+  const handleDuplicateNode = () => {
+  setNodes((prev) => {
+    const target = prev.find((n) => n.id === id);
+    if (!target) return prev;
+
+    const sharedId = target.data?.sharedId ?? id;
+    const group = prev.filter((n) => n.data?.sharedId === sharedId || n.id === id);
+
+    const { duplicated } = duplicateNodesWithMapping(group, {
+      sharedIdBase: sharedId,
+    });
+
+    return [...prev, ...duplicated];
+  });
+};
 
   return (
     <div
@@ -98,7 +116,11 @@ function LayoutNode({ id, data }) {
             }}
           />
         )}
-
+        <HoverButton
+          title="Duplicate node"
+          icon="📄"
+          onClick={handleDuplicateNode}
+        />
         <HoverButton title="Delete" icon="🗑" danger onClick={handleDelete} />
       </NodeToolbar>
 

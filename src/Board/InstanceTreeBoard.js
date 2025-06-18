@@ -32,8 +32,8 @@ function InstanceTreeBoard() {
     setNodes(newNodes);
     setEdges(newEdges);
 
-    console.log("newNodes", newNodes);
-    console.log("newEdges", newEdges);
+    // console.log("newNodes", newNodes);
+    // console.log("newEdges", newEdges);
     setFilledAttrMap(newFilledAttrMap);
   }, [instanceNodes]);
 
