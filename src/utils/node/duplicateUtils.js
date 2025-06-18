@@ -4,19 +4,39 @@ export function generateId(originalId) {
 
 export function duplicateNodesWithMapping(
   nodes,
-  { offset = { x: 0, y: 300 }, parentNodeMap = {} } = {}
+  {
+    offset = { x: 0, y: 300 },
+    parentNodeMap = {},
+    sharedIdBase = undefined,
+  } = {}
 ) {
   const idMap = {};
   const randomId = Math.random().toString(36).slice(2, 7);
 
   const groupNode = nodes.find((n) => !n.parentNode); // 최상위 group
 
-  const duplicated = nodes.map((node, idx) => {
+  // sharedId가 있을 경우에만 새 sharedId 생성
+  const newSharedId = sharedIdBase ? `${sharedIdBase}-${randomId}` : null;
+
+  const duplicated = nodes.map((node) => {
     const newId = `${node.id}-${randomId}`;
     idMap[node.id] = newId;
 
     const position = node.position ?? { x: 0, y: 0 };
     const isChild = node.parentNode === groupNode?.id;
+
+    const newData = {
+      ...node.data,
+      label:
+        node.id === groupNode.id
+          ? `${node.data.label} (Copy)`
+          : node.data.label,
+    };
+
+    // sharedId는 존재할 경우에만 부여
+    if (sharedIdBase) {
+      newData.sharedId = newSharedId;
+    }
 
     return {
       ...node,
@@ -27,10 +47,7 @@ export function duplicateNodesWithMapping(
         x: position.x + offset.x,
         y: position.y + offset.y,
       },
-      data: {
-        ...node.data,
-        label: node.id == groupNode.id? `${node.data.label} (Copy)` : `${node.data.label}`,
-      },
+      data: newData,
     };
   });
 

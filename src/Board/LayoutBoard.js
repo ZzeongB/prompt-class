@@ -50,21 +50,7 @@ const defaultEdgeOptions = {
 };
 
 function LayoutBoard({ onImageGenerated }) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([
-    //     {
-    // data: {label: "resizable", type: "object-group", sharedId: "global", classId: "none", instanceId: "global"},
-    // id: "global-resizable",
-    // measured: {width: 500, height: 500},
-    // position: {x: 5, y: 5},
-    // type: "resizable"
-    //     },{
-    // data: {label: "Write global caption here!", type: "object-group", sharedId: "global", classId: "none", instanceId: "global"},
-    // id: "global",
-    // measured: {width: 62, height: 38},
-    // position: {x: 0, y: 0},
-    // type: "instance",
-    // updatedAt: "2025-05-30T04:43:02.682Z"}
-  ]);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();

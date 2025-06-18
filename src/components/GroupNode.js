@@ -143,7 +143,6 @@ export default function GroupNode({
     const { duplicated, idMap, randomId } = duplicateNodesWithMapping(
       [groupNode, ...children],
       {
-        sharedIdBase: groupNode.data?.sharedId ?? id,
         offset: { x: 0, y: 350 },
       }
     );
