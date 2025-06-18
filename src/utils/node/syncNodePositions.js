@@ -16,19 +16,21 @@ export function syncMovedNodePositions({ changes, prevNodes, edges }) {
       };
 
       updatedNodes = updatedNodes.map((node) => {
-        // 👉 sharedId 기준 resizable 이동
-        if (node.data?.sharedId === sharedId && node.id !== movedNode.id) {
-          const isResizable = node.id.endsWith("resizable");
+        const isSameGroup = node.data?.sharedId === sharedId;
+        const isNotMoved = node.id !== movedNode.id;
+
+        // sharedId로 연결된 다른 노드 모두 delta만큼 이동
+        if (isSameGroup && isNotMoved) {
           return {
             ...node,
             position: {
-              x: change.position.x,
-              y: change.position.y + (isResizable ? 30 : -30),
+              x: node.position.x + delta.x,
+              y: node.position.y + delta.y,
             },
           };
         }
 
-        // 👉 연결된 attribute 이동
+        // 연결된 attribute 노드 이동
         if (
           node.data?.type === "attribute" &&
           edges.some(
