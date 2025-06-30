@@ -19,6 +19,9 @@ from utils.server_utils import (
 )
 import logging
 from datetime import datetime
+from typing import Optional, Callable, Dict
+from threading import Lock
+
 now = datetime.now()
 timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 filename = timestamp
@@ -55,9 +58,25 @@ os.makedirs(img_with_layout_save_root, exist_ok=True)
 
 pipe = load_model(device)
 
+progress_status = {
+    "progress": 0
+}
+progress_lock = Lock()
+
+def update_progress(self, step: int, timestep: int, callback_kwargs: dict):
+    with progress_lock:
+        step += 1
+        progress = int((step / num_inference_steps) * 100) 
+        progress_status["progress"] = progress
+        # print(f"[progress callback] step={step}, progress={progress}")
+    return callback_kwargs
+
 
 @app.route("/generate-caption", methods=["POST"])
 def generate_caption_route():
+    with progress_lock:
+        progress_status["progress"] = 0
+        
     data = request.get_json()
     sentences = data.get("sentences", [])
     global_caption = data.get("globalCaption", "")
@@ -72,13 +91,16 @@ def generate_caption_route():
 
 @app.route("/generate", methods=["POST"])
 def generate():
+    with progress_lock:
+        progress_status["progress"] = 2
+        
     data = request.get_json()
     global_caption = data.get("global_caption")
     region_caption_list = data.get("region_caption_list")
     region_bboxes_list = data.get("region_bboxes_list")
 
     logger.info(f"Received generate request: global_caption={global_caption}, regions={region_caption_list}, boxes={region_bboxes_list}")
-
+    
     with torch.no_grad():
         images = pipe(
             prompt=global_caption * batch_size,
@@ -89,7 +111,9 @@ def generate():
             bbox_raw=region_bboxes_list,
             height=height,
             width=width,
+            callback_on_step_end=update_progress,
         )
+    
     images = images.images
 
     logger.info("Successfully generated images.")
@@ -125,8 +149,15 @@ def generate():
         new_image.save(img_with_layout_save_name)
         logger.info(f"Saved image with layout: {img_with_layout_save_name}")
 
+    with progress_lock:
+        progress_status["progress"] = 100
+        
     return jsonify({"image": img_base64, "globalCaption": global_caption})
 
+@app.route("/progress", methods=["GET"])
+def get_progress():
+    with progress_lock:
+        return jsonify(progress_status)
 
 @app.route("/describe", methods=["POST"])
 def describe_region():
