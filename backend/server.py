@@ -114,6 +114,9 @@ def generate():
             callback_on_step_end=update_progress,
         )
     
+    with progress_lock:
+        progress_status["progress"] = 100
+        
     images = images.images
 
     logger.info("Successfully generated images.")
@@ -149,9 +152,6 @@ def generate():
         new_image.save(img_with_layout_save_name)
         logger.info(f"Saved image with layout: {img_with_layout_save_name}")
 
-    with progress_lock:
-        progress_status["progress"] = 100
-        
     return jsonify({"image": img_base64, "globalCaption": global_caption})
 
 @app.route("/progress", methods=["GET"])

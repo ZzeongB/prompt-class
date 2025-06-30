@@ -15,7 +15,7 @@ function ProgressBar({ now }) {
       <div
         style={{
           height: "100%",
-          width: `${now + 2}%`,
+          width: `${now}%`,
           background: "#9A90FF", //"linear-gradient(90deg, #9A90FF, #63B4FF)",
           transition: "width 0.3s ease-in-out",
         }}
