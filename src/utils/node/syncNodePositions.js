@@ -6,40 +6,48 @@ export function syncMovedNodePositions({ changes, prevNodes, edges }) {
   changes.forEach((change) => {
     if (change.type === "position" && change.position) {
       const movedNode = prevNodes.find((n) => n.id === change.id);
-      if (!movedNode?.data?.sharedId) return;
-
-      const sharedId = movedNode.data.sharedId;
+      if (!movedNode) return;
 
       const delta = {
         x: change.position.x - movedNode.position.x,
         y: change.position.y - movedNode.position.y,
       };
 
+      const sharedId = movedNode.data?.sharedId;
+
+      // 💡 1. position 연결된 노드들 (단방향)
+      const positionLinkedEdges = edges.filter(
+        (e) =>
+          e.label === "position" &&
+          (e.source === movedNode.id || e.target === movedNode.id)
+      );
+
+      // 💡 2. 연결된 노드들의 sharedId 수집
+      const linkedSharedIds = positionLinkedEdges
+        .map((e) => {
+          const otherNodeId =
+            e.source === movedNode.id ? e.target : e.source;
+          const otherNode = prevNodes.find((n) => n.id === otherNodeId);
+          return otherNode?.data?.sharedId;
+        })
+        .filter((id) => !!id); // null 제거
+
       updatedNodes = updatedNodes.map((node) => {
-        const isSameGroup = node.data?.sharedId === sharedId;
-        const isNotMoved = node.id !== movedNode.id;
+        const isSameSharedId = node.data?.sharedId === sharedId && node.id !== movedNode.id;
 
-        // sharedId로 연결된 다른 노드 모두 delta만큼 이동
-        if (isSameGroup && isNotMoved) {
-          return {
-            ...node,
-            position: {
-              x: node.position.x + delta.x,
-              y: node.position.y + delta.y,
-            },
-          };
-        }
+        const isLinkedBySharedId =
+          linkedSharedIds.includes(node.data?.sharedId);
 
-        // 연결된 attribute 노드 이동
-        if (
+        const isAttributeLinked =
           node.data?.type === "attribute" &&
           edges.some(
             (e) =>
               e.source === movedNode.id &&
               e.target === node.id &&
               e.label === "property"
-          )
-        ) {
+          );
+
+        if (isSameSharedId || isLinkedBySharedId || isAttributeLinked) {
           return {
             ...node,
             position: {
@@ -119,7 +127,6 @@ export function syncParentChildNodePositions({ changes, prevNodes }) {
 
       updatedNodes = updatedNodes.map((node) => {
         if (descendants.some((desc) => desc.id === node.id)) {
-          
           return {
             ...node,
             position: {
