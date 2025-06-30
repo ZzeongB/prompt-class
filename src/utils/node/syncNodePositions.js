@@ -3,6 +3,27 @@
 export function syncMovedNodePositions({ changes, prevNodes, edges }) {
   let updatedNodes = [...prevNodes];
 
+  // 🔁 position 핸들로 연결된 노드 id 찾기
+  const getPositionLinkedNodeIds = (nodeId) => {
+    const connected = edges.filter(
+      (e) => e.label === "position" && (e.source === nodeId || e.target === nodeId)
+    );
+
+    const relatedIds = new Set();
+    connected.forEach((e) => {
+      if (e.source !== nodeId) relatedIds.add(e.source);
+      if (e.target !== nodeId) relatedIds.add(e.target);
+    });
+
+    return [...relatedIds];
+  };
+
+  // 🔁 특정 노드의 sharedId 그룹 id들 추출
+  const getSharedIdGroup = (targetSharedId, excludeId) =>
+    prevNodes
+      .filter((n) => n.data?.sharedId === targetSharedId && n.id !== excludeId)
+      .map((n) => n.id);
+
   changes.forEach((change) => {
     if (change.type === "position" && change.position) {
       const movedNode = prevNodes.find((n) => n.id === change.id);
@@ -14,40 +35,43 @@ export function syncMovedNodePositions({ changes, prevNodes, edges }) {
       };
 
       const sharedId = movedNode.data?.sharedId;
+      const positionLinkedNodeIds = getPositionLinkedNodeIds(movedNode.id);
 
-      // 💡 1. position 연결된 노드들 (단방향)
-      const positionLinkedEdges = edges.filter(
-        (e) =>
-          e.label === "position" &&
-          (e.source === movedNode.id || e.target === movedNode.id)
-      );
+      // 1️⃣ 이동할 노드 ID들 초기화
+      const idsToMove = new Set();
 
-      // 💡 2. 연결된 노드들의 sharedId 수집
-      const linkedSharedIds = positionLinkedEdges
-        .map((e) => {
-          const otherNodeId =
-            e.source === movedNode.id ? e.target : e.source;
-          const otherNode = prevNodes.find((n) => n.id === otherNodeId);
-          return otherNode?.data?.sharedId;
-        })
-        .filter((id) => !!id); // null 제거
+      // 2️⃣ sharedId로 연결된 그룹
+      if (sharedId) {
+        getSharedIdGroup(sharedId, movedNode.id).forEach((id) => idsToMove.add(id));
+      }
 
-      updatedNodes = updatedNodes.map((node) => {
-        const isSameSharedId = node.data?.sharedId === sharedId && node.id !== movedNode.id;
-
-        const isLinkedBySharedId =
-          linkedSharedIds.includes(node.data?.sharedId);
-
-        const isAttributeLinked =
-          node.data?.type === "attribute" &&
-          edges.some(
-            (e) =>
-              e.source === movedNode.id &&
-              e.target === node.id &&
-              e.label === "property"
+      // 3️⃣ position edge로 연결된 노드 + 그들의 sharedId 그룹까지
+      positionLinkedNodeIds.forEach((linkedId) => {
+        idsToMove.add(linkedId);
+        const linkedNode = prevNodes.find((n) => n.id === linkedId);
+        if (linkedNode?.data?.sharedId) {
+          getSharedIdGroup(linkedNode.data.sharedId, linkedId).forEach((id) =>
+            idsToMove.add(id)
           );
+        }
+      });
 
-        if (isSameSharedId || isLinkedBySharedId || isAttributeLinked) {
+      // 4️⃣ attribute 노드 처리도 포함
+      const attributeTargetIds = edges
+        .filter(
+          (e) =>
+            e.label === "property" &&
+            e.source === movedNode.id
+        )
+        .map((e) => e.target);
+
+      attributeTargetIds.forEach((id) => idsToMove.add(id));
+
+      // 5️⃣ 실제 이동
+      updatedNodes = updatedNodes.map((node) => {
+        if (node.id === movedNode.id) return node; // 본인은 제외
+
+        if (idsToMove.has(node.id)) {
           return {
             ...node,
             position: {
@@ -64,39 +88,6 @@ export function syncMovedNodePositions({ changes, prevNodes, edges }) {
 
   return updatedNodes;
 }
-
-// export function syncParentChildNodePositions({ changes, prevNodes }) {
-//   let updatedNodes = [...prevNodes];
-
-//   changes.forEach((change) => {
-//     if (change.type === "position" && change.position) {
-//       const movedNode = prevNodes.find((n) => n.id === change.id);
-//       if (!movedNode) return;
-
-//       const delta = {
-//         x: change.position.x - movedNode.position.x,
-//         y: change.position.y - movedNode.position.y,
-//       };
-
-//       updatedNodes = updatedNodes.map((node) => {
-//         // 🎯 parentNode 기준으로 동기화
-//         if (node.parentNode === movedNode.id) {
-//           return {
-//             ...node,
-//             position: {
-//               x: node.position.x + delta.x,
-//               y: node.position.y + delta.y,
-//             },
-//           };
-//         }
-
-//         return node;
-//       });
-//     }
-//   });
-
-//   return updatedNodes;
-// }
 
 export function syncParentChildNodePositions({ changes, prevNodes }) {
   let updatedNodes = [...prevNodes];
