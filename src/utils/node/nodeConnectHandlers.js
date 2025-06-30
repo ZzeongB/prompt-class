@@ -7,6 +7,54 @@ export function handleConnect({ params, nodes, setNodes, setEdges }) {
 
   if (!sourceNode || !targetNode) return;
 
+  if (targetNode.type === "resizable") {
+    if (params.targetHandle === "size") {
+      const sourceWidth = parseFloat(sourceNode?.width) || 100;
+      const sourceHeight = parseFloat(sourceNode?.height) || 100;
+
+      console.log("Resizable size", sourceNode?.measured?.height);
+
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === targetNode.id
+            ? {
+                ...node,
+                
+                width: sourceWidth,
+                height: sourceHeight,
+                
+              }
+            : node
+        )
+      );
+
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            label: "size",
+            data: { relationType: "size" },
+          },
+          eds
+        )
+      );
+    } else if (params.targetHandle === "position") {
+      console.log("[handleConnect] Position relation detected (pending)");
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            label: "position",
+            data: { relationType: "position" },
+          },
+          eds
+        )
+      );
+    }
+
+    return;
+  }
+
   const sourceType = sourceNode.data.type;
   const targetType = targetNode.data.type;
 
@@ -53,6 +101,13 @@ export function handleConnectEnd({
       alert(
         `'${connectionState.fromNode.data.type}' 타입에서는 새 노드를 생성할 수 없습니다.`
       );
+      return;
+    }
+
+    if (connectionState.fromNode.type == "resizable") {
+      // alert(
+      //   `'${connectionState.fromNode.type}' 타입에서는 새 노드를 생성할 수 없습니다.`
+      // );
       return;
     }
 
