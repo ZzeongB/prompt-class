@@ -1,28 +1,36 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Handle,
-  Position,
-  useConnection,
-  useReactFlow,
-} from "@xyflow/react";
+import { Handle, Position, useConnection, useReactFlow } from "@xyflow/react";
 import {
   getClassNodeStyle,
   getInstanceNodeStyle,
 } from "../../utils/node/nodeStyleUtils";
 import { duplicateNodesWithMapping } from "../../utils/node/duplicateUtils";
-import NodeToolbarMenu from "../NodeToolbarMenu";
+import NodeToolbarMenu from "../nodeComponents/NodeToolbarMenu";
+import DragHandle from "../nodeComponents/DragHandle";
+import NodeHandles from "../nodeComponents/NodeHandles";
 
 export default function BaseNode({ id, data, nodeType }) {
   const { getNodes, setNodes } = useReactFlow();
-  const connection = useConnection();
-  const isTarget = connection.inProgress && connection.fromNode.id !== id;
   const label = data.hasValue ? data.hasValue : data.label;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
+  const [isSelected, setIsSelected] = useState(false);
 
   const inputRef = useRef(null);
+  const nodeRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (nodeRef.current && !nodeRef.current.contains(event.target)) {
+        setIsSelected(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -30,6 +38,7 @@ export default function BaseNode({ id, data, nodeType }) {
       inputRef.current.select();
     }
   }, [isEditing]);
+
   useEffect(() => {
     if (data.justCreated) {
       setIsEditing(true);
@@ -95,12 +104,18 @@ export default function BaseNode({ id, data, nodeType }) {
 
   return (
     <div
+      ref={nodeRef}
       style={{ ...style, position: "relative" }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={(e) => {
+        setIsSelected((prev) => !prev);
+        e.stopPropagation(); // ✅ prevents parent from hijacking the drag
+        e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
+      }}
     >
       <NodeToolbarMenu
-        isVisible={isHovered || isEditing}
+        isVisible={isSelected || isEditing}
         isEditing={isEditing}
         data={data} // 중요!
         position={Position.Top}
@@ -111,23 +126,11 @@ export default function BaseNode({ id, data, nodeType }) {
         onDuplicate={handleDuplicateNode}
         onDelete={handleDelete}
       />
-      <div
-        className="drag-handle"
-        style={{
-          cursor: "move",
-          position: "absolute",
-          left: "-15px",
-          width: "20px",
-          height: "20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: "0 3px 0 3px",
-          zIndex: 10,
-        }}
-      >
-        ⠿
-      </div>
+      <DragHandle
+        position={{ left: "-15px", top: "5px" }}
+        isVisible={isHovered}
+      />
+
       <div
         className="nodrag"
         style={{ width: "100%", height: "100%" }}
@@ -144,24 +147,7 @@ export default function BaseNode({ id, data, nodeType }) {
         ) : (
           label
         )}
-
-        {!connection.inProgress && (
-          <Handle
-            className="classHandle"
-            position={Position.Right}
-            type="source"
-            style={{ top: "50%", transform: "translateY(-50%)", right: "-8px" }}
-          />
-        )}
-        {(!connection.inProgress || isTarget) && (
-          <Handle
-            className="classHandle"
-            position={Position.Right}
-            type="target"
-            isConnectableStart={false}
-            style={{ top: "50%", transform: "translateY(-50%)", right: "-8px" }}
-          />
-        )}
+        <NodeHandles id={id} isSelected={isSelected} />
       </div>
     </div>
   );

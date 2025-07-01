@@ -33,18 +33,6 @@ function ResizableNode({ id, data, nodeType, style }) {
           style={{ top: "50%", transform: "translateY(-50%)", right: "-8px" }}
         />
       )}
-      {/* {(!connection.inProgress || isTarget) && (
-        <Handle
-          className="classHandle"
-          position={Position.Right}
-          type="target"
-          isConnectableStart={false}
-          onMouseDown={handleMouseDown}
-          style={{ top: "50%", transform: "translateY(-50%)", right: "-8px" }}
-        />
-      )} */}
-
-      {/* === Target: size === */}
       {(!connection.inProgress || isTarget) && (
         <>
           <Handle
@@ -84,7 +72,6 @@ function ResizableNode({ id, data, nodeType, style }) {
         </>
       )}
 
-      {/* === Target: position === */}
       {(!connection.inProgress || isTarget) && (
         <>
           <Handle
@@ -125,7 +112,6 @@ function ResizableNode({ id, data, nodeType, style }) {
       )}
 
       <div style={{ visibility: "hidden", height: "1em" }}>
-        {/* hidden but ensures node keeps height */}
         {data.label}
       </div>
     </div>

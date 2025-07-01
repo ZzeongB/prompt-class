@@ -7,7 +7,8 @@ import {
 } from "@xyflow/react";
 import { getInstanceNodeStyle } from "../../utils/node/nodeStyleUtils";
 import { duplicateNodesWithMapping } from "../../utils/node/duplicateUtils";
-import NodeToolbarMenu from "../NodeToolbarMenu";
+import NodeToolbarMenu from "../nodeComponents/NodeToolbarMenu";
+import NodeHandles from "../nodeComponents/NodeHandles";
 
 function LayoutNode({ id, data }) {
   const {
@@ -19,13 +20,13 @@ function LayoutNode({ id, data }) {
 
   const connection = useConnection();
   const style = getInstanceNodeStyle(data.type, data); // 💡 type 기반 스타일 적용
-  const isTarget = connection.inProgress && connection.fromNode.id !== id;
 
   const label = data.label;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
+  const [isSelected, setIsSelected] = useState(false);
 
   const handleLabelUpdate = () => {
     setNodes((prevNodes) =>
@@ -76,9 +77,13 @@ function LayoutNode({ id, data }) {
         setIsHovered(true);
       }}
       onMouseLeave={() => setIsHovered(false)}
-    >
+      onClick={(e) => {
+        setIsSelected((prev) => !prev);
+        e.stopPropagation(); // ✅ prevents parent from hijacking the drag
+        e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
+      }}    >
       <NodeToolbarMenu
-        isVisible={isHovered || isEditing}
+        isVisible={isSelected || isEditing}
         isEditing={isEditing}
         position={Position.Top}
         style={{ top: "10px" }}
@@ -99,29 +104,7 @@ function LayoutNode({ id, data }) {
           label
         )}
       </div>
-      {!connection.inProgress && (
-        <Handle
-          className="classHandle"
-          position={Position.Right}
-          type="source"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation(); // 선택적으로 이벤트 버블링도 차단
-          }}
-        />
-      )}
-      {(!connection.inProgress || isTarget) && (
-        <Handle
-          className="classHandle"
-          position={Position.Right}
-          type="target"
-          isConnectableStart={false}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation(); // 선택적으로 이벤트 버블링도 차단
-          }}
-        />
-      )}
+        <NodeHandles id={id} isSelected={isSelected} />
     </div>
   );
 }

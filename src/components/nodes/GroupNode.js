@@ -12,12 +12,15 @@ import {
   ATTR_COLOR_TRANS,
 } from "../../utils/constants";
 import { useDnD } from "../../context/DragAndDropContext";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   duplicateNodesWithMapping,
   duplicateEdges,
 } from "../../utils/node/duplicateUtils";
-import NodeToolbarMenu from "../NodeToolbarMenu";
+import NodeToolbarMenu from "../nodeComponents/NodeToolbarMenu";
+import { ChevronRight, ChevronDown, MoveDiagonal } from "lucide-react";
+import NodeHandles from "../nodeComponents/NodeHandles";
+import DragHandle from "../nodeComponents/DragHandle";
 
 const controlStyle = {
   background: "transparent",
@@ -41,8 +44,20 @@ export default function GroupNode({
   const [isEditing, setIsEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
+  const [isSelected, setIsSelected] = useState(false);
+  const nodeRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (nodeRef.current && !nodeRef.current.contains(event.target)) {
+        setIsSelected(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const connection = useConnection();
-  const isTarget = connection.inProgress && connection.fromNode.id !== id;
 
   const onDragStart = (e) => {
     if (e.target.closest(".classHandle")) return;
@@ -155,12 +170,18 @@ export default function GroupNode({
 
   return (
     <div
+      ref={nodeRef}
       style={{ position: "relative", pointerEvents: "auto" }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={(e) => {
+        setIsSelected((prev) => !prev);
+        e.stopPropagation(); // ✅ prevents parent from hijacking the drag
+        e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
+      }}
     >
       <NodeToolbarMenu
-        isVisible={isHovered || isEditing}
+        isVisible={isSelected || isEditing}
         isEditing={isEditing}
         data={data}
         position={Position.Top}
@@ -183,28 +204,8 @@ export default function GroupNode({
       ) : (
         <></>
       )}
+      <DragHandle isVisible={isHovered} />
       <div
-        className="drag-handle"
-        style={{
-          cursor: "move",
-          position: "absolute",
-          top: "15px",
-          left: "-10px",
-          width: "20px",
-          height: "20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: "0 3px 0 3px",
-          zIndex: 10,
-        }}
-      >
-        ⠿
-      </div>
-      <div
-        onClick={() => {
-          onToggleCollapse(id);
-        }}
         onMouseDown={onDragStart}
         className="nodrag"
         style={{
@@ -225,27 +226,30 @@ export default function GroupNode({
           />
         ) : (
           <>
-            <strong>{data.label}</strong> {data.collapsed ? "▶" : "▼"}
+            {/* ✅ 여기에만 클릭 이벤트 걸기 */}
+            <span
+              onClick={(e) => {
+                e.stopPropagation(); // 부모 클릭 방지
+                onToggleCollapse(id);
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                cursor: "pointer",
+              }}
+            >
+              <strong>{data.label}</strong>
+              {data.collapsed ? (
+                <ChevronRight size={16} />
+              ) : (
+                <ChevronDown size={16} />
+              )}
+            </span>
           </>
         )}
       </div>
-      {!connection.inProgress && (
-        <Handle
-          className="classHandle"
-          position={Position.Right}
-          type="source"
-          style={{ top: "15px", transform: "translateY(-50%)", right: "-8px" }}
-        />
-      )}
-      {(!connection.inProgress || isTarget) && (
-        <Handle
-          className="classHandle"
-          position={Position.Right}
-          type="target"
-          isConnectableStart={false}
-          style={{ top: "15px", transform: "translateY(-50%)", right: "-8px" }}
-        />
-      )}
+      <NodeHandles id={id} isSelected={isSelected} />
     </div>
   );
 }
