@@ -9,6 +9,7 @@ import {
   ATTR_COLOR_TRANS_DARK,
   REL_COLOR_TRANS_DARK,
 } from "../utils/constants";
+import { ChevronRight, ChevronDown, MoveDiagonal } from "lucide-react";
 
 export default function TreeNode({ node, depth = 0 }) {
   const [expanded, setExpanded] = useState(true);
@@ -109,7 +110,11 @@ export default function TreeNode({ node, depth = 0 }) {
                   fontWeight: "bold",
                 }}
               >
-                {expanded ? "▼" : "▶"}
+                {!expanded ? (
+                <ChevronRight size={16} />
+              ) : (
+                <ChevronDown size={16} />
+              )}
               </div>
             )}
           </div>

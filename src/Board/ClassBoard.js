@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef, useState } from "react";
 import {
   ReactFlow,
   useNodesState,
@@ -26,10 +26,27 @@ import {
 } from "../utils/node/syncNodePositions.js";
 import { convertClassGroup } from "../utils/group/convertClassGroup.js";
 import { getParentNodeForPosition } from "../utils/node/getParentNodeForPosition.js";
-
 import { sortNodesByDepth } from "../utils/node/sortNodeByDepth.js";
+import { OBJ_COLOR_TRANS, BACKGROUND_COLOR } from "../utils/constants.js";
 const edgeTypes = {
   main: DefaultEdge,
+};
+
+const ghostNodeStyle = {
+  padding: 10,
+  border: "5px solid",
+  borderColor: OBJ_COLOR_TRANS, // object용 기본색 (필요 시 type별로 바꿔도 됨)
+  borderRadius: 12,
+  backgroundColor: BACKGROUND_COLOR, // 기존 withBackground 색상 대체
+  opacity: 0.8, // 흐리게!
+  pointerEvents: "none", // 클릭 방지
+  userSelect: "none",
+  position: "absolute",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontWeight: "bold",
+  zIndex: 999,
 };
 
 const nodeTypes = {
@@ -79,6 +96,7 @@ function ClassBoard() {
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [ghostNode, setGhostNode] = useState(null); // ghostNode for Node Addition
 
   useEffect(() => {
     setClassNodes(nodes);
@@ -183,33 +201,70 @@ function ClassBoard() {
   );
 
   const handleAddNode = () => {
-    const newId = `class-${nodes.length + 1}`;
-    const newNode = {
-      id: newId,
+    setGhostNode({
+      id: `ghost-${Date.now()}`,
       type: "object-group",
-      position: {
-        x: 0,
-        y: -150, // 아래로 계속 쌓이게
-      },
       data: {
-        label: `New Node ${nodes.length + 1}`,
+        label: "New Node",
         collapsed: false,
         expandedHeight: 20,
         type: "object",
       },
+      position: { x: 0, y: 0 },
+    });
+  };
+
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!ghostNode) return;
+
+      setGhostNode((prev) => ({
+        ...prev,
+        position: { x: e.clientX, y: e.clientY },
+      }));
+    },
+    [ghostNode, screenToFlowPosition]
+  );
+
+  const handleGhostClick = (e) => {
+    if (!ghostNode) return;
+    e.preventDefault();
+
+    const newId = `class-${nodes.length + 1}`;
+    const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    const newNode = {
+      ...ghostNode,
+      id: newId,
+      position: flowPos,
     };
 
     setNodes((prev) => [...prev, newNode]);
+    setGhostNode(null);
   };
+
   return (
     <div
       className="reactflow-wrapper"
       ref={reactFlowWrapper}
       style={{ height: "100%", display: "flex", flexDirection: "column" }}
+      onMouseMove={handleMouseMove}
+      onClick={ghostNode ? handleGhostClick : undefined}
     >
       <div style={{ padding: "10px" }}>
         <button onClick={handleAddNode}>➕ 새 노드 추가</button>
       </div>
+      {ghostNode && (
+        <div
+          style={{
+            ...ghostNodeStyle,
+            left: ghostNode.position.x,
+            top: ghostNode.position.y,
+          }}
+        >
+          {ghostNode.data?.label}
+        </div>
+      )}
+
       <ReactFlow
         nodes={getVisibleNodes(nodes)}
         edges={edges}
@@ -217,7 +272,7 @@ function ClassBoard() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
-        onPaneClick={handlePaneClick}
+        onPaneClick={ghostNode ? undefined : handlePaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}

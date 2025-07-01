@@ -2,8 +2,6 @@ import {
   useReactFlow,
   Position,
   NodeResizeControl,
-  NodeToolbar,
-  Handle,
   useConnection,
 } from "@xyflow/react";
 import {
@@ -18,7 +16,7 @@ import {
   duplicateEdges,
 } from "../../utils/node/duplicateUtils";
 import NodeToolbarMenu from "../nodeComponents/NodeToolbarMenu";
-import { ChevronRight, ChevronDown, MoveDiagonal } from "lucide-react";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import NodeHandles from "../nodeComponents/NodeHandles";
 import DragHandle from "../nodeComponents/DragHandle";
 
@@ -192,7 +190,7 @@ export default function GroupNode({
         onDelete={handleDelete}
       />
 
-      {resizable && isSelected? (
+      {resizable && isSelected && !data.collapsed ? (
         <NodeResizeControl
           style={controlStyle}
           minWidth={100}
@@ -222,14 +220,18 @@ export default function GroupNode({
             value={editLabel}
             onChange={(e) => setEditLabel(e.target.value)}
             style={{ width: "90%", fontSize: "14px" }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation(); // ✅ prevents parent from hijacking the drag
+              e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
+            }}
           />
         ) : (
           <>
             {/* ✅ 여기에만 클릭 이벤트 걸기 */}
             <span
               onClick={(e) => {
-                e.stopPropagation(); // 부모 클릭 방지
+                e.stopPropagation(); // ✅ prevents parent from hijacking the drag
+                e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
                 onToggleCollapse(id);
               }}
               style={{
@@ -249,7 +251,7 @@ export default function GroupNode({
           </>
         )}
       </div>
-      <NodeHandles id={id} isSelected={isSelected} nodeType={data.type}/>
+      <NodeHandles id={id} isSelected={isSelected} nodeType={data.type} />
     </div>
   );
 }
