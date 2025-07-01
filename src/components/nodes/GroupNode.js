@@ -192,7 +192,7 @@ export default function GroupNode({
         onDelete={handleDelete}
       />
 
-      {resizable ? (
+      {resizable && isSelected? (
         <NodeResizeControl
           style={controlStyle}
           minWidth={100}
@@ -249,7 +249,7 @@ export default function GroupNode({
           </>
         )}
       </div>
-      <NodeHandles id={id} isSelected={isSelected} />
+      <NodeHandles id={id} isSelected={isSelected} nodeType={data.type}/>
     </div>
   );
 }

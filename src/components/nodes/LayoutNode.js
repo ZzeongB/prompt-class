@@ -1,24 +1,14 @@
 import React, { memo, useState } from "react";
-import {
-  Handle,
-  Position,
-  useConnection,
-  useReactFlow,
-} from "@xyflow/react";
+import { Handle, Position, useConnection, useReactFlow } from "@xyflow/react";
 import { getInstanceNodeStyle } from "../../utils/node/nodeStyleUtils";
 import { duplicateNodesWithMapping } from "../../utils/node/duplicateUtils";
+import { useInstanceGraph } from "../../context/InstanceGraphContext";
 import NodeToolbarMenu from "../nodeComponents/NodeToolbarMenu";
 import NodeHandles from "../nodeComponents/NodeHandles";
 
 function LayoutNode({ id, data }) {
-  const {
-    deleteElements,
-    getNode,
-    getNodes,
-    setNodes,
-  } = useReactFlow();
+  const { deleteElements, getNodes, setNodes } = useReactFlow();
 
-  const connection = useConnection();
   const style = getInstanceNodeStyle(data.type, data); // 💡 type 기반 스타일 적용
 
   const label = data.label;
@@ -27,6 +17,7 @@ function LayoutNode({ id, data }) {
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
+  const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
 
   const handleLabelUpdate = () => {
     setNodes((prevNodes) =>
@@ -67,7 +58,9 @@ function LayoutNode({ id, data }) {
         sharedIdBase: sharedId,
       });
 
-      return [...prev, ...duplicated];
+      const updated = [...prev, ...duplicated];
+      setInstanceNodes(updated);
+      return updated;
     });
   };
 
@@ -81,7 +74,8 @@ function LayoutNode({ id, data }) {
         setIsSelected((prev) => !prev);
         e.stopPropagation(); // ✅ prevents parent from hijacking the drag
         e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
-      }}    >
+      }}
+    >
       <NodeToolbarMenu
         isVisible={isSelected || isEditing}
         isEditing={isEditing}
@@ -104,7 +98,7 @@ function LayoutNode({ id, data }) {
           label
         )}
       </div>
-        <NodeHandles id={id} isSelected={isSelected} />
+      <NodeHandles id={id} isSelected={isSelected} nodeType={data.type} />
     </div>
   );
 }

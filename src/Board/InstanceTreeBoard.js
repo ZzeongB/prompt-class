@@ -24,16 +24,12 @@ function InstanceTreeBoard() {
       instanceNodes,
       classNodes,
       classEdges,
-      //   screenToFlowPosition,
-      //   collapsedClassMap,
       filledAttrMap,
     });
 
     setNodes(newNodes);
     setEdges(newEdges);
 
-    // console.log("newNodes", newNodes);
-    // console.log("newEdges", newEdges);
     setFilledAttrMap(newFilledAttrMap);
   }, [instanceNodes]);
 

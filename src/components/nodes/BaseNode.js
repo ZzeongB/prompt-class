@@ -147,7 +147,7 @@ export default function BaseNode({ id, data, nodeType }) {
         ) : (
           label
         )}
-        <NodeHandles id={id} isSelected={isSelected} />
+        <NodeHandles id={id} isSelected={isSelected} nodeType={data.type}/>
       </div>
     </div>
   );

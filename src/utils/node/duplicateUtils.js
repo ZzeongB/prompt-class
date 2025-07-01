@@ -5,7 +5,7 @@ export function generateId(originalId) {
 export function duplicateNodesWithMapping(
   nodes,
   {
-    offset = { x: 0, y: 300 },
+    offset = { x: 20, y: 20 },
     parentNodeMap = {},
     sharedIdBase = undefined,
   } = {}
@@ -25,10 +25,7 @@ export function duplicateNodesWithMapping(
 
     const newData = {
       ...node.data,
-      label:
-        node === groupNode
-          ? `${node.data.label} (Copy)`
-          : node.data.label,
+      label: node === groupNode ? `${node.data.label} (Copy)` : node.data.label,
     };
 
     if (sharedIdBase) {
@@ -43,6 +40,9 @@ export function duplicateNodesWithMapping(
         y: position.y + offset.y,
       },
       data: newData,
+      style: {
+        ...node.style,
+      },
     };
 
     // parentNode와 extent는 원래 있던 경우에만 복사

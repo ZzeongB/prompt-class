@@ -68,7 +68,7 @@ function LayoutBoard({ onImageGenerated }) {
     console.log("isGenerating True");
 
     const interval = setInterval(async () => {
-      const res = await fetch("http://127.0.0.1:5000/progress"); 
+      const res = await fetch("http://127.0.0.1:5000/progress");
       const data = await res.json();
       setProgress(data.progress);
 
@@ -142,7 +142,8 @@ function LayoutBoard({ onImageGenerated }) {
   };
 
   const onConnect = useCallback(
-    (params) => handleConnect({ params, nodes, setNodes, setEdges }),
+    (params) =>
+      handleConnect({ params, nodes, setNodes, setEdges }),
     [nodes, setNodes, setEdges]
   );
 
@@ -176,8 +177,6 @@ function LayoutBoard({ onImageGenerated }) {
   );
 
   const handleClick = async () => {
-    console.log("input", nodes, structuredClasses, classNodes);
-
     setProgress(0); // 진행률 초기화
     setIsGenerating(true); // ✅ 진행 시작
 
@@ -191,7 +190,7 @@ function LayoutBoard({ onImageGenerated }) {
       );
 
       console.log("result", result);
-      
+
       try {
         const response = await generateImageFromInstanceData(
           result.sentences,

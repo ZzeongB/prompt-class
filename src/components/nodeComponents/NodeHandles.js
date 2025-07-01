@@ -31,11 +31,13 @@ const getHandleStyle = (pos) => {
   }
 };
 
-export default function NodeHandles({ id, isSelected }) {
+export default function NodeHandles({ id, isSelected, nodeType }) {
   const connection = useConnection();
-  const isTarget =
-    connection.inProgress && connection.fromNode?.id !== id;
+  const isTarget = connection.inProgress && connection.fromNode?.id !== id;
+  const sourceType = connection.fromNode?.data?.type;
 
+  const showTargetHandle =
+    !connection.inProgress || (isTarget && sourceType === nodeType);
   return (
     <>
       {["Top", "Right", "Bottom", "Left"].map((pos) => (
@@ -53,7 +55,7 @@ export default function NodeHandles({ id, isSelected }) {
             />
           )}
 
-          {(!connection.inProgress || isTarget) && (
+          {showTargetHandle && (
             <Handle
               type="target"
               position={Position[pos]}

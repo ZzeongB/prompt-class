@@ -29,16 +29,15 @@ function buildCompositionalSentence(classEntry) {
 
   // ✅ relation sentence
   const objectsInRelations = new Set();
-  const relationSentences =
-    (classEntry.relations || []).map((rel) => {
-      const source = objectNameMap[rel.source] || rel.source;
-      const target = objectNameMap[rel.target] || rel.target;
+  const relationSentences = (classEntry.relations || []).map((rel) => {
+    const source = objectNameMap[rel.source] || rel.source;
+    const target = objectNameMap[rel.target] || rel.target;
 
-      objectsInRelations.add(rel.source);
-      objectsInRelations.add(rel.target);
+    objectsInRelations.add(rel.source);
+    objectsInRelations.add(rel.target);
 
-      return `${source} ${rel.name} ${target}`;
-    });
+    return `${source} ${rel.name} ${target}`;
+  });
 
   // ✅ standalone objects (관계에 등장하지 않은 object)
   const standaloneObjects = classEntry.objects
@@ -57,7 +56,6 @@ function buildCompositionalSentence(classEntry) {
 
   return `${fullSentence}: ${content}`;
 }
-
 
 export function extractSentencesAndBoxes(
   instanceNodes,
@@ -94,9 +92,9 @@ export function extractSentencesAndBoxes(
 
       const sentence = buildCompositionalSentence(structuredClass);
       sentences.push(sentence);
-
+      
       const resizableNode = resizableNodes.find(
-        (n) => n.id.split("-resizable")[0] === objNode.id
+        (n) => n.id.replace(/-resizable/g, "") === objNode.id
       );
 
       const box = getNormalizedBox(
