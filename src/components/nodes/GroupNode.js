@@ -19,6 +19,7 @@ import NodeToolbarMenu from "../nodeComponents/NodeToolbarMenu";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import NodeHandles from "../nodeComponents/NodeHandles";
 import DragHandle from "../nodeComponents/DragHandle";
+import LabelEditor from "../nodeComponents/LabelEditor";
 
 const controlStyle = {
   background: "transparent",
@@ -43,19 +44,46 @@ export default function GroupNode({
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
+
+  const inputRef = useRef(null);
   const nodeRef = useRef(null);
+  const toolbarRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (nodeRef.current && !nodeRef.current.contains(event.target)) {
+      if (
+        nodeRef.current &&
+        !nodeRef.current.contains(event.target) &&
+        toolbarRef.current &&
+        !toolbarRef.current.contains(event.target)
+      ) {
         setIsSelected(false);
+        setIsEditing(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handleClickOutside, true);
+    return () =>
+      document.removeEventListener("pointerdown", handleClickOutside, true);
   }, []);
-  const connection = useConnection();
+  useEffect(() => {
+    if (data.justCreated) {
+      setTimeout(() => {
+        setIsEditing(true);
+      }, 0);
+    }
+  }, [data.justCreated]);
+
+  useEffect(() => {
+    if (isEditing) {
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      });
+    }
+  }, [isEditing]);
 
   const onDragStart = (e) => {
     if (e.target.closest(".classHandle")) return;
@@ -134,7 +162,12 @@ export default function GroupNode({
           ? {
               ...node,
               // id: `class-${editLabel}`,
-              data: { ...node.data, label: editLabel, hasValue: editLabel },
+              data: {
+                ...node.data,
+                label: editLabel,
+                hasValue: editLabel,
+                justCreated: false,
+              },
             }
           : node
       )
@@ -173,12 +206,13 @@ export default function GroupNode({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
-        setIsSelected((prev) => !prev);
+        setIsSelected(true);
         e.stopPropagation(); // ✅ prevents parent from hijacking the drag
         e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
       }}
     >
       <NodeToolbarMenu
+        ref={toolbarRef}
         isVisible={isSelected || isEditing}
         isEditing={isEditing}
         data={data}
@@ -212,18 +246,17 @@ export default function GroupNode({
           borderColor: color,
           borderRadius: 12,
           height: data.collapsed ? 25 : data.expandedHeight ?? 200,
+          minWidth: 100, // ✅ 최소 너비 보장
           ...(withBackground ? { background: color } : {}),
         }}
       >
         {isEditing ? (
-          <input
-            value={editLabel}
-            onChange={(e) => setEditLabel(e.target.value)}
-            style={{ width: "90%", fontSize: "14px" }}
-            onClick={(e) => {
-              e.stopPropagation(); // ✅ prevents parent from hijacking the drag
-              e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
-            }}
+          <LabelEditor
+            ref={inputRef} // 포커스용 ref (선택 사항)
+            type={data.type} // 위에 표시할 타입 (예: "attribute", "object")
+            label={editLabel} // 현재 입력값
+            onChange={setEditLabel} // 입력값 변경 핸들러
+            alignToLabel={true}
           />
         ) : (
           <>

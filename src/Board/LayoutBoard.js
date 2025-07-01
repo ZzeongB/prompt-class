@@ -9,7 +9,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useDnD } from "../context/DragAndDropContext";
-import DefaultEdge from "../components/DefaultEdge";
+import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
 import LayoutNode from "../components/nodes/LayoutNode";
 import ResizableNode from "../components/nodes/ResizableNode";
 import TempResizableNode from "../components/nodes/TempResizableNode";
@@ -19,7 +19,6 @@ import {
 } from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { useInstanceGraph } from "../context/InstanceGraphContext";
-import { useImage } from "../context/ImageContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
 import { extractSentencesAndBoxes } from "../utils/instance/instanceExtractor";
 import {
@@ -30,6 +29,7 @@ import {
 import { createInstance } from "../utils/instance/instanceBuilder";
 import { generateImageFromInstanceData } from "../api/generateImage";
 import ProgressBar from "../components/ProgressBar";
+import CustomButton from "../components/CustomButton";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -40,14 +40,6 @@ const nodeTypes = {
   resizable: ResizableNode,
   tmpResizable: TempResizableNode,
   "instance-group": LayoutNode,
-};
-
-const defaultEdgeOptions = {
-  type: "main",
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-    color: "#000",
-  },
 };
 
 function LayoutBoard({ onImageGenerated }) {
@@ -281,35 +273,11 @@ function LayoutBoard({ onImageGenerated }) {
           boxSizing: "border-box",
         }}
       >
-        <ProgressBar
-          now={progress}
-          errorMessage={errorMessage}
-        />
+        <ProgressBar now={progress} errorMessage={errorMessage} />
 
-        <button
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={handleClick}
-          style={{
-            padding: "8px 16px",
-            fontSize: "14px",
-            fontWeight: "bold",
-            color: "#fff",
-            background: "linear-gradient(135deg, #9A90FF, #63B4FF)",
-            border: "none",
-            borderRadius: "12px",
-            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)",
-            cursor: "pointer",
-            transition: "all 0.2s ease-in-out",
-          }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.transform = "translateY(-3px)")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.transform = "translateY(0)")
-          }
-        >
-          이미지 만들기
-        </button>
+        <CustomButton onClick={handleClick} color="purpleBlue" size="lg">
+          Generate
+        </CustomButton>
       </div>
 
       <ReactFlow

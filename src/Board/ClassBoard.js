@@ -10,7 +10,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { classToFlow } from "../utils/flowUtils";
 import { classSample } from "../classSample.ts";
-import DefaultEdge from "../components/DefaultEdge";
+import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
 import ClassNode from "../components/nodes/ClassNode";
 import ClassGroupNode from "../components/nodes/ClassGroupNode";
 import { useDnD } from "../context/DragAndDropContext";
@@ -28,6 +28,8 @@ import { convertClassGroup } from "../utils/group/convertClassGroup.js";
 import { getParentNodeForPosition } from "../utils/node/getParentNodeForPosition.js";
 import { sortNodesByDepth } from "../utils/node/sortNodeByDepth.js";
 import { OBJ_COLOR_TRANS, BACKGROUND_COLOR } from "../utils/constants.js";
+import CustomButton from "../components/CustomButton.js";
+
 const edgeTypes = {
   main: DefaultEdge,
 };
@@ -53,14 +55,6 @@ const nodeTypes = {
   "object-group": ClassGroupNode,
   class: ClassNode,
   instance: ClassNode,
-};
-
-const defaultEdgeOptions = {
-  type: "main",
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-    color: "#000",
-  },
 };
 
 export function getVisibleNodes(allNodes) {
@@ -209,6 +203,7 @@ function ClassBoard() {
         collapsed: false,
         expandedHeight: 20,
         type: "object",
+        justCreated: true,
       },
       position: { x: 0, y: 0 },
     });
@@ -251,7 +246,9 @@ function ClassBoard() {
       onClick={ghostNode ? handleGhostClick : undefined}
     >
       <div style={{ padding: "10px" }}>
-        <button onClick={handleAddNode}>➕ 새 노드 추가</button>
+        <CustomButton onClick={handleAddNode} color="salmonGray" size="md">
+          Add New Group
+        </CustomButton>
       </div>
       {ghostNode && (
         <div
@@ -278,7 +275,7 @@ function ClassBoard() {
         defaultEdgeOptions={defaultEdgeOptions}
         // defaultNodeOptions={defaultNodeOptions}
         fitView
-        connectionLineStyle={{ stroke: "#000" }}
+        connectionLineStyle={defaultEdgeOptions.style} // ✅ 이렇게 변경
         connectionLineType="bezier"
         nodeOrigin={[0, 0]} // 노드 중앙 기준
         proOptions={{ hideAttribution: true }}

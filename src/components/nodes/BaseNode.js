@@ -8,6 +8,7 @@ import { duplicateNodesWithMapping } from "../../utils/node/duplicateUtils";
 import NodeToolbarMenu from "../nodeComponents/NodeToolbarMenu";
 import DragHandle from "../nodeComponents/DragHandle";
 import NodeHandles from "../nodeComponents/NodeHandles";
+import LabelEditor from "../nodeComponents/LabelEditor";
 
 export default function BaseNode({ id, data, nodeType }) {
   const { getNodes, setNodes } = useReactFlow();
@@ -20,30 +21,45 @@ export default function BaseNode({ id, data, nodeType }) {
 
   const inputRef = useRef(null);
   const nodeRef = useRef(null);
+  const toolbarRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (nodeRef.current && !nodeRef.current.contains(event.target)) {
+      if (
+        nodeRef.current &&
+        !nodeRef.current.contains(event.target) &&
+        toolbarRef.current &&
+        !toolbarRef.current.contains(event.target)
+      ) {
         setIsSelected(false);
+        setIsEditing(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handleClickOutside, true);
+    return () =>
+      document.removeEventListener("pointerdown", handleClickOutside, true);
   }, []);
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+    if (isEditing) {
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      });
     }
   }, [isEditing]);
 
   useEffect(() => {
     if (data.justCreated) {
-      setIsEditing(true);
+      setTimeout(() => {
+        setIsEditing(true);
+      }, 0);
     }
   }, [data.justCreated]);
+
   const style =
     nodeType === "class"
       ? getClassNodeStyle(data.type, data)
@@ -109,12 +125,13 @@ export default function BaseNode({ id, data, nodeType }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={(e) => {
-        setIsSelected((prev) => !prev);
+        setIsSelected(true);
         e.stopPropagation(); // ✅ prevents parent from hijacking the drag
         e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
       }}
     >
       <NodeToolbarMenu
+        ref={toolbarRef}
         isVisible={isSelected || isEditing}
         isEditing={isEditing}
         data={data} // 중요!
@@ -133,21 +150,27 @@ export default function BaseNode({ id, data, nodeType }) {
 
       <div
         className="nodrag"
-        style={{ width: "100%", height: "100%" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          overflow: "hidden", // ✅ 내부 넘침 방지
+          display: "flex", // ✅ 수평 배치 및 자식 크기 제한
+          alignItems: "center",
+          // maxWidth: "100px",
+        }}
         onMouseDown={onDragStart}
       >
         {isEditing ? (
-          <input
+          <LabelEditor
             ref={inputRef}
-            value={editLabel}
-            onChange={(e) => setEditLabel(e.target.value)}
-            style={{ width: "90%", fontSize: "14px" }}
-            onClick={(e) => e.stopPropagation()}
+            type={data.type}
+            label={editLabel}
+            onChange={setEditLabel}
           />
         ) : (
           label
         )}
-        <NodeHandles id={id} isSelected={isSelected} nodeType={data.type}/>
+        <NodeHandles id={id} isSelected={isSelected} nodeType={data.type} />
       </div>
     </div>
   );

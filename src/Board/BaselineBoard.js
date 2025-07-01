@@ -4,13 +4,10 @@ import {
   useNodesState,
   useEdgesState,
   useReactFlow,
-  MarkerType,
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { classToFlow } from "../utils/flowUtils.js";
-import { classSample } from "../classSample.ts";
-import DefaultEdge from "../components/DefaultEdge.js";
+import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
 import ClassNode from "../components/nodes/ClassNode.js";
 import ClassGroupNode from "../components/nodes/ClassGroupNode.js";
 import { useDnD } from "../context/DragAndDropContext.js";
@@ -26,6 +23,7 @@ import {
 } from "../utils/node/syncNodePositions.js";
 import { convertClassGroup } from "../utils/group/convertClassGroup.js";
 import { getParentNodeForPosition } from "../utils/node/getParentNodeForPosition.js";
+import CustomButton from "../components/CustomButton.js";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -35,14 +33,6 @@ const nodeTypes = {
   "object-group": ClassGroupNode,
   class: ClassNode,
   instance: ClassNode,
-};
-
-const defaultEdgeOptions = {
-  type: "main",
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-    color: "#000",
-  },
 };
 
 function getVisibleNodes(allNodes) {
@@ -180,7 +170,9 @@ function BaselineBoard() {
   return (
     <div className="reactflow-wrapper" ref={reactFlowWrapper}>
       <div style={{ padding: "10px" }}>
-        <button onClick={handleAddNode}>➕ 새 노드 추가</button>
+        <CustomButton onClick={handleAddNode} color="purpleBlue" size="md">
+          새 노드 추가
+        </CustomButton>
       </div>
 
       <ReactFlow
@@ -196,7 +188,7 @@ function BaselineBoard() {
         defaultEdgeOptions={defaultEdgeOptions}
         // defaultNodeOptions={defaultNodeOptions}
         fitView
-        connectionLineStyle={{ stroke: "#000" }}
+        connectionLineStyle={defaultEdgeOptions.style} // ✅ 이렇게 변경
         connectionLineType="bezier"
         nodeOrigin={[0, 0]} // 노드 중앙 기준
         proOptions={{ hideAttribution: true }}

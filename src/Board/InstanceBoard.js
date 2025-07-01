@@ -16,7 +16,7 @@ import {
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import DefaultEdge from "../components/DefaultEdge";
+import {DefaultEdge, defaultEdgeOptions} from "../components/DefaultEdge";
 import ClassNode from "../components/nodes/ClassNode";
 import ClassGroupNode from "../components/nodes/ClassGroupNode";
 import InstanceGroupNode from "../components/nodes/InstanceGroupNode";
@@ -36,14 +36,6 @@ import { getRenderedInstanceBoard } from "../utils/instance/getRenderedInstanceB
 
 const edgeTypes = {
   main: DefaultEdge,
-};
-
-const defaultEdgeOptions = {
-  type: "main",
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-    color: "#000",
-  },
 };
 
 function markHiddenNodes(allNodes) {
@@ -219,7 +211,7 @@ function InstanceBoard() {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
-        connectionLineStyle={{ stroke: "#000" }}
+        connectionLineStyle={defaultEdgeOptions.style}  // ✅ 이렇게 변경
         connectionLineType="bezier"
         nodeOrigin={[0, 0]}
         proOptions={{ hideAttribution: true }}
