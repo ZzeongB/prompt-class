@@ -1,16 +1,64 @@
 import React, { memo } from "react";
 import { NodeResizer, Handle, Position, useConnection } from "@xyflow/react";
 import { OBJ_COLOR, ATTR_COLOR, REL_COLOR } from "../../utils/constants";
+import { useReactFlow } from "@xyflow/react";
 
 function ResizableNode({ id, data, nodeType, style }) {
   const connection = useConnection();
   const isTarget = connection.inProgress && connection.fromNode.id !== id;
   const showHandle = connection.inProgress && isTarget;
+  const { setNodes, getNodes, getEdges } = useReactFlow();
 
   const handleMouseDown = (e) => {
     e.stopPropagation(); // ✅ prevents parent from hijacking the drag
     e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
   };
+  const handleResize = (resizedId, { width, height }) => {
+    const nodes = getNodes();
+    const edges = getEdges();
+    const resizedNode = nodes.find((n) => n.id === resizedId);
+    if (!resizedNode) return;
+
+    const prevWidth =
+      resizedNode.style?.width ?? resizedNode.data?.expandedWidth ?? 200;
+    const prevHeight =
+      resizedNode.style?.height ?? resizedNode.data?.expandedHeight ?? 200;
+
+    const delta = {
+      width: width - prevWidth,
+      height: height - prevHeight,
+    };
+
+    // size 핸들로 연결된 노드들
+    const linkedSizeNodeIds = edges
+      .filter(
+        (e) =>
+          e.label === "size" &&
+          (e.source === resizedId || e.target === resizedId)
+      )
+      .map((e) => (e.source === resizedId ? e.target : e.source));
+
+    console.log("[handleResize] ", linkedSizeNodeIds)
+
+    setNodes((prev) =>
+      prev.map((n) => {
+        if (n.id === resizedId || linkedSizeNodeIds.includes(n.id)) {
+          const newWidth =
+            (n.style?.width ?? n.data?.expandedWidth ?? 200) + delta.width;
+          const newHeight =
+            (n.style?.height ?? n.data?.expandedHeight ?? 200) + delta.height;
+
+          return {
+            ...n,
+            width: newWidth,
+            height: newHeight,
+          };
+        }
+        return n;
+      })
+    );
+  };
+
   return (
     <div>
       <NodeResizer
@@ -23,6 +71,7 @@ function ResizableNode({ id, data, nodeType, style }) {
         }
         minWidth={50}
         minHeight={50}
+        onResizeEnd={(e, params) => handleResize(id, params)}
       />
       {!connection.inProgress && (
         <Handle
@@ -111,9 +160,7 @@ function ResizableNode({ id, data, nodeType, style }) {
         </>
       )}
 
-      <div style={{ visibility: "hidden", height: "1em" }}>
-        {data.label}
-      </div>
+      <div style={{ visibility: "hidden", height: "1em" }}>{data.label}</div>
     </div>
   );
 }
