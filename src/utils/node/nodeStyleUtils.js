@@ -13,12 +13,13 @@ export function getInstanceNodeStyle(type, options = {}) {
   const base = {
     // border: "2px solid",
     // borderColor: BORDER_COLOR,
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 4,
+    padding: 6,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     background: WHITE,
+    fontSize: "11px",
   };
 
   if (type === "object-group") {
@@ -29,7 +30,6 @@ export function getInstanceNodeStyle(type, options = {}) {
       ...base,
       background: options.hasValue ? ATTR_COLOR_TRANS_DARK : WHITE,
       border: options.hasValue ? "0px solid" : "3px dashed",
-      // borderColor: options.hasValue ? null : ATTR_COLOR,
       fontStyle: options.hasValue ? "normal" : "italic",
     };
   }

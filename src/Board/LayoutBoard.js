@@ -62,6 +62,7 @@ function LayoutBoard({ onImageGenerated }) {
   const [globalCaption, setGlobalCaption] = useState("");
   const [progress, setProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!isGenerating) return;
@@ -142,8 +143,7 @@ function LayoutBoard({ onImageGenerated }) {
   };
 
   const onConnect = useCallback(
-    (params) =>
-      handleConnect({ params, nodes, setNodes, setEdges }),
+    (params) => handleConnect({ params, nodes, setNodes, setEdges }),
     [nodes, setNodes, setEdges]
   );
 
@@ -179,6 +179,7 @@ function LayoutBoard({ onImageGenerated }) {
   const handleClick = async () => {
     setProgress(0); // 진행률 초기화
     setIsGenerating(true); // ✅ 진행 시작
+    setErrorMessage();
 
     setTimeout(async () => {
       const result = extractSentencesAndBoxes(
@@ -204,6 +205,13 @@ function LayoutBoard({ onImageGenerated }) {
         setGlobalCaption(response.globalCaption); // 상태 업데이트
       } catch (err) {
         console.error("Image generation failed", err);
+
+        const message =
+          err?.response?.data?.message ||
+          err?.message ||
+          "알 수 없는 오류가 발생했습니다.";
+
+        setErrorMessage(message);
       } finally {
         setIsGenerating(false); // ✅ 완료 or 실패 후 종료
       }
@@ -275,7 +283,7 @@ function LayoutBoard({ onImageGenerated }) {
       >
         <ProgressBar
           now={progress}
-          // style={{ flex: 1, height: "24px", borderRadius: "12px" }}
+          errorMessage={errorMessage}
         />
 
         <button

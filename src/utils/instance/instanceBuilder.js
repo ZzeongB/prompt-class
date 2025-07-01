@@ -87,7 +87,7 @@ function createSimpleInstance(event, id, label, type, screenToFlowPosition, clas
 
   const nodes = resizable
     ? [
-        { id: `${sharedId}-resizable`, type: "resizable", position: { x: position.x, y: position.y + 30 }, data: newNode.data },
+        { id: `${sharedId}-resizable`, type: "resizable", position: { x: position.x, y: position.y }, data: newNode.data, style: {height: 50, width: 50} },
         newNode,
         ...newAttrNodes,
       ]

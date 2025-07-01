@@ -17,7 +17,7 @@ function LayoutNode({ id, data }) {
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
-  const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
+  const { setInstanceNodes } = useInstanceGraph();
 
   const handleLabelUpdate = () => {
     setNodes((prevNodes) =>

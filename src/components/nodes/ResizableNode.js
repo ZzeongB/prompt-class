@@ -21,8 +21,8 @@ function ResizableNode({ id, data, nodeType, style }) {
             ? ATTR_COLOR
             : REL_COLOR
         }
-        minWidth={30}
-        minHeight={30}
+        minWidth={50}
+        minHeight={50}
       />
       {!connection.inProgress && (
         <Handle
