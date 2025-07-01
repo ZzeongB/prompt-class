@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { NodeResizer, Handle, Position, useConnection } from "@xyflow/react";
-import { OBJ_COLOR, ATTR_COLOR, REL_COLOR } from "../utils/constants";
+import { OBJ_COLOR, ATTR_COLOR, REL_COLOR } from "../../utils/constants";
 
 function ResizableNode({ id, data, nodeType, style }) {
   const connection = useConnection();

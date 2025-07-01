@@ -17,9 +17,9 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import DefaultEdge from "../components/DefaultEdge";
-import ClassNode from "../components/ClassNode";
-import ClassGroupNode from "../components/ClassGroupNode";
-import InstanceGroupNode from "../components/InstanceGroupNode";
+import ClassNode from "../components/nodes/ClassNode";
+import ClassGroupNode from "../components/nodes/ClassGroupNode";
+import InstanceGroupNode from "../components/nodes/InstanceGroupNode";
 import { useDnD } from "../context/DragAndDropContext";
 import {
   handleConnect,
@@ -27,7 +27,7 @@ import {
 } from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { useInstanceGraph } from "../context/InstanceGraphContext.js";
-import InstanceNode from "../components/InstanceNode.js";
+import InstanceNode from "../components/nodes/InstanceNode.js";
 import {
   syncMovedNodePositions,
   syncParentChildNodePositions,

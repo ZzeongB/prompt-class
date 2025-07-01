@@ -10,14 +10,14 @@ import {
   OBJ_COLOR_TRANS,
   REL_COLOR_TRANS,
   ATTR_COLOR_TRANS,
-} from "../utils/constants";
-import { useDnD } from "../context/DragAndDropContext";
+} from "../../utils/constants";
+import { useDnD } from "../../context/DragAndDropContext";
 import { useState } from "react";
-import HoverButton from "./HoverButton";
 import {
   duplicateNodesWithMapping,
   duplicateEdges,
-} from "../utils/node/duplicateUtils";
+} from "../../utils/node/duplicateUtils";
+import NodeToolbarMenu from "../NodeToolbarMenu";
 
 const controlStyle = {
   background: "transparent",
@@ -159,30 +159,18 @@ export default function GroupNode({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <NodeToolbar
+      <NodeToolbarMenu
         isVisible={isHovered || isEditing}
+        isEditing={isEditing}
+        data={data}
         position={Position.Top}
-        style={{ top: "25px", left: "-20px", display: "flex", gap: "2px" }}
-      >
-        {/* ✏️ or 💾 */}
-        <HoverButton
-          title={isEditing ? "Save label" : "Edit label"}
-          icon={isEditing ? "💾" : "✏️"}
-          onClick={isEditing ? handleLabelUpdate : () => setIsEditing(true)}
-        />
-        <HoverButton
-          title="Duplicate node"
-          icon="📄"
-          onClick={handleDuplicateNode}
-        />
-        {/* 🗑 Delete */}
-        <HoverButton
-          title="Delete node"
-          icon="🗑"
-          onClick={handleDelete}
-          danger
-        />
-      </NodeToolbar>
+        style={{ top: "25px", left: "-20px" }}
+        onEditToggle={() => setIsEditing(true)}
+        onSave={handleLabelUpdate}
+        onDuplicate={handleDuplicateNode}
+        onDelete={handleDelete}
+      />
+
       {resizable ? (
         <NodeResizeControl
           style={controlStyle}

@@ -4,15 +4,13 @@ import {
   Position,
   useConnection,
   useReactFlow,
-  NodeToolbar,
 } from "@xyflow/react";
-import { useDnD } from "../context/DragAndDropContext";
 import {
   getClassNodeStyle,
   getInstanceNodeStyle,
-} from "../utils/node/nodeStyleUtils";
-import HoverButton from "./HoverButton";
-import { duplicateNodesWithMapping } from "../utils/node/duplicateUtils";
+} from "../../utils/node/nodeStyleUtils";
+import { duplicateNodesWithMapping } from "../../utils/node/duplicateUtils";
+import NodeToolbarMenu from "../NodeToolbarMenu";
 
 export default function BaseNode({ id, data, nodeType }) {
   const { getNodes, setNodes } = useReactFlow();
@@ -23,7 +21,6 @@ export default function BaseNode({ id, data, nodeType }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(label);
   const [isHovered, setIsHovered] = useState(false);
-  const [editMode, setEditMode] = useState("fixed"); // 'fixed' or 'blank'
 
   const inputRef = useRef(null);
 
@@ -43,24 +40,7 @@ export default function BaseNode({ id, data, nodeType }) {
       ? getClassNodeStyle(data.type, data)
       : getInstanceNodeStyle(data.type, data);
 
-  // const [, setId, , setType, , setPosition, , setLabel, , setDragSource] =
-  //   useDnD();
-  const onDragStart = (e) => {
-    // if (e.target.closest(".drag-handle") || e.target.closest(".classHandle"))
-    //   return;
-    // setType(data.type);
-    // setLabel(data.label);
-    // setId(id);
-    // setDragSource(nodeType);
-    // const onMouseMove = (e) => setPosition({ x: e.clientX, y: e.clientY });
-    // const onMouseUp = () => {
-    //   setType(null);
-    //   document.removeEventListener("mousemove", onMouseMove);
-    //   document.removeEventListener("mouseup", onMouseUp);
-    // };
-    // document.addEventListener("mousemove", onMouseMove);
-    // document.addEventListener("mouseup", onMouseUp);
-  };
+  const onDragStart = (e) => {};
 
   const handleLabelUpdateFixed = () => {
     setNodes((prevNodes) =>
@@ -119,42 +99,18 @@ export default function BaseNode({ id, data, nodeType }) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <NodeToolbar
+      <NodeToolbarMenu
         isVisible={isHovered || isEditing}
+        isEditing={isEditing}
+        data={data} // 중요!
         position={Position.Top}
-        style={{ top: "10px", display: "flex", gap: "2px" }}
-      >
-        {/* ✏️ or 💾 */}
-        <HoverButton
-          title={isEditing ? "Save as fixed value" : "Edit label"}
-          icon={isEditing ? "💾" : "✏️"}
-          onClick={
-            isEditing ? handleLabelUpdateFixed : () => setIsEditing(true)
-          }
-        />
-
-        {/* 🌀 Blank attribute로 전환 */}
-        {data.type === "attribute" && isEditing && (
-          <HoverButton
-            title="Convert to blank attribute"
-            icon="🌀"
-            onClick={handleLabelUpdateBlank}
-          />
-        )}
-        <HoverButton
-          title="Duplicate node"
-          icon="📄"
-          onClick={handleDuplicateNode}
-        />
-        {/* 🗑 Delete */}
-        <HoverButton
-          title="Delete node"
-          icon="🗑"
-          onClick={handleDelete}
-          danger
-        />
-      </NodeToolbar>
-
+        style={{ top: "10px" }}
+        onEditToggle={() => setIsEditing(true)}
+        onSave={handleLabelUpdateFixed}
+        onConvertBlank={handleLabelUpdateBlank}
+        onDuplicate={handleDuplicateNode}
+        onDelete={handleDelete}
+      />
       <div
         className="drag-handle"
         style={{
@@ -172,7 +128,6 @@ export default function BaseNode({ id, data, nodeType }) {
       >
         ⠿
       </div>
-
       <div
         className="nodrag"
         style={{ width: "100%", height: "100%" }}

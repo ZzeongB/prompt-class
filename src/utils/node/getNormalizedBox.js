@@ -14,6 +14,7 @@ export function getNormalizedBox(
   offsetY = 0,
   normalize = false
 ) {
+  if(node?.position == null) return [0, 0, 0, 0];
   const { x, y } = node.position;
 
   const width = node.measured?.width ?? 100;

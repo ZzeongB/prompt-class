@@ -11,8 +11,8 @@ import "@xyflow/react/dist/style.css";
 import { classToFlow } from "../utils/flowUtils.js";
 import { classSample } from "../classSample.ts";
 import DefaultEdge from "../components/DefaultEdge.js";
-import ClassNode from "../components/ClassNode.js";
-import ClassGroupNode from "../components/ClassGroupNode.js";
+import ClassNode from "../components/nodes/ClassNode.js";
+import ClassGroupNode from "../components/nodes/ClassGroupNode.js";
 import { useDnD } from "../context/DragAndDropContext.js";
 import {
   handleConnect,

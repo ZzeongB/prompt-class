@@ -2,8 +2,8 @@ import {
   OBJ_COLOR_TRANS,
   REL_COLOR_TRANS,
   ATTR_COLOR_TRANS,
-} from "../utils/constants";
-import { useDnD } from "../context/DragAndDropContext";
+} from "../../utils/constants";
+import { useDnD } from "../../context/DragAndDropContext";
 const GhostNode = () => {
   const [, , type, , position, , label] = useDnD();
 

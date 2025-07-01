@@ -3,17 +3,11 @@ import {
   Handle,
   Position,
   useConnection,
-  NodeToolbar,
   useReactFlow,
-  useNodesState,
 } from "@xyflow/react";
-import { getInstanceNodeStyle } from "../utils/node/nodeStyleUtils";
-import {
-  handleObjectLayoutSave,
-  handleRelationshipLayoutSave,
-} from "../utils/layout/handleLayoutSave";
-import HoverButton from "./HoverButton";
-import { duplicateNodesWithMapping } from "../utils/node/duplicateUtils";
+import { getInstanceNodeStyle } from "../../utils/node/nodeStyleUtils";
+import { duplicateNodesWithMapping } from "../../utils/node/duplicateUtils";
+import NodeToolbarMenu from "../NodeToolbarMenu";
 
 function LayoutNode({ id, data }) {
   const {
@@ -21,8 +15,6 @@ function LayoutNode({ id, data }) {
     getNode,
     getNodes,
     setNodes,
-    addEdges,
-    flowToScreenPosition,
   } = useReactFlow();
 
   const connection = useConnection();
@@ -59,22 +51,24 @@ function LayoutNode({ id, data }) {
 
     deleteElements({ nodes: nodesToDelete });
   };
-  
+
   const handleDuplicateNode = () => {
-  setNodes((prev) => {
-    const target = prev.find((n) => n.id === id);
-    if (!target) return prev;
+    setNodes((prev) => {
+      const target = prev.find((n) => n.id === id);
+      if (!target) return prev;
 
-    const sharedId = target.data?.sharedId ?? id;
-    const group = prev.filter((n) => n.data?.sharedId === sharedId || n.id === id);
+      const sharedId = target.data?.sharedId ?? id;
+      const group = prev.filter(
+        (n) => n.data?.sharedId === sharedId || n.id === id
+      );
 
-    const { duplicated } = duplicateNodesWithMapping(group, {
-      sharedIdBase: sharedId,
+      const { duplicated } = duplicateNodesWithMapping(group, {
+        sharedIdBase: sharedId,
+      });
+
+      return [...prev, ...duplicated];
     });
-
-    return [...prev, ...duplicated];
-  });
-};
+  };
 
   return (
     <div
@@ -83,47 +77,16 @@ function LayoutNode({ id, data }) {
       }}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <NodeToolbar
+      <NodeToolbarMenu
         isVisible={isHovered || isEditing}
+        isEditing={isEditing}
         position={Position.Top}
-        style={{ top: "10px", display: "flex", gap: "2px" }}
-      >
-        {!isEditing ? (
-          <HoverButton
-            title="Edit"
-            icon="✏️"
-            onClick={() => setIsEditing(true)}
-            // stopPropagation prevents the toolbar from closing when clicking the button
-          />
-        ) : (
-          <HoverButton
-            title="Save label"
-            icon="💾"
-            onClick={handleLabelUpdate}
-          />
-        )}
-
-        {data.type !== "attribute" && (
-          <HoverButton
-            title="Save layout"
-            icon="📐"
-            onClick={(e) => {
-              if (data.type === "object") {
-                handleObjectLayoutSave(id, getNode, setNodes, addEdges);
-              } else if (data.type === "relationship") {
-                handleRelationshipLayoutSave(id, data, getNode, setNodes);
-              }
-            }}
-          />
-        )}
-        <HoverButton
-          title="Duplicate node"
-          icon="📄"
-          onClick={handleDuplicateNode}
-        />
-        <HoverButton title="Delete" icon="🗑" danger onClick={handleDelete} />
-      </NodeToolbar>
-
+        style={{ top: "10px" }}
+        onEditToggle={() => setIsEditing(true)}
+        onSave={handleLabelUpdate}
+        onDuplicate={handleDuplicateNode}
+        onDelete={handleDelete}
+      />
       <div style={style}>
         {isEditing ? (
           <input

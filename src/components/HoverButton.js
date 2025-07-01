@@ -5,14 +5,17 @@ function HoverButton({ title, icon, onClick, danger = false }) {
   const [hovered, setHovered] = useState(false);
 
   const baseStyle = {
-    ...toolbarButtonStyle,
-    ...(hovered ? hoverStyle : {}),
+    fontSize: "16px",
+    padding: "6px 8px",
+    backgroundColor: hovered ? "rgba(255,255,255,0.1)" : "transparent",
+    color: "#FFFFFF",
+    borderRadius: "6px",
+    border: "none",
+    cursor: "pointer",
+    transition: "background-color 0.2s ease",
     ...(danger && {
-      //   border: "1px solid #C62828",
-      backgroundColor: hovered
-        ? "rgba(255, 200, 200, 0.95)"
-        : "rgba(255, 235, 235, 0.85)",
-      color: "#C62828",
+      color: "#FF6B6B",
+      backgroundColor: hovered ? "rgba(255,107,107,0.15)" : "transparent",
     }),
   };
 

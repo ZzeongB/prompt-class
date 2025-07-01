@@ -10,9 +10,9 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useDnD } from "../context/DragAndDropContext";
 import DefaultEdge from "../components/DefaultEdge";
-import LayoutNode from "../components/LayoutNode";
-import ResizableNode from "../components/ResizableNode";
-import TempResizableNode from "../components/TempResizableNode";
+import LayoutNode from "../components/nodes/LayoutNode";
+import ResizableNode from "../components/nodes/ResizableNode";
+import TempResizableNode from "../components/nodes/TempResizableNode";
 import {
   handleConnect,
   handleConnectEnd,
@@ -68,7 +68,7 @@ function LayoutBoard({ onImageGenerated }) {
     console.log("isGenerating True");
 
     const interval = setInterval(async () => {
-      const res = await fetch("http://localhost:5000/progress");
+      const res = await fetch("http://127.0.0.1:5000/progress"); 
       const data = await res.json();
       setProgress(data.progress);
 

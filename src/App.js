@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "@xyflow/react/dist/style.css";
-import GhostNode from "./components/GhostNode";
+import GhostNode from "./components/nodes/GhostNode";
 import BaselineBoardWithProvider from "./Board/BaselineBoard";
 import ClassBoardWithProvider from "./Board/ClassBoard";
 import InstanceBoardWithProvider from "./Board/InstanceBoard";

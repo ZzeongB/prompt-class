@@ -4,10 +4,10 @@ import {
   NodeToolbar,
   useReactFlow,
 } from "@xyflow/react";
-import { EDGE_COLOR } from "../utils/constants";
-import { generateDescription } from "../api/generateDescription";
-import { useImage } from "../context/ImageContext";
-import { getNormalizedBox } from "../utils/node/getNormalizedBox";
+import { EDGE_COLOR } from "../../utils/constants";
+import { generateDescription } from "../../api/generateDescription";
+import { useImage } from "../../context/ImageContext";
+import { getNormalizedBox } from "../../utils/node/getNormalizedBox";
 
 function TempResizableNode({ id, data, width, height }) {
   const { deleteElements, getNode, flowToScreenPosition } = useReactFlow();
