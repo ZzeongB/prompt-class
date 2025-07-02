@@ -158,7 +158,7 @@ function BaselineBoard() {
       data: {
         label: `New Node ${nodes.length + 1}`,
         collapsed: false,
-        expandedHeight: 20,
+        expandedHeight: 70,
         type: "object",
       },
     };

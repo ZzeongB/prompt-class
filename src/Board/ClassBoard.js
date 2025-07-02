@@ -27,28 +27,42 @@ import {
 import { convertClassGroup } from "../utils/group/convertClassGroup.js";
 import { getParentNodeForPosition } from "../utils/node/getParentNodeForPosition.js";
 import { sortNodesByDepth } from "../utils/node/sortNodeByDepth.js";
-import { OBJ_COLOR_TRANS, BACKGROUND_COLOR } from "../utils/constants.js";
+import {
+  OBJ_COLOR,
+  OBJ_COLOR_TRANS,
+  BACKGROUND_COLOR,
+} from "../utils/constants.js";
 import CustomButton from "../components/CustomButton.js";
 
 const edgeTypes = {
   main: DefaultEdge,
 };
 
-const ghostNodeStyle = {
-  padding: 10,
-  border: "5px solid",
-  borderColor: OBJ_COLOR_TRANS, // object용 기본색 (필요 시 type별로 바꿔도 됨)
-  borderRadius: 12,
-  backgroundColor: BACKGROUND_COLOR, // 기존 withBackground 색상 대체
-  opacity: 0.8, // 흐리게!
-  pointerEvents: "none", // 클릭 방지
+const baseGhostStyle = {
+  padding: 4,
+  border: "2px solid",
+  borderRadius: 3,
+  backgroundColor: BACKGROUND_COLOR,
+  opacity: 0.6,
+  pointerEvents: "none",
   userSelect: "none",
   position: "absolute",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontWeight: "bold",
   zIndex: 999,
+  fontSize: "8px",
+};
+
+const ghostNodeStyles = {
+  class: {
+    ...baseGhostStyle,
+    borderColor: OBJ_COLOR, // 예: object용 붉은 계열
+  },
+  "object-group": {
+    ...baseGhostStyle,
+    borderColor: OBJ_COLOR_TRANS, // 기존 색상 유지
+  },
 };
 
 const nodeTypes = {
@@ -194,14 +208,29 @@ function ClassBoard() {
     [nodes, edges, setNodes, onNodesChange]
   );
 
-  const handleAddNode = () => {
+  const handleAddObjectNode = () => {
+    setGhostNode({
+      id: `ghost-${Date.now()}`,
+      type: "class",
+      data: {
+        label: "New Object",
+        collapsed: false,
+        expandedHeight: 70,
+        type: "object",
+        justCreated: true,
+      },
+      position: { x: 0, y: 0 },
+    });
+  };
+
+  const handleAddGroupNode = () => {
     setGhostNode({
       id: `ghost-${Date.now()}`,
       type: "object-group",
       data: {
-        label: "New Node",
+        label: "New Group",
         collapsed: false,
-        expandedHeight: 20,
+        expandedHeight: 70,
         type: "object",
         justCreated: true,
       },
@@ -246,14 +275,21 @@ function ClassBoard() {
       onClick={ghostNode ? handleGhostClick : undefined}
     >
       <div style={{ padding: "10px" }}>
-        <CustomButton onClick={handleAddNode} color="salmonGray" size="md">
-          Add New Group
+        <CustomButton
+          onClick={handleAddObjectNode}
+          color="salmonGray"
+          size="md"
+        >
+          Add Object Node
+        </CustomButton>
+        <CustomButton onClick={handleAddGroupNode} color="salmonGray" size="md">
+          Add Group Node
         </CustomButton>
       </div>
       {ghostNode && (
         <div
           style={{
-            ...ghostNodeStyle,
+            ...ghostNodeStyles[ghostNode.type],
             left: ghostNode.position.x,
             top: ghostNode.position.y,
           }}
@@ -269,7 +305,7 @@ function ClassBoard() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
-        onPaneClick={ghostNode ? undefined : handlePaneClick}
+        // onPaneClick={ghostNode ? undefined : handlePaneClick}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
