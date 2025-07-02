@@ -4,7 +4,6 @@ import {
   useNodesState,
   useEdgesState,
   useReactFlow,
-  MarkerType,
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -33,6 +32,7 @@ import {
   BACKGROUND_COLOR,
 } from "../utils/constants.js";
 import CustomButton from "../components/CustomButton.js";
+import { Plus, Box, FolderPlus } from "lucide-react";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -132,26 +132,27 @@ function ClassBoard() {
     [nodes, setNodes, setEdges, screenToFlowPosition]
   );
 
-  const handlePaneClick = useCallback(
-    (event) => {
-      if (event.button !== 0) return;
+  // //------- Deprecated Method: Add OBJ node when Pane Clicked -------//
+  // const handlePaneClick = useCallback(
+  //   (event) => {
+  //     if (event.button !== 0) return;
 
-      const position = screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
+  //     const position = screenToFlowPosition({
+  //       x: event.clientX,
+  //       y: event.clientY,
+  //     });
 
-      const newNode = createNewObjectNode({
-        position,
-        currentNodeCount: nodes.length,
-      });
+  //     const newNode = createNewObjectNode({
+  //       position,
+  //       currentNodeCount: nodes.length,
+  //     });
 
-      if (newNode) {
-        setNodes((nds) => [...nds, newNode]);
-      }
-    },
-    [screenToFlowPosition, nodes.length, setNodes]
-  );
+  //     if (newNode) {
+  //       setNodes((nds) => [...nds, newNode]);
+  //     }
+  //   },
+  //   [screenToFlowPosition, nodes.length, setNodes]
+  // );
 
   const handleNodesChange = useCallback(
     (changes) => {
@@ -274,16 +275,33 @@ function ClassBoard() {
       onMouseMove={handleMouseMove}
       onClick={ghostNode ? handleGhostClick : undefined}
     >
-      <div style={{ padding: "10px" }}>
-        <CustomButton
-          onClick={handleAddObjectNode}
-          color="salmonGray"
-          size="md"
-        >
-          Add Object Node
+      <div style={{ padding: "5px" }}>
+        <CustomButton onClick={handleAddObjectNode} color="object" size="md">
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: "bold",
+            }}
+          >
+            <Plus size={14} strokeWidth={2.5} color="#1a1a1a" />
+            Object
+          </span>
         </CustomButton>
-        <CustomButton onClick={handleAddGroupNode} color="salmonGray" size="md">
-          Add Group Node
+
+        <CustomButton onClick={handleAddGroupNode} color="group" size="md">
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: "bold",
+            }}
+          >
+            <FolderPlus size={14} strokeWidth={2.5} color="#1a1a1a" />
+            Group
+          </span>
         </CustomButton>
       </div>
       {ghostNode && (
