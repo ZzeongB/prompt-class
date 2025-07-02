@@ -10,7 +10,14 @@ import DragHandle from "../nodeComponents/DragHandle";
 import NodeHandles from "../nodeComponents/NodeHandles";
 import LabelEditor from "../nodeComponents/LabelEditor";
 
-export default function BaseNode({ id, data, nodeType }) {
+export default function BaseNode({
+  id,
+  data,
+  nodeType,
+  onDelete: onDeleteProp,
+  onDuplicate: onDuplicateProp,
+  fontSize,
+}) {
   const { getNodes, setNodes } = useReactFlow();
   const label = data.hasValue ? data.hasValue : data.label;
 
@@ -105,10 +112,14 @@ export default function BaseNode({ id, data, nodeType }) {
   };
 
   const handleDelete = () => {
+    if (onDeleteProp) return onDeleteProp(); // 외부에서 전달한 삭제 함수 우선
+
     setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id));
   };
 
   const handleDuplicateNode = () => {
+    if (onDuplicateProp) return onDuplicateProp();
+
     setNodes((prev) => {
       const target = prev.find((n) => n.id === id);
       if (!target) return prev;
@@ -124,6 +135,10 @@ export default function BaseNode({ id, data, nodeType }) {
       style={{ ...style, position: "relative" }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onMouseDown={(e) => {
+        e.stopPropagation(); // ✅ prevents parent from hijacking the drag
+        e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
+      }}
       onClick={(e) => {
         setIsSelected(true);
         e.stopPropagation(); // ✅ prevents parent from hijacking the drag
@@ -144,7 +159,7 @@ export default function BaseNode({ id, data, nodeType }) {
         onDelete={handleDelete}
       />
       <DragHandle
-        position={{ left: "-15px", top: "5px" }}
+        position={{ left: "-15px", top: "50%", transform: "translateY(-50%)" }}
         isVisible={isHovered}
       />
 
@@ -156,7 +171,7 @@ export default function BaseNode({ id, data, nodeType }) {
           overflow: "hidden", // ✅ 내부 넘침 방지
           display: "flex", // ✅ 수평 배치 및 자식 크기 제한
           alignItems: "center",
-          // maxWidth: "100px",
+          fontSize: fontSize,
         }}
         onMouseDown={onDragStart}
       >

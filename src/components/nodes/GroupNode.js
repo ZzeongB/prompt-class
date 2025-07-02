@@ -66,6 +66,7 @@ export default function GroupNode({
     return () =>
       document.removeEventListener("pointerdown", handleClickOutside, true);
   }, []);
+
   useEffect(() => {
     if (data.justCreated) {
       setTimeout(() => {
@@ -205,6 +206,10 @@ export default function GroupNode({
       style={{ position: "relative", pointerEvents: "auto" }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onMouseDown={(e) => {
+        e.stopPropagation(); // ✅ prevents parent from hijacking the drag
+        e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
+      }}
       onClick={(e) => {
         setIsSelected(true);
         e.stopPropagation(); // ✅ prevents parent from hijacking the drag

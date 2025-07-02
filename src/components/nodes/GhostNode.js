@@ -4,6 +4,7 @@ import {
   ATTR_COLOR_TRANS,
 } from "../../utils/constants";
 import { useDnD } from "../../context/DragAndDropContext";
+
 const GhostNode = () => {
   const [, , type, , position, , label] = useDnD();
 
