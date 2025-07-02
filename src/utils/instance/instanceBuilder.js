@@ -186,25 +186,36 @@ function cloneSubtreeInstance(
   collapsed,
   filledAttrMap,
   instanceNodes,
-  instanceEdges,
+  instanceEdges
 ) {
   const uniqueId = uuidv4();
+
+  // 1. 📦 classGraph 기반 핵심 노드 + 자식 노드 수집
   const groupNode = classNodes.find((n) => n.id === id);
   if (!groupNode) return { newNodes: [], newEdges: [] };
 
   // ✅ 모든 하위 노드까지 재귀 수집
   const allDescendants = collectAllDescendants(classNodes, id);
-  const allNodeIds = [groupNode.id, ...allDescendants.map((n) => n.id)];
+  const allClassNodeIds = [groupNode.id, ...allDescendants.map((n) => n.id)];
 
-  // ✅ 추가된 라인: 연결된 외부 노드 수집
-  const edgeConnectedNodes = getEdgeConnectedOutsideNodes(
-    allNodeIds,
+  // 2. 🔄 classGraph 외부 연결된 노드 수집 (attribute, relation 등)
+  const classExternalNodes = getEdgeConnectedOutsideNodes(
+    allClassNodeIds,
     classEdges,
     classNodes
   );
 
-  const deltaX = event.x - groupNode.position.x;
-  const deltaY = event.y - groupNode.position.y;
+  // 3. 🔄 instanceGraph 외부 연결된 노드 수집 (attribute override 등)
+  const instanceExternalNodes = getEdgeConnectedOutsideNodes(
+    [instanceId],
+    instanceEdges,
+    instanceNodes
+  );
+
+  // 4. 🧠 전체 복제 대상 구성 (class 기준 전체 구조 + class 외부 + instance 외부)
+  const basePosition = groupNode.position;
+  const deltaX = event.x - basePosition.x;
+  const deltaY = event.y - basePosition.y;
 
   const idMap = new Map();
   const groupInstanceId = `instance-${groupNode.id}-${uniqueId}`;
@@ -231,19 +242,19 @@ function cloneSubtreeInstance(
     },
   };
 
-  // ✅ 전체 복제 대상
-  const allNodesToClone = [groupNode, ...allDescendants, ...edgeConnectedNodes];
+  const fullNodesToClone = [
+    ...allDescendants,
+    ...classExternalNodes,
+    ...instanceExternalNodes,
+  ];
 
-  // 🔁 반복문 수정
-  const newChildNodes = allNodesToClone
-    .slice(1)
+  const newChildNodes = fullNodesToClone
     .map((n) => {
       const newId = `instance-${n.id}-${uniqueId}`;
       idMap.set(n.id, newId);
 
-      const originalParent = n.parentNode;
-      const newParent = originalParent
-        ? idMap.get(originalParent)
+      const newParent = n.parentNode
+        ? idMap.get(n.parentNode)
         : groupInstanceId;
 
       const newPosition = {
@@ -258,14 +269,10 @@ function cloneSubtreeInstance(
         label: n.data.label,
       };
 
+      // 5. ⚙️ attribute일 경우 값 부여 (filledAttrMap 기반)
       if (n.data.type === "attribute" && !n.data.hasValue) {
-        const inputValue = getAttributeValue(
-          n.data.label,
-          filledAttrMap,
-          instanceId,
-          n.id
-        );
-        if (!inputValue) return null;
+        const value = filledAttrMap?.[instanceId]?.[n.id] ?? n.data.value;
+        if (!value) return null;
 
         return {
           ...n,
@@ -274,7 +281,11 @@ function cloneSubtreeInstance(
           position: newPosition,
           parentNode: newParent,
           extent: n.extent,
-          data: { ...baseData, value: inputValue, hasValue: inputValue },
+          data: {
+            ...baseData,
+            value,
+            hasValue: value,
+          },
           updatedAt,
         };
       }
@@ -292,11 +303,11 @@ function cloneSubtreeInstance(
     })
     .filter(Boolean);
 
-  // 엣지도 재구성 (모든 descendants 기반으로)
-  // allNodeIds = [groupNode.id, ...allDescendants.map(n => n.id)];
+  // 6. 🔗 연결 엣지 재구성 (classGraph 기준 엣지만 재사용)
   const newEdges = classEdges
     .filter(
-      (e) => allNodeIds.includes(e.source) && allNodeIds.includes(e.target)
+      (e) =>
+        allClassNodeIds.includes(e.source) && allClassNodeIds.includes(e.target)
     )
     .map((e) => ({
       ...e,
@@ -346,7 +357,7 @@ export function createInstance(
       collapsed,
       filledAttrMap,
       instanceNodes,
-      instanceEdges,
+      instanceEdges
     );
   } else {
     // from LayoutBoard
