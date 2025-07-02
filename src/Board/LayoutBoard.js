@@ -140,18 +140,28 @@ function LayoutBoard({ onImageGenerated }) {
   );
 
   const onConnectEnd = useCallback(
-    (event, connectionState) =>
-      handleConnectEnd({
-        event,
-        connectionState,
-        type: "instance",
-        nodes,
-        setNodes,
-        setEdges,
-        screenToFlowPosition,
-      }),
-    [nodes, setNodes, setEdges, screenToFlowPosition]
-  );
+  (event, connectionState) => {
+    const result = handleConnectEnd({
+      event,
+      connectionState,
+      type: "instance",
+      nodes,
+      setNodes,
+      setEdges,
+      screenToFlowPosition,
+    });
+
+    
+    // result.newNodes를 반환받는다고 가정
+    if (result?.newNodes) {
+      console.log("[LayoutBoard] onConnectEnd", result);
+      setInstanceNodes((prev) => [...prev, ...result.newNodes]);
+      setInstanceEdges((prev) => [...prev, ...result.newEdges || []]);
+    }
+  },
+  [nodes, setNodes, setEdges, screenToFlowPosition, setInstanceNodes, setInstanceEdges]
+);
+
 
   const handleNodesChange = useCallback(
     (changes) => {
@@ -275,8 +285,8 @@ function LayoutBoard({ onImageGenerated }) {
       >
         <ProgressBar now={progress} errorMessage={errorMessage} />
 
-        <CustomButton onClick={handleClick} color="purpleBlue" size="lg">
-          Generate
+        <CustomButton onClick={handleClick} color="purpleBlue" size="lg" disabled={isGenerating}>
+          {isGenerating ? "Generating" : "Generate"}
         </CustomButton>
       </div>
 

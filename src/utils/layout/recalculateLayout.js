@@ -43,6 +43,9 @@ export function recalculateLayout({ nodes }) {
       (n) => n.data?.classId === group.id || n.parentNode === group.id
     );
 
+    console.log("groupid", group.id, children)
+    
+
     for (const child of children) {
       const newChild = {
         ...child,
@@ -60,6 +63,8 @@ export function recalculateLayout({ nodes }) {
     (n) =>
       !groupNodes.find((g) => n.data?.classId === g.id || n.parentNode === g.id)
   );
+
+  console.log("ungrouped", ungrouped)
 
   for (const node of ungrouped) {
     const height = node.__rf?.height || 80;

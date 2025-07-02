@@ -22,10 +22,13 @@ function InstanceTreeBoard() {
       filledAttrMap: newFilledAttrMap,
     } = getRenderedInstanceBoard({
       instanceNodes,
+      instanceEdges,
       classNodes,
       classEdges,
       filledAttrMap,
     });
+
+    console.log("[InstanceTreeBoard] getRenderedInstanceBoard", nodes, newNodes)
 
     setNodes(newNodes);
     setEdges(newEdges);

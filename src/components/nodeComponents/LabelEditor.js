@@ -1,7 +1,7 @@
 import React, { forwardRef } from "react";
 
 const LabelEditor = forwardRef(
-  ({ type, label, onChange, alignToLabel }, ref) => {
+  ({ type, label, onChange, alignToLabel, onSave }, ref) => {
     const containerStyle = alignToLabel
       ? {
           position: "relative",
@@ -47,7 +47,7 @@ const LabelEditor = forwardRef(
           top: 0,
           left: 0,
           width: "100%",
-          minWidth: "80px",   // 최소 너비 보장
+          minWidth: "80px", // 최소 너비 보장
           height: "100%",
           fontSize: "13px",
           lineHeight: "1",
@@ -88,6 +88,13 @@ const LabelEditor = forwardRef(
           onClick={(e) => e.stopPropagation()}
           title={label}
           placeholder="Enter label..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.blur();
+              onSave();
+            }
+          }}
         />
       </div>
     );

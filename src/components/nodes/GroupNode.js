@@ -262,6 +262,7 @@ export default function GroupNode({
             label={editLabel} // 현재 입력값
             onChange={setEditLabel} // 입력값 변경 핸들러
             alignToLabel={true}
+            onSave={handleLabelUpdate}
           />
         ) : (
           <>

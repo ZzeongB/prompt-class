@@ -37,7 +37,9 @@ export default function NodeHandles({ id, isSelected, nodeType }) {
   const sourceType = connection.fromNode?.data?.type;
 
   const showTargetHandle =
-    !connection.inProgress || (isTarget && sourceType === nodeType);
+    !connection.inProgress ||
+    (isTarget && sourceType === nodeType) ||
+    (sourceType == "object" && nodeType == "attribute");
   return (
     <>
       {["Top", "Right", "Bottom", "Left"].map((pos) => (

@@ -130,6 +130,7 @@ function InstanceBoard() {
       filledAttrMap: newFilledAttrMap,
     } = getRenderedInstanceBoard({
       instanceNodes,
+      instanceEdges,
       classNodes,
       classEdges,
       screenToFlowPosition,
@@ -150,6 +151,7 @@ function InstanceBoard() {
       filledAttrMap: newFilledAttrMap,
     } = getRenderedInstanceBoard({
       instanceNodes,
+      instanceEdges,
       classNodes,
       classEdges,
       screenToFlowPosition,

@@ -1,6 +1,17 @@
 import { getNormalizedBox } from "../node/getNormalizedBox";
 import { buildGroup } from "../group/buildGroup"; // 분리된 유틸 import
 
+function getConnectedAttributes(groupNode, instanceEdges, instanceNodes) {
+  return instanceEdges
+    .filter((e) => e.source === groupNode.id)
+    .map((e) => instanceNodes.find((n) => n.id === e.target))
+    .filter((n) => n?.data?.type === "attribute")
+    .map((n) => ({
+      name: n.data.label,
+      value: n.data.hasValue,
+    }));
+}
+
 function buildCompositionalSentence(classEntry) {
   const objectNameMap = {};
 
@@ -82,17 +93,26 @@ export function extractSentencesAndBoxes(
   if (objectNodes.length > 0) {
     objectNodes.forEach((objNode) => {
       const groupId = objNode.data.classId;
+      const groupAttributes = getConnectedAttributes(
+        objNode,
+        instanceEdges,
+        instanceNodes
+      );
+
       const structuredClass = buildGroup(
         groupId,
         classGraphNodes,
         classGraphEdges
       );
+
+      structuredClass.attributes.push(...groupAttributes); // ✅ 주입
+
       console.log("structuredClass", structuredClass);
       if (!structuredClass) return;
 
       const sentence = buildCompositionalSentence(structuredClass);
       sentences.push(sentence);
-      
+
       const resizableNode = resizableNodes.find(
         (n) => n.id.replace(/-resizable/g, "") === objNode.id
       );
@@ -113,11 +133,20 @@ export function extractSentencesAndBoxes(
 
     baselineNodes.forEach((node) => {
       const groupId = node.data.classId;
+      const groupAttributes = getConnectedAttributes(
+        node,
+        instanceEdges,
+        instanceNodes
+      );
+
       const structuredClass = buildGroup(
         groupId,
         classGraphNodes,
         classGraphEdges
       );
+
+      structuredClass.attributes.push(...groupAttributes); // ✅ 주입
+
       if (!structuredClass) return;
 
       const sentence = buildCompositionalSentence(structuredClass);

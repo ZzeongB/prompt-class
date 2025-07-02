@@ -19,10 +19,9 @@ export function handleConnect({ params, nodes, setNodes, setEdges }) {
           node.id === targetNode.id
             ? {
                 ...node,
-                
+
                 width: sourceWidth,
                 height: sourceHeight,
-                
               }
             : node
         )
@@ -113,12 +112,23 @@ export function handleConnectEnd({
 
     const id = `${type}-${connectionState.fromNode.data.label}-attr-${nodes.length}`;
     const label = `${connectionState.fromNode.data.label}-attr-${nodes.length}`;
+    const classIdFromSource = connectionState.fromNode.data?.classId;
 
+
+    console.log("handleconnectend, ", connectionState.fromNode?.type == "instance-group", connectionState.fromNode?.classId)
     const newNode = {
       id,
       position: screenToFlowPosition({ x: clientX, y: clientY }),
       type: type,
-      data: { label, type: "attribute", hasValue: label, justCreated: true },
+      data: {
+        label,
+        type: "attribute",
+        hasValue: label,
+        justCreated: true,
+        instanceId: connectionState.fromNode?.data?.instanceId, // ✅ 이 object instance에 연결된다고 명시
+        parentNode: connectionState.fromNode?.type == "instance-group" ? connectionState.fromNode?.data.classId: connectionState.fromNode?.id, // ✅ layout, 트리에서 종속 구조로 인식
+        extent: "parent", // ✅ layout 상 따라다님
+      },
       origin: [0.5, 0.0],
     };
 
@@ -131,5 +141,17 @@ export function handleConnectEnd({
         label: "property",
       })
     );
+
+    return {
+      newNodes: [newNode],
+      newEdges: [
+        {
+          id,
+          source: connectionState.fromNode.id,
+          target: id,
+          label: "property",
+        },
+      ],
+    };
   }
 }

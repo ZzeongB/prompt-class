@@ -44,14 +44,18 @@ export default function CustomButton({
   color = "purpleBlue",
   size = "md",
   style = {},
+  disabled = false,
 }) {
   const sizeStyle = sizeStyles[size] || sizeStyles.md;
-  const baseColors = colorStyles[color] || colorStyles.purpleBlue;
+  const baseColors = disabled
+    ? colorStyles["neutral"]
+    : colorStyles[color] || colorStyles.purpleBlue;
 
   return (
     <button
       onClick={onClick}
       onMouseDown={(e) => e.stopPropagation()}
+      disabled={disabled}
       style={{
         ...sizeStyle,
         ...baseColors,

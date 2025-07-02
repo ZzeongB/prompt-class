@@ -102,7 +102,7 @@ function ClassBoard() {
 
   const { nodes: initialNodes, edges: initialEdges } = classToFlow(classSample);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [ghostNode, setGhostNode] = useState(null); // ghostNode for Node Addition
 

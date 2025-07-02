@@ -15,8 +15,20 @@ function getAttributeValue(attrLabel, filledAttrMap, instanceId, attrId) {
 }
 
 // attribute instance 생성
-function createAttributeNode(attr, position, sharedId, instanceId, filledAttrMap, updatedAt) {
-  const inputValue = getAttributeValue(attr.data.label, filledAttrMap, instanceId, attr.id);
+export function createAttributeNode(
+  attr,
+  position,
+  sharedId,
+  instanceId,
+  filledAttrMap,
+  updatedAt
+) {
+  const inputValue = getAttributeValue(
+    attr.data.label,
+    filledAttrMap,
+    instanceId,
+    attr.id
+  );
   if (!inputValue) return null;
 
   return {
@@ -39,13 +51,28 @@ function getConnectedAttributes(classNode, classNodes, classEdges) {
   if (!classNode) return [];
 
   return classEdges
-    .filter(e => e.source === classNode.id || e.target === classNode.id)
-    .map(e => classNodes.find(n => n.id === (e.source === classNode.id ? e.target : e.source)))
-    .filter(n => n?.data?.type === "attribute");
+    .filter((e) => e.source === classNode.id || e.target === classNode.id)
+    .map((e) =>
+      classNodes.find(
+        (n) => n.id === (e.source === classNode.id ? e.target : e.source)
+      )
+    )
+    .filter((n) => n?.data?.type === "attribute");
 }
 
 // 일반 object instance 생성
-function createSimpleInstance(event, id, label, type, screenToFlowPosition, classNodes, classEdges, resizable, instanceId, updatedAt) {
+function createSimpleInstance(
+  event,
+  id,
+  label,
+  type,
+  screenToFlowPosition,
+  classNodes,
+  classEdges,
+  resizable,
+  instanceId,
+  updatedAt
+) {
   const uniqueId = uuidv4();
   const sharedId = `instance-${id.split("-")[1]}-${uniqueId}`;
   const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
@@ -64,15 +91,28 @@ function createSimpleInstance(event, id, label, type, screenToFlowPosition, clas
     updatedAt,
   };
 
-  const classNode = classNodes.find(n => n.data.label === label && n.data.type === "object");
-  const connectedAttrNodes = getConnectedAttributes(classNode, classNodes, classEdges);
+  const classNode = classNodes.find(
+    (n) => n.data.label === label && n.data.type === "object"
+  );
+  const connectedAttrNodes = getConnectedAttributes(
+    classNode,
+    classNodes,
+    classEdges
+  );
 
   const newAttrNodes = [];
   const newAttrEdges = [];
-  
+
   for (const attr of connectedAttrNodes) {
     if (!attr.data.hasValue) {
-      const attrNode = createAttributeNode(attr, position, sharedId, sharedId, {}, updatedAt);
+      const attrNode = createAttributeNode(
+        attr,
+        position,
+        sharedId,
+        sharedId,
+        {},
+        updatedAt
+      );
       if (attrNode) {
         newAttrNodes.push(attrNode);
         newAttrEdges.push({
@@ -87,7 +127,13 @@ function createSimpleInstance(event, id, label, type, screenToFlowPosition, clas
 
   const nodes = resizable
     ? [
-        { id: `${sharedId}-resizable`, type: "resizable", position: { x: position.x, y: position.y }, data: newNode.data, style: {height: 50, width: 50} },
+        {
+          id: `${sharedId}-resizable`,
+          type: "resizable",
+          position: { x: position.x, y: position.y },
+          data: newNode.data,
+          style: { height: 50, width: 50 },
+        },
         newNode,
         ...newAttrNodes,
       ]
@@ -95,14 +141,15 @@ function createSimpleInstance(event, id, label, type, screenToFlowPosition, clas
 
   return { newNodes: nodes, newEdges: newAttrEdges };
 }
+
 function collectAllDescendants(nodes, parentId) {
   const result = [];
 
   function dfs(currentId) {
-    const children = nodes.filter(n => n.parentNode === currentId);
+    const children = nodes.filter((n) => n.parentNode === currentId);
     for (const child of children) {
       result.push(child);
-      dfs(child.id);  // 재귀적으로 탐색
+      dfs(child.id); // 재귀적으로 탐색
     }
   }
 
@@ -110,13 +157,51 @@ function collectAllDescendants(nodes, parentId) {
   return result;
 }
 
-function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, instanceLabel, updatedAt, collapsed, filledAttrMap) {
+function getEdgeConnectedOutsideNodes(baseIds, edges, allNodes) {
+  const baseIdSet = new Set(baseIds);
+  const connectedIds = new Set();
+
+  edges.forEach((e) => {
+    if (baseIdSet.has(e.source) && !baseIdSet.has(e.target)) {
+      connectedIds.add(e.target);
+    }
+    // if (baseIdSet.has(e.target) && !baseIdSet.has(e.source)) {
+    //   connectedIds.add(e.source);
+    // }
+  });
+
+  return Array.from(connectedIds)
+    .map((id) => allNodes.find((n) => n.id === id))
+    .filter(Boolean);
+}
+
+function cloneSubtreeInstance(
+  event,
+  id,
+  classNodes,
+  classEdges,
+  instanceId,
+  instanceLabel,
+  updatedAt,
+  collapsed,
+  filledAttrMap,
+  instanceNodes,
+  instanceEdges,
+) {
   const uniqueId = uuidv4();
-  const groupNode = classNodes.find(n => n.id === id);
+  const groupNode = classNodes.find((n) => n.id === id);
   if (!groupNode) return { newNodes: [], newEdges: [] };
 
   // ✅ 모든 하위 노드까지 재귀 수집
   const allDescendants = collectAllDescendants(classNodes, id);
+  const allNodeIds = [groupNode.id, ...allDescendants.map((n) => n.id)];
+
+  // ✅ 추가된 라인: 연결된 외부 노드 수집
+  const edgeConnectedNodes = getEdgeConnectedOutsideNodes(
+    allNodeIds,
+    classEdges,
+    classNodes
+  );
 
   const deltaX = event.x - groupNode.position.x;
   const deltaY = event.y - groupNode.position.y;
@@ -140,83 +225,142 @@ function cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, ins
     },
     class: id,
     updatedAt,
-    style: { ...groupNode.style, height: collapsed ? 50 : groupNode.style.height },
+    style: {
+      ...groupNode.style,
+      height: collapsed ? 50 : groupNode.style.height,
+    },
   };
 
-  // 모든 하위 노드 복제 (object, attribute, object-group 포함)
-  const newChildNodes = allDescendants.map(n => {
-    const newId = `instance-${n.id}-${uniqueId}`;
-    idMap.set(n.id, newId);
+  // ✅ 전체 복제 대상
+  const allNodesToClone = [groupNode, ...allDescendants, ...edgeConnectedNodes];
 
-    const originalParent = n.parentNode;
-    const newParent = originalParent ? idMap.get(originalParent) : groupInstanceId;
+  // 🔁 반복문 수정
+  const newChildNodes = allNodesToClone
+    .slice(1)
+    .map((n) => {
+      const newId = `instance-${n.id}-${uniqueId}`;
+      idMap.set(n.id, newId);
 
-    const newPosition = {
-      x: n.position.x + deltaX,
-      y: n.position.y + deltaY,
-    };
+      const originalParent = n.parentNode;
+      const newParent = originalParent
+        ? idMap.get(originalParent)
+        : groupInstanceId;
 
-    const baseData = {
-      ...n.data,
-      type: n.data.type,
-      instanceId,
-      label: n.data.label,
-    };
+      const newPosition = {
+        x: n.position.x + deltaX,
+        y: n.position.y + deltaY,
+      };
 
-    if (n.data.type === "attribute" && !n.data.hasValue) {
-      const inputValue = getAttributeValue(n.data.label, filledAttrMap, instanceId, n.id);
-      if (!inputValue) return null;
+      const baseData = {
+        ...n.data,
+        type: n.data.type,
+        instanceId,
+        label: n.data.label,
+      };
+
+      if (n.data.type === "attribute" && !n.data.hasValue) {
+        const inputValue = getAttributeValue(
+          n.data.label,
+          filledAttrMap,
+          instanceId,
+          n.id
+        );
+        if (!inputValue) return null;
+
+        return {
+          ...n,
+          id: newId,
+          type: "instance",
+          position: newPosition,
+          parentNode: newParent,
+          extent: n.extent,
+          data: { ...baseData, value: inputValue, hasValue: inputValue },
+          updatedAt,
+        };
+      }
 
       return {
         ...n,
         id: newId,
-        type: "instance",
+        type: n.type === "object-group" ? "instance-group" : "instance",
         position: newPosition,
         parentNode: newParent,
         extent: n.extent,
-        data: { ...baseData, value: inputValue, hasValue: inputValue },
+        data: baseData,
         updatedAt,
       };
-    }
-
-    return {
-      ...n,
-      id: newId,
-      type: n.type === "object-group" ? "instance-group" : "instance",
-      position: newPosition,
-      parentNode: newParent,
-      extent: n.extent,
-      data: baseData,
-      updatedAt,
-    };
-  }).filter(Boolean);
+    })
+    .filter(Boolean);
 
   // 엣지도 재구성 (모든 descendants 기반으로)
-  const allNodeIds = [groupNode.id, ...allDescendants.map(n => n.id)];
+  // allNodeIds = [groupNode.id, ...allDescendants.map(n => n.id)];
   const newEdges = classEdges
-    .filter(e => allNodeIds.includes(e.source) && allNodeIds.includes(e.target))
-    .map(e => ({
+    .filter(
+      (e) => allNodeIds.includes(e.source) && allNodeIds.includes(e.target)
+    )
+    .map((e) => ({
       ...e,
       id: `instance-${e.id}-${uniqueId}`,
       source: idMap.get(e.source),
       target: idMap.get(e.target),
     }));
 
-  return { newNodes: [newGroupNode, ...newChildNodes], newEdges, newFilledAttrMap: filledAttrMap };
+  return {
+    newNodes: [newGroupNode, ...newChildNodes],
+    newEdges,
+    newFilledAttrMap: filledAttrMap,
+  };
 }
 
 // entry point
 export function createInstance(
-  event, id, label, type, screenToFlowPosition,
-  nodes, classNodes, classEdges,
-  resizable = true, instanceId = null, instanceLabel = null,
-  updatedAt = new Date().toISOString(), collapsed = false, filledAttrMap = {}
+  event,
+  id,
+  label,
+  type,
+  screenToFlowPosition,
+  nodes,
+  classNodes,
+  classEdges,
+  instanceNodes = [],
+  instanceEdges = [],
+  resizable = true,
+  instanceId = null,
+  instanceLabel = null,
+  updatedAt = new Date().toISOString(),
+  collapsed = false,
+  filledAttrMap = {}
 ) {
   if (!type || !label) return;
 
-  if (type === "object-group" && resizable === false) { // from InstanceBoard
-    return cloneSubtreeInstance(event, id, classNodes, classEdges, instanceId, instanceLabel, updatedAt, collapsed, filledAttrMap);
-  } else { // from LayoutBoard
-    return createSimpleInstance(event, id, label, type, screenToFlowPosition, classNodes, classEdges, resizable, instanceId, updatedAt);
+  if (type === "object-group" && resizable === false) {
+    // from InstanceBoard
+    return cloneSubtreeInstance(
+      event,
+      id,
+      classNodes,
+      classEdges,
+      instanceId,
+      instanceLabel,
+      updatedAt,
+      collapsed,
+      filledAttrMap,
+      instanceNodes,
+      instanceEdges,
+    );
+  } else {
+    // from LayoutBoard
+    return createSimpleInstance(
+      event,
+      id,
+      label,
+      type,
+      screenToFlowPosition,
+      classNodes,
+      classEdges,
+      resizable,
+      instanceId,
+      updatedAt
+    );
   }
 }

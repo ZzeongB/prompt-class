@@ -181,6 +181,7 @@ export default function BaseNode({
             type={data.type}
             label={editLabel}
             onChange={setEditLabel}
+            onSave={handleLabelUpdateFixed}
           />
         ) : (
           label

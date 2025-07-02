@@ -1,8 +1,20 @@
 import { createInstance } from "./instanceBuilder";
 import { recalculateLayout } from "../layout/recalculateLayout";
 
+function getConnectedAttributeNodes(
+  instanceNode,
+  instanceEdges,
+  instanceNodes
+) {
+  return instanceEdges
+    .filter((e) => e.source === instanceNode.id)
+    .map((e) => instanceNodes.find((n) => n.id === e.target))
+    .filter((n) => n?.data?.type === "attribute");
+}
+
 export function getRenderedInstanceBoard({
   instanceNodes,
+  instanceEdges,
   classNodes,
   classEdges,
   screenToFlowPosition,
@@ -46,16 +58,19 @@ export function getRenderedInstanceBoard({
       [],
       classNodes,
       classEdges,
+      instanceNodes,
+      instanceEdges,
       false,
       node.id,
       node.data.label || "Instance",
       node.updatedAt,
       isCollapsed,
-      filledAttrMap
+      filledAttrMap,
     );
 
     allNodes.push(...newNodes);
     allEdges.push(...newEdges);
+
     for (const [instanceId, attrMap] of Object.entries(
       newFilledAttrMap || {}
     )) {
@@ -66,6 +81,7 @@ export function getRenderedInstanceBoard({
     }
   });
 
+  console.log("AllNodes", allNodes)
   return {
     nodes: recalculateLayout({ nodes: allNodes }),
     edges: allEdges,

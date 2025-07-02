@@ -1,9 +1,11 @@
 import { useReactFlow } from "@xyflow/react";
 import { duplicateNodesWithMapping } from "../../utils/node/duplicateUtils";
+import { useInstanceGraph } from "../../context/InstanceGraphContext";
 import BaseNode from "./BaseNode";
 
 export default function LayoutNode({ id, data }) {
   const { getNodes, setNodes, deleteElements } = useReactFlow();
+  const { setInstanceNodes } = useInstanceGraph();
 
   const handleDelete = () => {
     const nodes = getNodes();
@@ -11,7 +13,12 @@ export default function LayoutNode({ id, data }) {
     const toDelete = nodes.filter(
       (n) => n.id === id || n.data?.sharedId === sharedId
     );
+
     deleteElements({ nodes: toDelete });
+
+    // ✅ InstanceGraphContext에도 반영
+    const remaining = nodes.filter((n) => !toDelete.includes(n));
+    setInstanceNodes(remaining);
   };
 
   const handleDuplicate = () => {
@@ -28,7 +35,9 @@ export default function LayoutNode({ id, data }) {
         sharedIdBase: sharedId,
       });
 
-      return [...prev, ...duplicated];
+      const updated = [...prev, ...duplicated];
+      setInstanceNodes(updated);
+      return updated;
     });
   };
 
