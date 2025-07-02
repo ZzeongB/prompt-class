@@ -3,7 +3,9 @@ import { buildGroup } from "../group/buildGroup"; // 분리된 유틸 import
 
 function getConnectedAttributes(groupNode, instanceEdges, instanceNodes) {
   return instanceEdges
-    .filter((e) => e.source === groupNode.id)
+    .filter((e) =>
+      groupNode.id ? e.source === groupNode.id : e.source === groupNode
+    )
     .map((e) => instanceNodes.find((n) => n.id === e.target))
     .filter((n) => n?.data?.type === "attribute")
     .map((n) => ({
@@ -98,6 +100,11 @@ export function extractSentencesAndBoxes(
         instanceEdges,
         instanceNodes
       );
+      const groupAttributes_ = getConnectedAttributes(
+        groupId,
+        classGraphEdges,
+        classGraphNodes
+      );
 
       const structuredClass = buildGroup(
         groupId,
@@ -106,6 +113,7 @@ export function extractSentencesAndBoxes(
       );
 
       structuredClass.attributes.push(...groupAttributes); // ✅ 주입
+      structuredClass.attributes.push(...groupAttributes_); // ✅ 주입
 
       console.log("structuredClass", structuredClass);
       if (!structuredClass) return;
