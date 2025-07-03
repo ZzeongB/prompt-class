@@ -20,6 +20,7 @@ import { ChevronRight, ChevronDown } from "lucide-react";
 import NodeHandles from "../nodeComponents/NodeHandles";
 import DragHandle from "../nodeComponents/DragHandle";
 import LabelEditor from "../nodeComponents/LabelEditor";
+import { generateTextToGraph } from "../../api/generateTextToGraph";
 
 const controlStyle = {
   background: "transparent",
@@ -199,6 +200,19 @@ export default function GroupNode({
     setNodes((prev) => [...prev, ...duplicated]);
     setEdges((prev) => [...prev, ...duplicatedRelatedEdges]);
   };
+  
+  const getMyPosition = () => {
+    const currentNode = getNodes().find((n) => n.id === id);
+    return currentNode?.position ?? { x: 0, y: 0 };
+  };
+
+  const handleGraphFromText = async () => {
+    // edit label to scene graph
+    const position = getMyPosition();
+    const { nodes, edges } = await generateTextToGraph(editLabel, id, position);
+    setNodes((prev) => [...prev, ...nodes]);
+    setEdges((prev) => [...prev, ...edges]);
+  };
 
   return (
     <div
@@ -227,6 +241,7 @@ export default function GroupNode({
         onSave={handleLabelUpdate}
         onDuplicate={handleDuplicateNode}
         onDelete={handleDelete}
+        onConvertFromText={handleGraphFromText}
       />
 
       {resizable && isSelected && !data.collapsed ? (

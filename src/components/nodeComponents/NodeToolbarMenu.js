@@ -1,7 +1,7 @@
 import React, { forwardRef } from "react";
 import { NodeToolbar, Position } from "@xyflow/react";
 import HoverButton from "./HoverButton"; // 경로 맞게 수정
-import { Edit2, Check, Copy, Trash2, Repeat, Trash } from "lucide-react";
+import { Edit2, Check, Copy, Trash2, Repeat, Network } from "lucide-react";
 
 const NodeToolbarMenu = forwardRef((props, ref) => {
   const {
@@ -15,6 +15,7 @@ const NodeToolbarMenu = forwardRef((props, ref) => {
     onConvertBlank,
     onDuplicate,
     onDelete,
+    onConvertFromText = null,
   } = props;
 
   return (
@@ -53,6 +54,13 @@ const NodeToolbarMenu = forwardRef((props, ref) => {
         icon={<Copy size={16} />}
         onClick={onDuplicate}
       />
+      {onConvertFromText && (
+        <HoverButton
+          title="Graph from Text"
+          icon={<Network size={16} />}
+          onClick={onConvertFromText}
+        />
+      )}
       <HoverButton
         title="Delete node"
         icon={<Trash2 size={16} />}
