@@ -32,7 +32,7 @@ export function createRelationshipNode({
     id,
     type: "class",
     position,
-    data: { label: id, type: "relationship", source: sourceNode.id, target: targetNode.id, justCreated: true },
+    data: { label: "relationship", type: "relationship", source: sourceNode.id, target: targetNode.id, justCreated: true },
     origin: [0.5, 0.5],
   };
 

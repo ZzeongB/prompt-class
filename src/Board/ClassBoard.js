@@ -97,14 +97,22 @@ export function getVisibleNodes(allNodes) {
 function ClassBoard() {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
-  const { setClassNodes, setClassEdges, setStructuredClasses } =
-    useClassGraph();
+  const {
+    setClassNodes,
+    setClassEdges,
+    setStructuredClasses,
+    registerSetNodes,
+  } = useClassGraph();
 
   const { nodes: initialNodes, edges: initialEdges } = classToFlow(classSample);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [ghostNode, setGhostNode] = useState(null); // ghostNode for Node Addition
+
+  useEffect(() => {
+    registerSetNodes(setNodes); // ✅ 외부에서 호출할 수 있게 등록
+  }, [setNodes, registerSetNodes]);
 
   useEffect(() => {
     setClassNodes(nodes);

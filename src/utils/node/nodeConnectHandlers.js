@@ -1,5 +1,6 @@
 import { addEdge } from "@xyflow/react";
 import { promptForNodeLabel, createRelationshipNode } from "./nodeCreateUtils";
+import {v4 as uuidv4} from "uuid";
 
 export function handleConnect({ params, nodes, setNodes, setEdges }) {
   const sourceNode = nodes.find((n) => n.id === params.source);
@@ -63,11 +64,13 @@ export function handleConnect({ params, nodes, setNodes, setEdges }) {
       y: (sourceNode.position.y + targetNode.position.y) / 2,
     };
 
+    const uniqueId = uuidv4();
+
     const { newNode, newEdges } = createRelationshipNode({
       sourceNode,
       targetNode,
       position: centerPos,
-      nodeCount: nodes.length,
+      nodeCount: uniqueId,
     });
 
     setNodes((nds) => [...nds, newNode]);
@@ -92,6 +95,7 @@ export function handleConnectEnd({
   screenToFlowPosition,
 }) {
   if (type !== "class" && type !== "instance") return;
+  console.log("[handleConnectEnd] ", setNodes, setEdges, connectionState);
   if (!connectionState.isValid && connectionState.fromNode) {
     const { clientX, clientY } =
       "changedTouches" in event ? event.changedTouches[0] : event;
@@ -110,12 +114,11 @@ export function handleConnectEnd({
       return;
     }
 
-    const id = `${type}-${connectionState.fromNode.data.label}-attr-${nodes.length}`;
-    const label = `${connectionState.fromNode.data.label}-attr-${nodes.length}`;
-    const classIdFromSource = connectionState.fromNode.data?.classId;
+    const uniqueId = uuidv4();
 
+    const id = `${type}-${connectionState.fromNode.data.label}-attr-${uniqueId}`;
+    const label = `${connectionState.fromNode.data.label}-attr`;
 
-    console.log("handleconnectend, ", connectionState.fromNode?.type == "instance-group", connectionState.fromNode?.classId)
     const newNode = {
       id,
       position: screenToFlowPosition({ x: clientX, y: clientY }),
