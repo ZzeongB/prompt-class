@@ -6,6 +6,7 @@ import {
   OBJ_COLOR_TRANS_DARK,
   ATTR_COLOR_TRANS_DARK,
   REL_COLOR_TRANS_DARK,
+  DARK_GREY_TRANS,
 } from "../constants";
 
 // styleUtils.js
@@ -50,7 +51,9 @@ export function getInstanceNodeStyle(type, options = {}) {
       borderColor: REL_COLOR,
     };
   }
-
+if (type === "empty") {
+    return { ...base, background: DARK_GREY_TRANS };
+  }
   return base;
 }
 

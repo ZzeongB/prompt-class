@@ -77,21 +77,14 @@ const transformSceneGraphToReactFlow = (
   const nodes = [];
   const edges = [];
 
-  const objectMap = new Map(); // id → object node id
+  const idPrefix = parentId ? `${parentId}__` : `scene__`;
+  const objectMap = new Map();
 
-  // 기본 위치 설정
-  const baseX = parentPosition?.x || 0;
-  const baseY = parentPosition?.y || 0;
-
-  const objOffsetX = 10; // 객체 간 좌우 간격
-  const attrOffsetX = 10;
-  const attrOffsetY = 10;
-  const relOffsetY = 10;
-
-  let x = baseX + objOffsetX;
+  let x = parentPosition.x + 10;
+  let baseY = parentPosition.y + 10;
 
   sceneGraph.objects.forEach((obj, i) => {
-    const objNodeId = `obj-${obj.id}`;
+    const objNodeId = `${idPrefix}obj-${obj.id}`;
     objectMap.set(obj.id, objNodeId);
 
     nodes.push({
@@ -103,7 +96,7 @@ const transformSceneGraphToReactFlow = (
         parentNode: parentId,
         extent: "parent",
       },
-      position: { x, y: baseY + 10 }, // 🎯 부모 기준으로 조금 아래에 배치
+      position: { x, y: baseY },
     });
 
     (obj.attributes || []).forEach((attr, j) => {
@@ -119,8 +112,8 @@ const transformSceneGraphToReactFlow = (
           extent: "parent",
         },
         position: {
-          x: x + attrOffsetX,
-          y: baseY + 10 + j * attrOffsetY,
+          x: x + 100,
+          y: baseY + 30 + j * 30,
         },
       });
 
@@ -131,11 +124,11 @@ const transformSceneGraphToReactFlow = (
       });
     });
 
-    x += 10; // 객체 간 간격
+    x += 200;
   });
 
   sceneGraph.relationships?.forEach((rel, i) => {
-    const relNodeId = `rel-${i}`;
+    const relNodeId = `${idPrefix}rel-${i}`;
 
     nodes.push({
       id: relNodeId,
@@ -147,8 +140,8 @@ const transformSceneGraphToReactFlow = (
         extent: "parent",
       },
       position: {
-        x: baseX + 10 + i * 10,
-        y: baseY + relOffsetY + 10,
+        x: x + i * 60,
+        y: baseY + 150,
       },
     });
 

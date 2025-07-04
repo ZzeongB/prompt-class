@@ -51,10 +51,11 @@ function LayoutBoard({ onImageGenerated }) {
   const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
   const [dragState, setDragState] = useState(null);
   const [image, setImage] = useState();
-  const [globalCaption, setGlobalCaption] = useState("");
+  // const [globalCaption, setGlobalCaption] = useState("");
   const [progress, setProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSelectingRegion, setIsSelectingRegion] = useState(false);
 
   useEffect(() => {
     if (!isGenerating) return;
@@ -75,7 +76,9 @@ function LayoutBoard({ onImageGenerated }) {
   }, [isGenerating]);
 
   const onMouseDown = (e) => {
-    handleMouseDown(e, setDragState);
+    if (isSelectingRegion) {
+      handleMouseDown(e, setDragState);
+    }
   };
 
   const onMouseMove = (e) => {
@@ -92,6 +95,8 @@ function LayoutBoard({ onImageGenerated }) {
         nodes,
         setNodes
       );
+
+      setIsSelectingRegion(false);
       return;
     } else {
       if (id && type) {
@@ -140,28 +145,33 @@ function LayoutBoard({ onImageGenerated }) {
   );
 
   const onConnectEnd = useCallback(
-  (event, connectionState) => {
-    const result = handleConnectEnd({
-      event,
-      connectionState,
-      type: "instance",
+    (event, connectionState) => {
+      const result = handleConnectEnd({
+        event,
+        connectionState,
+        type: "instance",
+        nodes,
+        setNodes,
+        setEdges,
+        screenToFlowPosition,
+      });
+
+      // result.newNodes를 반환받는다고 가정
+      if (result?.newNodes) {
+        console.log("[LayoutBoard] onConnectEnd", result);
+        setInstanceNodes((prev) => [...prev, ...result.newNodes]);
+        setInstanceEdges((prev) => [...prev, ...(result.newEdges || [])]);
+      }
+    },
+    [
       nodes,
       setNodes,
       setEdges,
       screenToFlowPosition,
-    });
-
-    
-    // result.newNodes를 반환받는다고 가정
-    if (result?.newNodes) {
-      console.log("[LayoutBoard] onConnectEnd", result);
-      setInstanceNodes((prev) => [...prev, ...result.newNodes]);
-      setInstanceEdges((prev) => [...prev, ...result.newEdges || []]);
-    }
-  },
-  [nodes, setNodes, setEdges, screenToFlowPosition, setInstanceNodes, setInstanceEdges]
-);
-
+      setInstanceNodes,
+      setInstanceEdges,
+    ]
+  );
 
   const handleNodesChange = useCallback(
     (changes) => {
@@ -198,13 +208,13 @@ function LayoutBoard({ onImageGenerated }) {
         const response = await generateImageFromInstanceData(
           result.sentences,
           result.boxes,
-          globalCaption
+          "" // globalCaption
         );
 
         console.log("response", response);
         onImageGenerated(response.image); // 이미지 생성 후 부모 컴포넌트에 전달
         setImage(response.image); // 상태 업데이트
-        setGlobalCaption(response.globalCaption); // 상태 업데이트
+        // setGlobalCaption(response.globalCaption); // 상태 업데이트
       } catch (err) {
         console.error("Image generation failed", err);
 
@@ -228,6 +238,22 @@ function LayoutBoard({ onImageGenerated }) {
       onMouseDown={onMouseDown}
       style={{ userSelect: "none" }}
     >
+      <CustomButton
+        color={isSelectingRegion ? "neutral" : "grey"}
+        size="md"
+        onClick={() => setIsSelectingRegion(!isSelectingRegion)}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            fontWeight: "bold",
+          }}
+        >
+          {isSelectingRegion ? "Cancel Selection" : "Select Region"}
+        </span>
+      </CustomButton>
       {dragState?.rect && (
         <div
           style={{
@@ -244,7 +270,7 @@ function LayoutBoard({ onImageGenerated }) {
       )}
 
       {/* input 필드: 전체 너비 차지 */}
-      <div
+      {/* <div
         style={{
           position: "absolute",
           bottom: "-30px", // 진행 바 + 버튼 위쪽에 위치하도록
@@ -268,7 +294,7 @@ function LayoutBoard({ onImageGenerated }) {
           }}
           onMouseDown={(e) => e.stopPropagation()} // 드래그 방지
         />
-      </div>
+      </div> */}
 
       {/* 진행 바 + 버튼: 나란히 정렬 */}
       <div
@@ -285,7 +311,12 @@ function LayoutBoard({ onImageGenerated }) {
       >
         <ProgressBar now={progress} errorMessage={errorMessage} />
 
-        <CustomButton onClick={handleClick} color="purpleBlue" size="lg" disabled={isGenerating}>
+        <CustomButton
+          onClick={handleClick}
+          color="purpleBlue"
+          size="lg"
+          disabled={isGenerating}
+        >
           {isGenerating ? "Generating" : "Generate"}
         </CustomButton>
       </div>

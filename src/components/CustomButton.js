@@ -35,6 +35,10 @@ const colorStyles = {
     background: "#f5f5f5",
     color: "#1a1a1a",
   },
+  grey: {
+    background: "linear-gradient(180deg, #e0e0e0 0%, #cfcfcf 100%)",
+    color: "#1a1a1a",
+  },
   // ...
 };
 

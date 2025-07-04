@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from "uuid";
+
 export function handleMouseDown(e, setDragState) {
   if (e.button !== 0) return;
 
@@ -37,13 +39,15 @@ export function handleMouseUp(
       y: rect.y + rect.height,
     });
 
+    const uniqueId = uuidv4();
+
     const newNode = {
-      id: `resizable-${nodes.length + 1}`,
+      id: `resizable-${uniqueId}`,
       type: "tmpResizable",
       position: topLeft,
       width: bottomRight.x - topLeft.x,
       height: bottomRight.y - topLeft.y,
-      data: { type: "object", label: "New Object", showToolbar: true },
+      data: { type: "empty", label: "New Object", showToolbar: true, sharedId: `resizable-${uniqueId}` },
     };
 
     setNodes((nds) => [...nds, newNode]);

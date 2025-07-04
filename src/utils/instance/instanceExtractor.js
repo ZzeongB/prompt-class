@@ -89,9 +89,40 @@ export function extractSentencesAndBoxes(
       (n.data.type === "object" || n.data.type === "object-group")
   );
 
+  const emptyNodes = instanceNodes.filter(
+    (n) => n.type === "instance" && n.data.type === "empty"
+  );
+
+  const emptyResizableNodes = instanceNodes.filter(
+    (n) => n.type === "tmpResizable" && n.data.type === "empty"
+  );
+
   const sentences = [];
   const boxes = [];
 
+  if (emptyNodes.length > 0) { // 빈 노드가 있는 경우
+    emptyNodes.forEach((emptyNode) => {
+      sentences.push("no objects, only background");
+
+      const resizableNode = emptyResizableNodes.find(
+        (n) => n.data.sharedId === emptyNode.data.sharedId
+      );
+
+      console.log("resizableNode", resizableNode);
+      console.log("emptyNode", emptyNode);
+      console.log("emptyResizableNodes", emptyResizableNodes);
+      if (!resizableNode) return;
+
+      const box = getNormalizedBox(
+        resizableNode,
+        flowToScreenPosition,
+        660,
+        40,
+        true
+      );
+      boxes.push(box);
+    });
+  }
   if (objectNodes.length > 0) {
     objectNodes.forEach((objNode) => {
       const groupId = objNode.data.classId;
