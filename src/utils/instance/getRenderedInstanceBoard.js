@@ -1,17 +1,6 @@
 import { createInstance } from "./instanceBuilder";
 import { recalculateLayout } from "../layout/recalculateLayout";
 
-function getConnectedAttributeNodes(
-  instanceNode,
-  instanceEdges,
-  instanceNodes
-) {
-  return instanceEdges
-    .filter((e) => e.source === instanceNode.id)
-    .map((e) => instanceNodes.find((n) => n.id === e.target))
-    .filter((n) => n?.data?.type === "attribute");
-}
-
 export function getRenderedInstanceBoard({
   instanceNodes,
   instanceEdges,

@@ -41,6 +41,26 @@ export default function LayoutNode({ id, data }) {
     });
   };
 
+  const handleLabelUpdate = (newLabel) => {
+    setNodes((prevNodes) => {
+      const updated = prevNodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                label: newLabel,
+                hasValue: newLabel,
+                justCreated: false,
+              },
+            }
+          : node
+      );
+      setInstanceNodes(updated); // ✅ InstanceGraphContext에도 반영
+      return updated;
+    });
+  };
+
   return (
     <BaseNode
       id={id}
@@ -48,6 +68,7 @@ export default function LayoutNode({ id, data }) {
       nodeType="instance"
       onDelete={handleDelete}
       onDuplicate={handleDuplicate}
+      onLableUpdate={handleLabelUpdate}
       fontSize={10}
     />
   );

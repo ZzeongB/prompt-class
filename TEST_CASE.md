@@ -51,15 +51,16 @@
 - [X] Duplicate a newly created `Group` node
 - [X] Delete a newly created `Group` node
 
-- [ ] `TmpResizable` node becomes original `Resizable` node
+- [X] `TmpResizable` node becomes original `Resizable` node
 
 ## Test 3. Instance Tree Board
 
 - [X] Confirm that all nodes from the Class Graph are present
-- [ ] Confirm that additional connected nodes not in Class Graph are included
-- [ ] Confirm that additional connected nodes not in Instance board are included
+- [X] Confirm that additional connected nodes not in Class Graph are included
+- [X] Confirm that additional connected nodes not in Instance board are included
 
-- [ ] Changes in Class and Instance graphs are synced
+- [ ] Changes in Class Graphs are synced
+- [X] Changes in Instance Graphs are synced
 
 - [X] Collapse and expand a group node correctly
 - [ ] Check for duplicated labels in nodes

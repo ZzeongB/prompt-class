@@ -25,7 +25,7 @@ export function duplicateNodesWithMapping(
 
     const newData = {
       ...node.data,
-      label: node === groupNode ? `${node.data.label} (Copy)` : node.data.label,
+      label: `${node.data.label} (Copy)` ,
     };
 
     if (sharedIdBase) {

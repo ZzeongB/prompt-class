@@ -16,6 +16,7 @@ export default function BaseNode({
   nodeType,
   onDelete: onDeleteProp,
   onDuplicate: onDuplicateProp,
+  onLableUpdate: onLabelUpdateProp,
   fontSize,
 }) {
   const { getNodes, setNodes } = useReactFlow();
@@ -75,6 +76,11 @@ export default function BaseNode({
   const onDragStart = (e) => {};
 
   const handleLabelUpdateFixed = () => {
+    if (onLabelUpdateProp) {
+      setIsEditing(false);
+      return onLabelUpdateProp(editLabel);
+    } // 외부에서 전달한 업데이트 함수 우선
+
     setNodes((prevNodes) =>
       prevNodes.map((node) =>
         node.id === id
@@ -103,7 +109,7 @@ export default function BaseNode({
                 ...node.data,
                 label: editLabel,
                 hasValue: false,
-                value: editLabel
+                value: editLabel,
               },
             }
           : node
