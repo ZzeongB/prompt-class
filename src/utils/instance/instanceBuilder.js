@@ -271,7 +271,12 @@ function cloneSubtreeInstance(
 
       // 5. ⚙️ attribute일 경우 값 부여 (filledAttrMap 기반)
       if (n.data.type === "attribute" && !n.data.hasValue) {
-        const value = filledAttrMap?.[instanceId]?.[n.id] ?? n.data.value;
+        const value = getAttributeValue(
+          n.data.label,
+          filledAttrMap,
+          instanceId,
+          n.id
+        );
         if (!value) return null;
 
         return {

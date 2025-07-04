@@ -1,6 +1,11 @@
 import React, { memo } from "react";
 import { NodeResizer, Handle, Position, useConnection } from "@xyflow/react";
-import { OBJ_COLOR, ATTR_COLOR, REL_COLOR } from "../../utils/constants";
+import {
+  OBJ_COLOR,
+  ATTR_COLOR,
+  REL_COLOR,
+  DARK_GREY_TRANS,
+} from "../../utils/constants";
 import { useReactFlow } from "@xyflow/react";
 
 function ResizableNode({ id, data, nodeType, style }) {
@@ -38,7 +43,7 @@ function ResizableNode({ id, data, nodeType, style }) {
       )
       .map((e) => (e.source === resizedId ? e.target : e.source));
 
-    console.log("[handleResize] ", linkedSizeNodeIds)
+    console.log("[handleResize] ", linkedSizeNodeIds);
 
     setNodes((prev) =>
       prev.map((n) => {
@@ -67,7 +72,9 @@ function ResizableNode({ id, data, nodeType, style }) {
             ? OBJ_COLOR
             : data.type === "attribute" || data.type === "attribute-group"
             ? ATTR_COLOR
-            : REL_COLOR
+            : data.type === "attribute" || data.type === "attribute-group"
+            ? REL_COLOR
+            : DARK_GREY_TRANS
         }
         minWidth={50}
         minHeight={50}

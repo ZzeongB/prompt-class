@@ -103,6 +103,7 @@ export default function BaseNode({
                 ...node.data,
                 label: editLabel,
                 hasValue: false,
+                value: editLabel
               },
             }
           : node

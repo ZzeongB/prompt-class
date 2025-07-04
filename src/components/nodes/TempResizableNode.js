@@ -51,12 +51,10 @@ function TempResizableNode({ id, data, width, height }) {
         crop_box,
         globalCaption
       );
-
       const label = response.label || "New Object";
       const description = response.description;
+
       if (label && description) {
-        // Create a new node with the description
-        // 1. Make a group node with label
         const groupNode = {
           id: `instance-${id}`,
           type: "instance-group",
@@ -65,6 +63,7 @@ function TempResizableNode({ id, data, width, height }) {
             label,
             type: "object",
             sharedId: id,
+            classId: `class-${id}`,
           },
         };
 
@@ -75,15 +74,11 @@ function TempResizableNode({ id, data, width, height }) {
           data: {
             label,
             type: "object",
-            sharedId: id,
           },
           measured: { width: 280, height: 500 },
           style: { width: 280, height: 500 },
         };
 
-        setNodes((prev) => [...prev, groupNode]);
-
-        // 2. Make object, attribute, and relation nodes
         const { nodes, edges } = await generateTextToGraph(
           description,
           `class-${id}`,
@@ -92,12 +87,13 @@ function TempResizableNode({ id, data, width, height }) {
 
         const newNodes = [groupNode_, ...nodes];
 
-        // setInstanceNodes((prev) => [...prev, ...nodes]);
-        // setInstanceEdges((prev) => [...prev, ...edges]);
+        setNodes((prev) =>
+          prev
+            .map((n) => (n.id === id ? { ...n, type: "resizable", data: { ...n.data, type: "object" } } : n))
+            .concat(groupNode)
+        );
         setNodesFromFlow((prev) => [...prev, ...newNodes]);
         setEdgesFromFlow((prev) => [...prev, ...edges]);
-        console.log("Generated nodes:", nodes);
-        console.log("Generated edges:", edges);
       }
     } catch (error) {
       console.error("Error generating description:", error);
@@ -105,7 +101,6 @@ function TempResizableNode({ id, data, width, height }) {
   };
 
   const handleEraseFromImage = () => {
-    // Make Object Node with label "empty, background"
     const emptyNode = {
       id: `empty-${id}`,
       type: "instance",
@@ -117,8 +112,11 @@ function TempResizableNode({ id, data, width, height }) {
       },
     };
 
-    // Add the empty node to the graph
-    setNodes((prev) => [...prev, emptyNode]);
+    setNodes((prev) =>
+      prev
+        .map((n) => (n.id === id ? { ...n, type: "resizable" } : n))
+        .concat(emptyNode)
+    );
   };
 
   const { image, globalCaption } = useImage();

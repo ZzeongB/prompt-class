@@ -178,7 +178,9 @@ export default function GroupNode({
   };
 
   const handleDelete = () => {
-    setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id));
+    setNodes((prevNodes) =>
+      prevNodes.filter((node) => node.id !== id && node?.parentNode !== id)
+    );
   };
 
   const handleDuplicateNode = () => {

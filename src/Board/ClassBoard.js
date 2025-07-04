@@ -116,9 +116,6 @@ function ClassBoard() {
     registerSetEdges(setEdges); // ✅ 외부에서 호출할 수 있게 등록
   }, [setNodes, setEdges, registerSetNodes, registerSetEdges]);
 
-  useEffect(()=>{
-    console.log("ClassBoard mounted", nodes);
-  }, [nodes]);
   useEffect(() => {
     setClassNodes(nodes);
     setClassEdges(edges);
