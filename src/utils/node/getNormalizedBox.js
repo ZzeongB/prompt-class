@@ -38,5 +38,5 @@ export function getNormalizedBox(
     return [normalizedX1, normalizedY1, normalizedX2, normalizedY2];
   }
   // Return absolute coordinates
-  return [adjustedX1 * 2, adjustedY1 * 2, adjustedX2 * 2, adjustedY2 * 2];
+  return [adjustedX1, adjustedY1, adjustedX2, adjustedY2];
 }

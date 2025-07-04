@@ -44,3 +44,31 @@ Corrected region descriptions:
 Global image description:
 ...
 """
+
+def description_prompt(global_caption):
+    return f"""You are an AI assistant that describes objects in image regions.
+
+Your task is to:
+1. Write a concise, vivid **one-sentence description** of the object in the given image region.
+2. Provide a clear **noun phrase** that represents the object (e.g., "a red balloon", "a plate of sushi").
+
+# Guidelines:
+- Keep the description to a single sentence.
+- Use clear, simple, and vivid language suitable for image generation models.
+- Emphasize the most prominent visual characteristics (color, shape, pose, material, etc.).
+- Do not include background details unless they are essential to understanding the object.
+- If a global image caption is provided, you may use it to inform your answer, but **do not repeat it verbatim**.
+
+# Output Format:
+- [noun phrase]: [one-sentence description]
+
+# Example Outputs:
+mole: a mole with poop on its head  
+pink elephant: a pink elephant flying over a green river  
+bouquet of flowers: a bouquet of white flowers in a glass vase  
+
+Global image description (for context only):
+{global_caption}
+
+Please describe the object shown in the image region below:
+"""

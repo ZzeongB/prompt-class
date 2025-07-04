@@ -35,12 +35,13 @@ const NodeToolbarMenu = forwardRef((props, ref) => {
       }}
       ref={ref}
     >
-      <HoverButton
-        title={isEditing ? "Save as fixed value" : "Edit label"}
-        icon={isEditing ? <Check size={16} /> : <Edit2 size={16} />}
-        onClick={isEditing ? onSave : onEditToggle}
-      />
-
+      {onSave && (
+        <HoverButton
+          title={isEditing ? "Save as fixed value" : "Edit label"}
+          icon={isEditing ? <Check size={16} /> : <Edit2 size={16} />}
+          onClick={isEditing ? onSave : onEditToggle}
+        />
+      )}
       {data?.type === "attribute" && isEditing && (
         <HoverButton
           title="Convert to blank attribute"

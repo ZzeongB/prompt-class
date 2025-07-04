@@ -11,9 +11,15 @@ import { useImage } from "../../context/ImageContext";
 import { getNormalizedBox } from "../../utils/node/getNormalizedBox";
 import HoverButton from "../nodeComponents/HoverButton";
 import { Eraser, Trash2, Network } from "lucide-react";
+import { generateTextToGraph } from "../../api/generateTextToGraph";
+import { useInstanceGraph } from "../../context/InstanceGraphContext";
+import { useClassGraph } from "../../context/ClassGraphContext";
 
 function TempResizableNode({ id, data, width, height }) {
-  const { deleteElements, getNode, flowToScreenPosition, setNodes } = useReactFlow();
+  const { deleteElements, getNode, flowToScreenPosition, setNodes, setEdges } =
+    useReactFlow();
+  const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
+  const {setClassNodes, setClassEdges } = useClassGraph();
   const node = getNode(id);
   const [isSelected, setIsSelected] = useState(true);
   const nodeRef = useRef(null);
@@ -36,7 +42,52 @@ function TempResizableNode({ id, data, width, height }) {
       document.removeEventListener("pointerdown", handleClickOutside, true);
   }, []);
 
-  const crop_box = getNormalizedBox(node, flowToScreenPosition, 500, 0, false);
+  const crop_box = getNormalizedBox(node, flowToScreenPosition, 660, 40, false);
+
+  const handleGenerateDescription = async () => {
+    try {
+      const response = await generateDescription(
+        image,
+        crop_box,
+        globalCaption
+      );
+
+      const label = response.label || "New Object";
+      const description = response.description;
+      if (label && description) {
+        // Create a new node with the description
+        // 1. Make a group node with label
+        const groupNode = {
+          id: `instance-${id}`,
+          type: "instance-group",
+          position: { x: node.position.x, y: node.position.y },
+          data: {
+            label,
+            type: "object",
+            sharedId: id,
+          },
+        };
+
+        setNodes((prev) => [...prev, groupNode]);
+
+        // 2. Make object, attribute, and relation nodes
+        const { nodes, edges } = await generateTextToGraph(
+          description,
+          id,
+          groupNode.position,
+          true, // isInstance
+        );
+
+        setInstanceNodes((prev) => [...prev, ...nodes]);
+        setInstanceEdges((prev) => [...prev, ...edges]);
+
+        console.log("Generated nodes:", nodes);
+        console.log("Generated edges:", edges);
+      }
+    } catch (error) {
+      console.error("Error generating description:", error);
+    }
+  };
 
   const handleEraseFromImage = () => {
     // Make Object Node with label "empty, background"
@@ -53,7 +104,7 @@ function TempResizableNode({ id, data, width, height }) {
 
     // Add the empty node to the graph
     setNodes((prev) => [...prev, emptyNode]);
-  }
+  };
 
   const { image, globalCaption } = useImage();
   return (
@@ -81,16 +132,14 @@ function TempResizableNode({ id, data, width, height }) {
           boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.25)",
           border: "1px solid rgba(255, 255, 255, 0.1)",
           backdropFilter: "blur(4px)",
-          top: "10px"
+          top: "10px",
         }}
         ref={toolbarRef}
       >
         <HoverButton
           title="Generate graph from image"
           icon={<Network size={16} />}
-          onClick={() => {
-            generateDescription(image, crop_box, globalCaption);
-          }}
+          onClick={handleGenerateDescription}
         />
         <HoverButton
           title="Remove from image"

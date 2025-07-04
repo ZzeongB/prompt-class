@@ -18,6 +18,7 @@ export async function generateDescription(
 
   const data = await response.json();
   return {
+    label: data.label, // 👈 "noun phrase"로 사용
     description: data.description,
   };
 }

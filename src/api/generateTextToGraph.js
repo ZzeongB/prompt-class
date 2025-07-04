@@ -1,7 +1,8 @@
 export const generateTextToGraph = async (
   prompt,
   parentId = null,
-  parentPosition = { x: 0, y: 0 }
+  parentPosition = { x: 0, y: 0 },
+  isInstance = false
 ) => {
   const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
   const endpoint = "https://api.openai.com/v1/chat/completions";
@@ -13,6 +14,7 @@ export const generateTextToGraph = async (
   2. Relationships (source, target, relation)
 
   Constraints:
+  - You can avoid unnecessary words like "a", "the", "is", "its", etc.
   - Each word must belong to only ONE of: object, attribute, relationship.
   - Output must be strict JSON.
   
@@ -61,7 +63,12 @@ export const generateTextToGraph = async (
 
     const sceneGraph = JSON.parse(content);
 
-    return transformSceneGraphToReactFlow(sceneGraph, parentId, parentPosition);
+    return transformSceneGraphToReactFlow(
+      sceneGraph,
+      parentId,
+      parentPosition,
+      isInstance
+    );
   } catch (error) {
     console.error("Fetch Error:", error);
     alert("Scene Graph 생성 중 오류 발생");
@@ -72,7 +79,8 @@ export const generateTextToGraph = async (
 const transformSceneGraphToReactFlow = (
   sceneGraph,
   parentId = null,
-  parentPosition = { x: 0, y: 0 }
+  parentPosition = { x: 0, y: 0 },
+  isInstance = false
 ) => {
   const nodes = [];
   const edges = [];
@@ -89,7 +97,7 @@ const transformSceneGraphToReactFlow = (
 
     nodes.push({
       id: objNodeId,
-      type: "class",
+      type: isInstance ? "instance" : "class",
       data: {
         label: obj.name,
         type: "object",
@@ -103,7 +111,7 @@ const transformSceneGraphToReactFlow = (
       const attrNodeId = `${objNodeId}-attr-${attr}`;
       nodes.push({
         id: attrNodeId,
-        type: "class",
+        type: isInstance ? "instance" : "class",
         data: {
           label: attr,
           type: "attribute",
@@ -112,8 +120,8 @@ const transformSceneGraphToReactFlow = (
           extent: "parent",
         },
         position: {
-          x: x + 100,
-          y: baseY + 30 + j * 30,
+          x: x + 10,
+          y: baseY + 10 + j * 10,
         },
       });
 
@@ -124,7 +132,7 @@ const transformSceneGraphToReactFlow = (
       });
     });
 
-    x += 200;
+    x += 10;
   });
 
   sceneGraph.relationships?.forEach((rel, i) => {
@@ -132,7 +140,7 @@ const transformSceneGraphToReactFlow = (
 
     nodes.push({
       id: relNodeId,
-      type: "class",
+      type: isInstance ? "instance" : "class",
       data: {
         label: rel.relation,
         type: "relationship",
@@ -140,8 +148,8 @@ const transformSceneGraphToReactFlow = (
         extent: "parent",
       },
       position: {
-        x: x + i * 60,
-        y: baseY + 150,
+        x: x + i * 10,
+        y: baseY + 10,
       },
     });
 

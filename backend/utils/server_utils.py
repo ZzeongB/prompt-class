@@ -9,7 +9,7 @@ from openai import OpenAI
 from src.models.transformer_flux_SiamLayout import FluxTransformer2DModel
 from src.pipeline.pipeline_flux_CreatiLayout import CreatiLayoutFluxPipeline
 
-from utils.prompt import caption_prompt
+from utils.prompt import caption_prompt, description_prompt
 
 load_dotenv()
 client = OpenAI(
@@ -131,7 +131,7 @@ def generate_description(region, global_caption):
                 "content": [
                     {
                         "type": "input_text",
-                        "text": f"Describe this part of the image. {global_caption}",
+                        "text": description_prompt(global_caption)
                     },
                     {
                         "type": "input_image",
@@ -144,6 +144,8 @@ def generate_description(region, global_caption):
 
     # 응답 텍스트 추출
     response_text = response.output_text
+    noun_phrase, description = map(str.strip, response_text.split(":", 1))
+    noun_phrase = noun_phrase.lower()  # 소문자로 변환
     # 응답에서 설명 추출
-    print("Response from OpenAI:", response_text)
-    return response_text
+    print("Response from OpenAI:", response_text, noun_phrase, description)
+    return noun_phrase, description

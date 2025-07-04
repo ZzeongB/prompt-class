@@ -27,7 +27,7 @@ function InstanceTreeBoard() {
       classEdges,
       filledAttrMap,
     });
-
+    console.log("[InstanceTreeBoard] instanceNodes", instanceNodes)
     console.log("[InstanceTreeBoard] getRenderedInstanceBoard", nodes, newNodes)
 
     setNodes(newNodes);

@@ -32,6 +32,7 @@ export function getRenderedInstanceBoard({
 
   filtered.forEach((node, index) => {
     const classNode = classNodes.find((c) => c.id === node.data?.classId);
+    // 해당 노드가 참조하는 classNode가 없으면 건너뛰기
     if (!classNode) return;
     const groupNode = instanceNodes.find(
       (n) => n.id === node.parentNode && n.type === "instance-group"

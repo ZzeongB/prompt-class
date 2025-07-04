@@ -30,6 +30,7 @@ import { createInstance } from "../utils/instance/instanceBuilder";
 import { generateImageFromInstanceData } from "../api/generateImage";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
+import { useImage } from "../context/ImageContext";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -50,12 +51,14 @@ function LayoutBoard({ onImageGenerated }) {
   const { classNodes, classEdges, structuredClasses } = useClassGraph();
   const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
   const [dragState, setDragState] = useState(null);
-  const [image, setImage] = useState();
+  const [imageBoard, setImageBoard] = useState();
   // const [globalCaption, setGlobalCaption] = useState("");
   const [progress, setProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSelectingRegion, setIsSelectingRegion] = useState(false);
+
+  const { image, setImage } = useImage();
 
   useEffect(() => {
     if (!isGenerating) return;
@@ -214,6 +217,7 @@ function LayoutBoard({ onImageGenerated }) {
         console.log("response", response);
         onImageGenerated(response.image); // 이미지 생성 후 부모 컴포넌트에 전달
         setImage(response.image); // 상태 업데이트
+        setImageBoard(response.image); // 이미지 보드 상태 업데이트
         // setGlobalCaption(response.globalCaption); // 상태 업데이트
       } catch (err) {
         console.error("Image generation failed", err);

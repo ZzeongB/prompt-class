@@ -178,10 +178,10 @@ def describe_region():
     region.save(region_path)
     logger.info(f"Saved region image: {region_path}")
 
-    response_text = generate_description(region, global_caption)
-    logger.info(f"Response from OpenAI: {response_text}")
+    noun_phrase, description = generate_description(region, global_caption)
+    logger.info(f"Response from OpenAI: {noun_phrase}, {description}")
 
-    return jsonify({"description": response_text})
+    return jsonify({"label": noun_phrase, "description": description})
 
 
 if __name__ == "__main__":

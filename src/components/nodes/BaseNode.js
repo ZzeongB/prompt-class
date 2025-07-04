@@ -153,7 +153,7 @@ export default function BaseNode({
         position={Position.Top}
         style={{ top: "10px" }}
         onEditToggle={() => setIsEditing(true)}
-        onSave={handleLabelUpdateFixed}
+        onSave={data.type == "empty" ? null : handleLabelUpdateFixed}
         onConvertBlank={handleLabelUpdateBlank}
         onDuplicate={handleDuplicateNode}
         onDelete={handleDelete}
@@ -162,7 +162,6 @@ export default function BaseNode({
         position={{ left: "-15px", top: "50%", transform: "translateY(-50%)" }}
         isVisible={isHovered}
       />
-
       <div
         className="nodrag"
         style={{
