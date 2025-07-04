@@ -6,7 +6,8 @@ export function syncMovedNodePositions({ changes, prevNodes, edges }) {
   // 🔁 position 핸들로 연결된 노드 id 찾기
   const getPositionLinkedNodeIds = (nodeId) => {
     const connected = edges.filter(
-      (e) => e.label === "position" && (e.source === nodeId || e.target === nodeId)
+      (e) =>
+        e.label === "position" && (e.source === nodeId || e.target === nodeId)
     );
 
     const relatedIds = new Set();
@@ -42,7 +43,9 @@ export function syncMovedNodePositions({ changes, prevNodes, edges }) {
 
       // 2️⃣ sharedId로 연결된 그룹
       if (sharedId) {
-        getSharedIdGroup(sharedId, movedNode.id).forEach((id) => idsToMove.add(id));
+        getSharedIdGroup(sharedId, movedNode.id).forEach((id) =>
+          idsToMove.add(id)
+        );
       }
 
       // 3️⃣ position edge로 연결된 노드 + 그들의 sharedId 그룹까지
@@ -58,11 +61,7 @@ export function syncMovedNodePositions({ changes, prevNodes, edges }) {
 
       // 4️⃣ attribute 노드 처리도 포함
       const attributeTargetIds = edges
-        .filter(
-          (e) =>
-            e.label === "property" &&
-            e.source === movedNode.id
-        )
+        .filter((e) => e.label === "property" && e.source === movedNode.id)
         .map((e) => e.target);
 
       attributeTargetIds.forEach((id) => idsToMove.add(id));

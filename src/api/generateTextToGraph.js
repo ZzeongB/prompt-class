@@ -82,16 +82,27 @@ const transformSceneGraphToReactFlow = (
   parentPosition = { x: 0, y: 0 },
   isInstance = false
 ) => {
+  parentPosition = {
+    x: parentPosition.x + 15,
+    y: parentPosition.y + 30,
+  }
+
   const nodes = [];
   const edges = [];
 
   const idPrefix = parentId ? `${parentId}__` : `scene__`;
   const objectMap = new Map();
 
-  let x = parentPosition.x + 10;
-  let baseY = parentPosition.y + 10;
+  const NODE_HEIGHT = 30;
+  const GAP_Y = 10;
 
-  sceneGraph.objects.forEach((obj, i) => {
+  const xObj = parentPosition.x + 10;
+  const xAttr = parentPosition.x + 120;
+  const baseY = parentPosition.y + 10;
+
+  let currentY = baseY;
+
+  sceneGraph.objects.forEach((obj) => {
     const objNodeId = `${idPrefix}obj-${obj.id}`;
     objectMap.set(obj.id, objNodeId);
 
@@ -101,14 +112,15 @@ const transformSceneGraphToReactFlow = (
       data: {
         label: obj.name,
         type: "object",
-        parentNode: parentId,
-        extent: "parent",
       },
-      position: { x, y: baseY },
+      parentNode: parentId,
+      extent: "parent",
+      position: { x: xObj, y: currentY },
     });
 
     (obj.attributes || []).forEach((attr, j) => {
       const attrNodeId = `${objNodeId}-attr-${attr}`;
+
       nodes.push({
         id: attrNodeId,
         type: isInstance ? "instance" : "class",
@@ -116,12 +128,12 @@ const transformSceneGraphToReactFlow = (
           label: attr,
           type: "attribute",
           hasValue: attr,
-          parentNode: parentId,
-          extent: "parent",
         },
+        parentNode: parentId,
+        extent: "parent",
         position: {
-          x: x + 10,
-          y: baseY + 10 + j * 10,
+          x: xAttr,
+          y: currentY + j * (NODE_HEIGHT + 4),
         },
       });
 
@@ -132,8 +144,17 @@ const transformSceneGraphToReactFlow = (
       });
     });
 
-    x += 10;
+    // 다음 object는 attr 개수만큼 아래로 밀어줌
+    const attrCount = obj.attributes?.length || 0;
+    const objectBlockHeight =
+      Math.max(1, attrCount) * (NODE_HEIGHT + 4) + GAP_Y;
+
+    currentY += objectBlockHeight;
   });
+
+  // relationship nodes (아래 따로 배치)
+  const relX = parentPosition.x + 70;
+  let relY = currentY + 20;
 
   sceneGraph.relationships?.forEach((rel, i) => {
     const relNodeId = `${idPrefix}rel-${i}`;
@@ -144,12 +165,12 @@ const transformSceneGraphToReactFlow = (
       data: {
         label: rel.relation,
         type: "relationship",
-        parentNode: parentId,
-        extent: "parent",
       },
+      parentNode: parentId,
+      extent: "parent",
       position: {
-        x: x + i * 10,
-        y: baseY + 10,
+        x: relX,
+        y: relY,
       },
     });
 
@@ -170,6 +191,8 @@ const transformSceneGraphToReactFlow = (
         }
       );
     }
+
+    relY += NODE_HEIGHT + GAP_Y;
   });
 
   return { nodes, edges };

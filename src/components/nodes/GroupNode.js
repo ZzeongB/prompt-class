@@ -200,7 +200,7 @@ export default function GroupNode({
     setNodes((prev) => [...prev, ...duplicated]);
     setEdges((prev) => [...prev, ...duplicatedRelatedEdges]);
   };
-  
+
   const getMyPosition = () => {
     const currentNode = getNodes().find((n) => n.id === id);
     return currentNode?.position ?? { x: 0, y: 0 };
@@ -210,6 +210,9 @@ export default function GroupNode({
     // edit label to scene graph
     const position = getMyPosition();
     const { nodes, edges } = await generateTextToGraph(editLabel, id, position);
+
+    console.log("Generated nodes:", nodes);
+    console.log("Generated edges:", edges);
     setNodes((prev) => [...prev, ...nodes]);
     setEdges((prev) => [...prev, ...edges]);
   };
@@ -296,11 +299,13 @@ export default function GroupNode({
               }}
             >
               <strong>{data.label}</strong>
-              {data.collapsed ? (
-                <ChevronRight size={16} />
-              ) : (
-                <ChevronDown size={16} />
-              )}
+              <span style={{ flexShrink: 0 }}>
+                {data.collapsed ? (
+                  <ChevronRight size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
+              </span>
             </span>
           </>
         )}

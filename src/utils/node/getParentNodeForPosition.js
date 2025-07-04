@@ -1,16 +1,17 @@
 export function getParentNodeForPosition(node, classNodes) {
   const nodeX = node.position.x;
   const nodeY = node.position.y;
-  const nodeW = node.width || 0;
-  const nodeH = node.height || 0;
+  const nodeW = node.width || node.dimensions?.width || 0;
+  const nodeH = node.height || node.dimensions?.height || 0;
 
   const containingParents = classNodes.filter((classNode) => {
     if (classNode.id === node.id) return false;
-    if (!classNode.style) return false;
+    // if (!classNode.style) return false;
+
 
     const { x, y } = classNode.position;
-    const { width, height } = classNode.style;
-
+    const { width, height } = classNode.measured;
+    
     return (
       nodeX >= x &&
       nodeY >= y &&

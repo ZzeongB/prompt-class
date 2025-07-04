@@ -19,7 +19,7 @@ function TempResizableNode({ id, data, width, height }) {
   const { deleteElements, getNode, flowToScreenPosition, setNodes, setEdges } =
     useReactFlow();
   const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
-  const {setClassNodes, setClassEdges } = useClassGraph();
+  const { setNodesFromFlow, setEdgesFromFlow } = useClassGraph();
   const node = getNode(id);
   const [isSelected, setIsSelected] = useState(true);
   const nodeRef = useRef(null);
@@ -68,19 +68,34 @@ function TempResizableNode({ id, data, width, height }) {
           },
         };
 
+        const groupNode_ = {
+          id: `class-${id}`,
+          type: "object-group",
+          position: { x: node.position.x, y: node.position.y },
+          data: {
+            label,
+            type: "object",
+            sharedId: id,
+          },
+          measured: { width: 280, height: 500 },
+          style: { width: 280, height: 500 },
+        };
+
         setNodes((prev) => [...prev, groupNode]);
 
         // 2. Make object, attribute, and relation nodes
         const { nodes, edges } = await generateTextToGraph(
           description,
-          id,
-          groupNode.position,
-          true, // isInstance
+          `class-${id}`,
+          groupNode_.position
         );
 
-        setInstanceNodes((prev) => [...prev, ...nodes]);
-        setInstanceEdges((prev) => [...prev, ...edges]);
+        const newNodes = [groupNode_, ...nodes];
 
+        // setInstanceNodes((prev) => [...prev, ...nodes]);
+        // setInstanceEdges((prev) => [...prev, ...edges]);
+        setNodesFromFlow((prev) => [...prev, ...newNodes]);
+        setEdgesFromFlow((prev) => [...prev, ...edges]);
         console.log("Generated nodes:", nodes);
         console.log("Generated edges:", edges);
       }

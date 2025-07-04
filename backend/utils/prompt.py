@@ -46,21 +46,18 @@ Global image description:
 """
 
 def description_prompt(global_caption):
-    return f"""You are an AI assistant that describes objects in image regions.
-
-Your task is to:
-1. Write a concise, vivid **one-sentence description** of the object in the given image region.
+    return f"""Your task is to:
+1. Write a **short, vivid phrase** (not a full sentence) describing the object’s most prominent visual features.
 2. Provide a clear **noun phrase** that represents the object (e.g., "a red balloon", "a plate of sushi").
 
 # Guidelines:
-- Keep the description to a single sentence.
-- Use clear, simple, and vivid language suitable for image generation models.
-- Emphasize the most prominent visual characteristics (color, shape, pose, material, etc.).
-- Do not include background details unless they are essential to understanding the object.
-- If a global image caption is provided, you may use it to inform your answer, but **do not repeat it verbatim**.
+- The description should be a **brief phrase** (e.g., “with glowing blue wings”, “wearing a red hat”) — **not a full sentence**.
+- Focus on color, shape, texture, pose, or material — the most visually distinctive features.
+- Do **not** mention background elements unless essential.
+- You may use the global caption for context, but **do not repeat it**.
 
-# Output Format:
-- [noun phrase]: [one-sentence description]
+# Output format:
+- [noun phrase]: [short descriptive phrase]
 
 # Example Outputs:
 mole: a mole with poop on its head  

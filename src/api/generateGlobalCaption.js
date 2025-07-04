@@ -1,5 +1,4 @@
 export async function generateGlobalCaption(sentences, globalCaption) {
-  console.log("Global Caption API called with sentences:", sentences, globalCaption);
   const response = await fetch("http://127.0.0.1:5000/generate-caption", {
     method: "POST",
     headers: {

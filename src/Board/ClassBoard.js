@@ -102,6 +102,7 @@ function ClassBoard() {
     setClassEdges,
     setStructuredClasses,
     registerSetNodes,
+    registerSetEdges
   } = useClassGraph();
 
   const { nodes: initialNodes, edges: initialEdges } = classToFlow(classSample);
@@ -112,8 +113,12 @@ function ClassBoard() {
 
   useEffect(() => {
     registerSetNodes(setNodes); // ✅ 외부에서 호출할 수 있게 등록
-  }, [setNodes, registerSetNodes]);
+    registerSetEdges(setEdges); // ✅ 외부에서 호출할 수 있게 등록
+  }, [setNodes, setEdges, registerSetNodes, registerSetEdges]);
 
+  useEffect(()=>{
+    console.log("ClassBoard mounted", nodes);
+  }, [nodes]);
   useEffect(() => {
     setClassNodes(nodes);
     setClassEdges(edges);
@@ -244,6 +249,8 @@ function ClassBoard() {
         justCreated: true,
       },
       position: { x: 0, y: 0 },
+      measured: { width: 200, height: 150 },
+      style: { width: 200, height: 150 },
     });
   };
 

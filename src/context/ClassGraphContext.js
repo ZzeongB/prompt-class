@@ -8,6 +8,7 @@ export function ClassGraphProvider({ children }) {
   const [classEdges, setClassEdges] = useState([]);
   const [structuredClasses, setStructuredClasses] = useState([]);
   const [setNodesFromFlow, setSetNodesFromFlow] = useState(() => () => {});
+  const [setEdgesFromFlow, setSetEdgesFromFlow] = useState(() => () => {});
 
   return (
     <ClassGraphContext.Provider
@@ -19,7 +20,9 @@ export function ClassGraphProvider({ children }) {
         structuredClasses,
         setStructuredClasses,
         setNodesFromFlow,
-        registerSetNodes: (fn) => setSetNodesFromFlow(() => fn), // ✅
+        setEdgesFromFlow,
+        registerSetNodes: (fn) => setSetNodesFromFlow(() => fn), 
+        registerSetEdges: (fn) => setSetEdgesFromFlow(() => fn), 
       }}
     >
       {children}
