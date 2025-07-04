@@ -103,7 +103,7 @@ def generate_global_caption_and_refinements(sentences, global_caption=""):
         f.write(prompt)
         
     response = client.chat.completions.create(
-        model="gpt-4", messages=[{"role": "user", "content": prompt}]
+        model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]
     )
 
     response_text = response.choices[0].message.content
