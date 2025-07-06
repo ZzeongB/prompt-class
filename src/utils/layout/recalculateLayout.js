@@ -41,10 +41,7 @@ export function recalculateLayout({ nodes }) {
     // 3. 자식 노드 정렬
     const children = allOtherNodes.filter(
       (n) => n.data?.classId === group.id || n.parentNode === group.id
-    );
-
-    console.log("groupid", group.id, children)
-    
+    );    
 
     for (const child of children) {
       const newChild = {
@@ -63,8 +60,6 @@ export function recalculateLayout({ nodes }) {
     (n) =>
       !groupNodes.find((g) => n.data?.classId === g.id || n.parentNode === g.id)
   );
-
-  console.log("ungrouped", ungrouped)
 
   for (const node of ungrouped) {
     const height = node.__rf?.height || 80;

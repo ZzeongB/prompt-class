@@ -85,10 +85,6 @@ function InstanceBoard() {
     edgeSummary: [],
   });
 
-  // useEffect(() => {
-  //   console.log("InstanceBoard mounted", nodes);
-  // }, [nodes]);
-
   const nodeTypes = useMemo(
     () => ({
       "object-group": ClassGroupNode,

@@ -108,9 +108,6 @@ export function extractSentencesAndBoxes(
         (n) => n.data.sharedId === emptyNode.data.sharedId
       );
 
-      console.log("resizableNode", resizableNode);
-      console.log("emptyNode", emptyNode);
-      console.log("emptyResizableNodes", emptyResizableNodes);
       if (!resizableNode) return;
 
       const box = getNormalizedBox(
@@ -146,7 +143,6 @@ export function extractSentencesAndBoxes(
       structuredClass.attributes.push(...groupAttributes); // ✅ 주입
       structuredClass.attributes.push(...groupAttributes_); // ✅ 주입
 
-      console.log("structuredClass", structuredClass);
       if (!structuredClass) return;
 
       const sentence = buildCompositionalSentence(structuredClass);

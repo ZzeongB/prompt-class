@@ -52,10 +52,6 @@ export const handleObjectLayoutSave = (
       label: "layout",
     },
   ]);
-  console.log("Saved layout:", {
-    id,
-    layout,
-  });
 };
 
 export const handleRelationshipLayoutSave = (
@@ -118,6 +114,4 @@ export const handleRelationshipLayoutSave = (
         : n
     )
   );
-
-  console.log("📝 Layout saved to relationship node");
 };

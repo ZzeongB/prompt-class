@@ -71,7 +71,6 @@ export function getRenderedInstanceBoard({
     }
   });
 
-  console.log("AllNodes", allNodes)
   return {
     nodes: recalculateLayout({ nodes: allNodes }),
     edges: allEdges,

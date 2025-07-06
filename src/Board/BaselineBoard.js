@@ -65,9 +65,6 @@ function BaselineBoard() {
     const structuredClasses = convertClassGroup(nodes, edges);
     setStructuredClasses(structuredClasses);
 
-    // console.log("nodes: ", nodes);
-    // console.log("edges: ", edges);
-    console.log("structured", structuredClasses);
   }, [nodes, edges, setClassNodes, setClassEdges, setStructuredClasses]);
 
   const onConnect = useCallback(
@@ -127,7 +124,6 @@ function BaselineBoard() {
 
         const classNodes = nodes.filter((n) => n.type === "object-group");
         const newParent = getParentNodeForPosition(node, classNodes);
-        console.log("new parent", newParent);
 
         // parentNode가 변경된 경우만 반영
         if (newParent !== node.parentNode) {
@@ -162,8 +158,6 @@ function BaselineBoard() {
         type: "object",
       },
     };
-
-    console.log("new node");
 
     setNodes((prev) => [...prev, newNode]);
   };

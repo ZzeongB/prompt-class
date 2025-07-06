@@ -32,14 +32,11 @@ export default function LayoutNode({ id, data }) {
       );
 
       const existingLabels = prev.map((n) => n.data.label);
-      console.log("Existing labels for duplication:", existingLabels);
 
       const { duplicated } = duplicateNodesWithMapping(group, {
         sharedIdBase: sharedId,
         existingLabels: existingLabels,
       });
-
-      console.log("Duplicated nodes:", duplicated);
 
       const updated = [...prev, ...duplicated];
       setInstanceNodes(updated);

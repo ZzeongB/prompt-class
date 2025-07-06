@@ -280,7 +280,14 @@ function ClassBoard() {
       position: flowPos,
     });
   };
-
+  
+    const onNodeDragStop = (_event, node) => {
+      logEvent("classboard.node.moved", {
+        nodeId: node.id,
+        newPos: node.position,
+      });
+    };
+  
   return (
     <div
       className="reactflow-wrapper"
@@ -347,6 +354,7 @@ function ClassBoard() {
         connectionLineType="bezier"
         nodeOrigin={[0, 0]} // 노드 중앙 기준
         proOptions={{ hideAttribution: true }}
+        onNodeDragStop={onNodeDragStop}
       />
     </div>
   );

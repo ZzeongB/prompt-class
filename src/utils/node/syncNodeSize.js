@@ -8,7 +8,6 @@ export const getSizeLinkedNodeIds = (nodeId, edges) => {
     if (e.target !== nodeId) related.add(e.target);
   });
 
-  console.log("[getSizeLinkedNodeIds]", nodeId, connected, related)
   return [...related];
 };
 

@@ -63,7 +63,6 @@ function LayoutBoard({ onImageGenerated }) {
 
   useEffect(() => {
     if (!isGenerating) return;
-    console.log("isGenerating True");
 
     const interval = setInterval(async () => {
       const res = await fetch("http://127.0.0.1:5000/progress");
@@ -91,7 +90,6 @@ function LayoutBoard({ onImageGenerated }) {
 
   const onMouseUp = (event) => {
     if (dragState?.rect && dragState?.start) {
-      console.log("dragState", dragState);
       handleMouseUp(
         dragState,
         setDragState,
@@ -174,7 +172,6 @@ function LayoutBoard({ onImageGenerated }) {
 
       // result.newNodes를 반환받는다고 가정
       if (result?.newNodes) {
-        console.log("[LayoutBoard] onConnectEnd", result);
         setInstanceNodes((prev) => [...prev, ...result.newNodes]);
         setInstanceEdges((prev) => [...prev, ...(result.newEdges || [])]);
       }
@@ -234,7 +231,6 @@ function LayoutBoard({ onImageGenerated }) {
         flowToScreenPosition
       );
 
-      console.log("[LayoutBoard] extractSentencesAndBoxes", result);
       logEvent("imagegen.extracted", {
         sentences: result.sentences,
         boxes: result.boxes,
@@ -280,6 +276,13 @@ function LayoutBoard({ onImageGenerated }) {
         setIsGenerating(false);
       }
     }, 200);
+  };
+
+  const onNodeDragStop = (_event, node) => {
+    logEvent("layoutboard.node.moved", {
+      nodeId: node.id,
+      newPos: node.position,
+    });
   };
 
   return (
@@ -395,6 +398,7 @@ function LayoutBoard({ onImageGenerated }) {
           right: 512,
           bottom: 512,
         }}
+        onNodeDragStop={onNodeDragStop}
         translateExtent={[
           [0, 0],
           [512, 512],

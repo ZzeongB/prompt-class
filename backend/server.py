@@ -7,6 +7,7 @@ import base64
 from io import BytesIO
 
 import torch
+import json
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from PIL import Image
