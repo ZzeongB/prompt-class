@@ -45,7 +45,7 @@ function ResizableNode({ id, data, nodeType, style }) {
       .map((e) => (e.source === resizedId ? e.target : e.source));
 
     // ✅ 로깅 추가
-    logEvent("node.resizable.resized", {
+    logEvent("layoutboard.node.resizable.resized", {
       nodeId: resizedId,
       prevSize: { width: prevWidth, height: prevHeight },
       newSize: { width, height },

@@ -47,7 +47,7 @@ function TempResizableNode({ id, data, width, height }) {
 
   const handleGenerateDescription = async () => {
     try {
-      logEvent("node.tmp-resizable.description_generation_requested", {
+      logEvent("layoutboard.node.tmp-resizable.description_generation_requested", {
         nodeId: id,
         cropBox: crop_box,
         globalCaption,
@@ -62,7 +62,7 @@ function TempResizableNode({ id, data, width, height }) {
       const label = response.label || "New Object";
       const description = response.description;
 
-      logEvent("node.tmp-resizable.description_generated", {
+      logEvent("layoutboard.node.tmp-resizable.description_generated", {
         nodeId: id,
         label,
         description,
@@ -93,7 +93,7 @@ function TempResizableNode({ id, data, width, height }) {
           style: { width: 280, height: 500 },
         };
 
-        logEvent("node.tmp-resizable.text_to_graph_requested", {
+        logEvent("layoutboard.node.tmp-resizable.text_to_graph_requested", {
           sourceNodeId: id,
           description,
         });
@@ -104,7 +104,7 @@ function TempResizableNode({ id, data, width, height }) {
           groupNode_.position
         );
 
-        logEvent("node.tmp-resizable.text_to_graph_generated", {
+        logEvent("layoutboard.node.tmp-resizable.text_to_graph_generated", {
           sourceNodeId: id,
           nodeCount: nodes.length,
           edgeCount: edges.length,
@@ -130,7 +130,7 @@ function TempResizableNode({ id, data, width, height }) {
       }
     } catch (error) {
       console.error("Error generating description:", error);
-      logEvent("node.tmp-resizable.description_generation_failed", {
+      logEvent("layoutboard.node.tmp-resizable.description_generation_failed", {
         nodeId: id,
         error: error.message,
       });
@@ -138,7 +138,7 @@ function TempResizableNode({ id, data, width, height }) {
   };
 
   const handleEraseFromImage = () => {
-    logEvent("node.tmp-resizable.erase_from_image", {
+    logEvent("layoutboard.node.tmp-resizable.erase_from_image", {
       nodeId: id,
       position: node?.position,
     });
@@ -206,7 +206,7 @@ function TempResizableNode({ id, data, width, height }) {
           icon={<Trash2 size={16} />}
           danger
           onClick={() => {
-            logEvent("node.tmp-resizable.delete", { nodeId: id, from: "temp_resizable" });
+            logEvent("layoutboard.node.tmp-resizable.delete", { nodeId: id, from: "temp_resizable" });
             deleteElements({ nodes: [{ id }] });
           }}
         />
