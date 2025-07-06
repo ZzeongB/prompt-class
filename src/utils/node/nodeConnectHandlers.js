@@ -1,6 +1,7 @@
 import { addEdge } from "@xyflow/react";
 import { promptForNodeLabel, createRelationshipNode } from "./nodeCreateUtils";
-import {v4 as uuidv4} from "uuid";
+import { v4 as uuidv4 } from "uuid";
+import { logEvent } from "../../api/logEvent";
 
 export function handleConnect({ params, nodes, setNodes, setEdges }) {
   const sourceNode = nodes.find((n) => n.id === params.source);
@@ -12,8 +13,6 @@ export function handleConnect({ params, nodes, setNodes, setEdges }) {
     if (params.targetHandle === "size") {
       const sourceWidth = parseFloat(sourceNode?.width) || 100;
       const sourceHeight = parseFloat(sourceNode?.height) || 100;
-
-      console.log("Resizable size", sourceNode?.measured?.height);
 
       setNodes((nds) =>
         nds.map((node) =>
@@ -38,8 +37,13 @@ export function handleConnect({ params, nodes, setNodes, setEdges }) {
           eds
         )
       );
+
+      logEvent("layoutboard.node.resizable.size_connected", {
+        sourceNodeId: sourceNode.id,
+        targetNodeId: targetNode.id,
+        size: { width: sourceWidth, height: sourceHeight },
+      });
     } else if (params.targetHandle === "position") {
-      console.log("[handleConnect] Position relation detected (pending)");
       setEdges((eds) =>
         addEdge(
           {
@@ -50,6 +54,11 @@ export function handleConnect({ params, nodes, setNodes, setEdges }) {
           eds
         )
       );
+
+      logEvent("layoutboard.node.resizable.position_connected", {
+        sourceNodeId: sourceNode.id,
+        targetNodeId: targetNode.id,
+      });
     }
 
     return;
@@ -75,13 +84,33 @@ export function handleConnect({ params, nodes, setNodes, setEdges }) {
 
     setNodes((nds) => [...nds, newNode]);
     setEdges((eds) => [...eds, ...newEdges]);
+
+    logEvent("node.add.relationship", {
+      sourceNodeId: sourceNode.id,
+      targetNodeId: targetNode.id,
+      relationshipType: newNode.data.label,
+      relNodeId: newNode.id,
+      position: centerPos,
+    });
   } else if (
     (sourceType === "object" && targetType === "attribute") ||
     (sourceType === "attribute" && targetType === "object")
   ) {
     setEdges((eds) => addEdge({ ...params, label: "property" }, eds));
+
+    logEvent("node.connect.attribute", {
+      sourceNodeId: sourceNode.id,
+      targetNodeId: targetNode.id,
+      direction: `${sourceType}->${targetType}`,
+    });
   } else {
-    alert(`'${sourceType}'와 '${targetType}' 타입은 연결될 수 없습니다.`);
+    logEvent("node.connect.invalid", {
+      sourceType,
+      targetType,
+      sourceNodeId: sourceNode?.id,
+      targetNodeId: targetNode?.id,
+      reason: "Unsupported connection type",
+    });
   }
 }
 
@@ -95,22 +124,22 @@ export function handleConnectEnd({
   screenToFlowPosition,
 }) {
   if (type !== "class" && type !== "instance") return;
-  console.log("[handleConnectEnd] ", setNodes, setEdges, connectionState);
   if (!connectionState.isValid && connectionState.fromNode) {
     const { clientX, clientY } =
       "changedTouches" in event ? event.changedTouches[0] : event;
 
-    if (connectionState.fromNode.data.type !== "object") {
-      alert(
-        `'${connectionState.fromNode.data.type}' 타입에서는 새 노드를 생성할 수 없습니다.`
-      );
-      return;
-    }
-
-    if (connectionState.fromNode.type == "resizable") {
+    if (
+      connectionState.fromNode.data.type !== "object" ||
+      connectionState.fromNode.type == "resizable"
+    ) {
       // alert(
-      //   `'${connectionState.fromNode.type}' 타입에서는 새 노드를 생성할 수 없습니다.`
+      //   `'${connectionState.fromNode.data.type}' 타입에서는 새 노드를 생성할 수 없습니다.`
       // );
+      logEvent("node.connect.invalid", {
+        sourceType: connectionState.fromNode.data.type,
+        sourceNodeId: connectionState.fromNode?.id,
+        reason: "Invalid node type for connection",
+      });
       return;
     }
 
@@ -129,7 +158,10 @@ export function handleConnectEnd({
         hasValue: label,
         justCreated: true,
         instanceId: connectionState.fromNode?.data?.instanceId, // ✅ 이 object instance에 연결된다고 명시
-        parentNode: connectionState.fromNode?.type == "instance-group" ? connectionState.fromNode?.data.classId: connectionState.fromNode?.id, // ✅ layout, 트리에서 종속 구조로 인식
+        parentNode:
+          connectionState.fromNode?.type == "instance-group"
+            ? connectionState.fromNode?.data.classId
+            : connectionState.fromNode?.id, // ✅ layout, 트리에서 종속 구조로 인식
         extent: "parent", // ✅ layout 상 따라다님
       },
       origin: [0.5, 0.0],
@@ -144,6 +176,12 @@ export function handleConnectEnd({
         label: "property",
       })
     );
+
+    logEvent("node.add.attribute", {
+      sourceNodeId: connectionState.fromNode.id,
+      targetNodeId: id,
+      attributeType: label,
+    });
 
     return {
       newNodes: [newNode],

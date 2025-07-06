@@ -33,6 +33,7 @@ import {
 } from "../utils/constants.js";
 import CustomButton from "../components/CustomButton.js";
 import { Plus, Box, FolderPlus } from "lucide-react";
+import { logEvent } from "../api/logEvent.js";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -102,7 +103,7 @@ function ClassBoard() {
     setClassEdges,
     setStructuredClasses,
     registerSetNodes,
-    registerSetEdges
+    registerSetEdges,
   } = useClassGraph();
 
   const { nodes: initialNodes, edges: initialEdges } = classToFlow(classSample);
@@ -141,28 +142,6 @@ function ClassBoard() {
       }),
     [nodes, setNodes, setEdges, screenToFlowPosition]
   );
-
-  // //------- Deprecated Method: Add OBJ node when Pane Clicked -------//
-  // const handlePaneClick = useCallback(
-  //   (event) => {
-  //     if (event.button !== 0) return;
-
-  //     const position = screenToFlowPosition({
-  //       x: event.clientX,
-  //       y: event.clientY,
-  //     });
-
-  //     const newNode = createNewObjectNode({
-  //       position,
-  //       currentNodeCount: nodes.length,
-  //     });
-
-  //     if (newNode) {
-  //       setNodes((nds) => [...nds, newNode]);
-  //     }
-  //   },
-  //   [screenToFlowPosition, nodes.length, setNodes]
-  // );
 
   const handleNodesChange = useCallback(
     (changes) => {
@@ -215,6 +194,22 @@ function ClassBoard() {
       // 5. 반영
       setNodes(sorted);
       onNodesChange(changes);
+
+      // 부모 변경 로깅
+      const parentChangedNodes = nextNodes.filter((node) => {
+        const original = nodes.find((n) => n.id === node.id);
+        return original?.parentNode !== node.parentNode;
+      });
+
+      if (parentChangedNodes.length > 0) {
+        logEvent("classboard.node.parent_changed", {
+          nodes: parentChangedNodes.map((n) => ({
+            id: n.id,
+            prevParent: nodes.find((o) => o.id === n.id)?.parentNode,
+            newParent: n.parentNode,
+          })),
+        });
+      }
     },
     [nodes, edges, setNodes, onNodesChange]
   );
@@ -277,6 +272,13 @@ function ClassBoard() {
 
     setNodes((prev) => [...prev, newNode]);
     setGhostNode(null);
+
+    logEvent("classboard.node.add", {
+      nodeId: newId,
+      type: ghostNode.type,
+      label: ghostNode.data.label,
+      position: flowPos,
+    });
   };
 
   return (

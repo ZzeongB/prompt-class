@@ -9,6 +9,7 @@ import NodeToolbarMenu from "../nodeComponents/NodeToolbarMenu";
 import DragHandle from "../nodeComponents/DragHandle";
 import NodeHandles from "../nodeComponents/NodeHandles";
 import LabelEditor from "../nodeComponents/LabelEditor";
+import { logEvent } from "../../api/logEvent";
 
 export default function BaseNode({
   id,
@@ -78,8 +79,13 @@ export default function BaseNode({
   const handleLabelUpdateFixed = () => {
     if (onLabelUpdateProp) {
       setIsEditing(false);
+      logEvent("node.edit_label", {
+        nodeId: id,
+        nodeType: `${nodeType}/${data.type}`,
+        newLabel: editLabel,
+      });
       return onLabelUpdateProp(editLabel);
-    } // 외부에서 전달한 업데이트 함수 우선
+    }
 
     setNodes((prevNodes) =>
       prevNodes.map((node) =>
@@ -96,6 +102,13 @@ export default function BaseNode({
           : node
       )
     );
+
+    logEvent("node.edit_label", {
+      nodeId: id,
+      nodeType: `${nodeType}/${data.type}`,
+      newLabel: editLabel,
+    });
+
     setIsEditing(false);
   };
 
@@ -119,19 +132,41 @@ export default function BaseNode({
   };
 
   const handleDelete = () => {
-    if (onDeleteProp) return onDeleteProp(); // 외부에서 전달한 삭제 함수 우선
+    if (onDeleteProp) {
+      logEvent("node.delete", {
+        nodeId: id,
+        nodeType: `${nodeType}/${data.type}`,
+      });
+      return onDeleteProp();
+    }
+
+    logEvent("node.delete", {
+      nodeId: id,
+      nodeType: `${nodeType}/${data.type}`,
+    });
 
     setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id));
   };
 
   const handleDuplicateNode = () => {
-    if (onDuplicateProp) return onDuplicateProp();
+    if (onDuplicateProp) {
+      logEvent("node.duplicate", {
+        nodeId: id,
+        nodeType: `${nodeType}/${data.type}`,
+      });
+      return onDuplicateProp();
+    }
 
     setNodes((prev) => {
       const target = prev.find((n) => n.id === id);
       if (!target) return prev;
 
       const { duplicated } = duplicateNodesWithMapping([target]);
+      logEvent("node.duplicate", {
+        nodeId: id,
+        nodeType: `${nodeType}/${data.type}`,
+      });
+
       return [...prev, ...duplicated];
     });
   };

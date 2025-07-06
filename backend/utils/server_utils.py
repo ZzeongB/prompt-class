@@ -98,9 +98,6 @@ def generate_global_caption_and_refinements(sentences, global_caption=""):
     caption_block = f"\nPreliminary global description:\n{global_caption}" if has_caption else ""
 
     prompt = caption_prompt(has_caption, region_desc, caption_block)
-    # Save prompt
-    with open(f"log_{timestamp}.txt", "w", encoding="utf-8") as f:
-        f.write(prompt)
         
     response = client.chat.completions.create(
         model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]

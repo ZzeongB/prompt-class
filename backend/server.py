@@ -63,6 +63,20 @@ progress_status = {
 }
 progress_lock = Lock()
 
+def log_event(event: str, details: dict, level: str = "INFO"):
+    log_entry = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "event": event,
+        "details": details,
+        "platform": "backend",
+    }
+    if level == "INFO":
+        logger.info(json.dumps(log_entry))
+    elif level == "ERROR":
+        logger.error(json.dumps(log_entry))
+    else:
+        logger.debug(json.dumps(log_entry))
+
 def update_progress(self, step: int, timestep: int, callback_kwargs: dict):
     with progress_lock:
         step += 1
@@ -76,16 +90,22 @@ def update_progress(self, step: int, timestep: int, callback_kwargs: dict):
 def generate_caption_route():
     with progress_lock:
         progress_status["progress"] = 0
-        
+
     data = request.get_json()
     sentences = data.get("sentences", [])
     global_caption = data.get("globalCaption", "")
 
-    logger.info(f"Received generate-caption request: {data}")
+    log_event("generate_caption_requested", {
+        "sentences": sentences,
+        "global_caption": global_caption,
+    })
 
     result = generate_global_caption_and_refinements(sentences, global_caption)
 
-    logger.info(f"Generated captions: {result}")
+    log_event("generate_caption_completed", {
+        "refinements": result
+    })
+
     return jsonify(result)
 
 
@@ -93,34 +113,41 @@ def generate_caption_route():
 def generate():
     with progress_lock:
         progress_status["progress"] = 2
-        
+
     data = request.get_json()
     global_caption = data.get("global_caption")
     region_caption_list = data.get("region_caption_list")
     region_bboxes_list = data.get("region_bboxes_list")
 
-    logger.info(f"Received generate request: global_caption={global_caption}, regions={region_caption_list}, boxes={region_bboxes_list}")
-    
-    with torch.no_grad():
-        images = pipe(
-            prompt=global_caption * batch_size,
-            generator=torch.Generator(device=device).manual_seed(seed),
-            num_inference_steps=num_inference_steps,
-            guidance_scale=guidance_scale,
-            bbox_phrases=region_caption_list,
-            bbox_raw=region_bboxes_list,
-            height=height,
-            width=width,
-            callback_on_step_end=update_progress,
-        )
-    
+    log_event("image_generation_requested", {
+        "global_caption": global_caption,
+        "region_captions": region_caption_list,
+        "region_bboxes": region_bboxes_list,
+    })
+
+    try:
+        with torch.no_grad():
+            images = pipe(
+                prompt=global_caption * batch_size,
+                generator=torch.Generator(device=device).manual_seed(seed),
+                num_inference_steps=num_inference_steps,
+                guidance_scale=guidance_scale,
+                bbox_phrases=region_caption_list,
+                bbox_raw=region_bboxes_list,
+                height=height,
+                width=width,
+                callback_on_step_end=update_progress,
+            )
+    except Exception as e:
+        log_event("image_generation_failed", {
+            "error": str(e)
+        }, level="ERROR")
+        raise
+
     with progress_lock:
         progress_status["progress"] = 100
-        
+
     images = images.images
-
-    logger.info("Successfully generated images.")
-
     img_base64 = encode_image(images[0])
 
     now = datetime.now()
@@ -130,7 +157,10 @@ def generate():
     for j, image in enumerate(images):
         image_path = os.path.join(img_save_root, f"{filename}_{j}.png")
         image.save(image_path)
-        logger.info(f"Saved image: {image_path}")
+
+        log_event("image_saved", {
+            "path": image_path
+        })
 
         img_with_layout_save_name = os.path.join(img_with_layout_save_root, f"{filename}_{j}.png")
 
@@ -143,14 +173,14 @@ def generate():
         bbox_visualization_img = bbox_visualization(white_image, show_input)
         image_with_bbox = bbox_visualization(image, show_input)
 
-        total_width = width * 2
-        total_height = height
-
-        new_image = Image.new("RGB", (total_width, total_height))
+        new_image = Image.new("RGB", (width * 2, height))
         new_image.paste(bbox_visualization_img, (0, 0))
         new_image.paste(image_with_bbox, (width, 0))
         new_image.save(img_with_layout_save_name)
-        logger.info(f"Saved image with layout: {img_with_layout_save_name}")
+
+        log_event("image_with_layout_saved", {
+            "path": img_with_layout_save_name
+        })
 
     return jsonify({"image": img_base64, "globalCaption": global_caption})
 
@@ -166,23 +196,46 @@ def describe_region():
     crop_box = data.get("crop_box", [])
     global_caption = data.get("global_caption", "")
 
-    logger.info(f"Received describe request: crop_box={crop_box}, global_caption={global_caption}")
+    log_event("describe_requested", {
+        "crop_box": crop_box,
+        "global_caption": global_caption
+    })
 
-    # decode base64 image
     image_bytes = base64.b64decode(base64_image)
     full_image = Image.open(BytesIO(image_bytes)).convert("RGB")
 
-    # crop region
     region = full_image.crop(crop_box)
     region_path = os.path.join(img_save_root, "_region.png")
     region.save(region_path)
-    logger.info(f"Saved region image: {region_path}")
+
+    log_event("describe_region_saved", {
+        "region_path": region_path
+    })
 
     noun_phrase, description = generate_description(region, global_caption)
-    logger.info(f"Response from OpenAI: {noun_phrase}, {description}")
+
+    log_event("describe_result", {
+        "noun_phrase": noun_phrase,
+        "description": description
+    })
 
     return jsonify({"label": noun_phrase, "description": description})
 
+@app.route("/api/log", methods=["POST"])
+def log_from_frontend():
+    data = request.get_json()
+    event = data.get("event")
+    details = data.get("details", {})
+    session_id = data.get("session_id", "unknown")
+    user_id = data.get("user_id", "unknown")
+
+    log_event(event, {
+        **details,
+        "session_id": session_id,
+        "user_id": user_id
+    })
+
+    return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)

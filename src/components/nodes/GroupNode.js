@@ -21,6 +21,7 @@ import NodeHandles from "../nodeComponents/NodeHandles";
 import DragHandle from "../nodeComponents/DragHandle";
 import LabelEditor from "../nodeComponents/LabelEditor";
 import { generateTextToGraph } from "../../api/generateTextToGraph";
+import { logEvent } from "../../api/logEvent";
 
 const controlStyle = {
   background: "transparent",
@@ -163,7 +164,6 @@ export default function GroupNode({
         node.id === id
           ? {
               ...node,
-              // id: `class-${editLabel}`,
               data: {
                 ...node.data,
                 label: editLabel,
@@ -174,10 +174,24 @@ export default function GroupNode({
           : node
       )
     );
+    logEvent("node.group.edit_label", {
+      nodeId: id,
+      newLabel: editLabel,
+      nodeType: "group",
+    });
     setIsEditing(false);
   };
 
   const handleDelete = () => {
+    const allNodes = getNodes();
+    const children = allNodes.filter((n) => n.parentNode === id);
+
+    logEvent("node.group.delete", {
+      nodeId: id,
+      children: children.map((c) => c.id),
+      nodeType: "group",
+    });
+
     setNodes((prevNodes) =>
       prevNodes.filter((node) => node.id !== id && node?.parentNode !== id)
     );
@@ -199,6 +213,13 @@ export default function GroupNode({
 
     const duplicatedRelatedEdges = duplicateEdges(allEdges, idMap, randomId);
 
+    logEvent("node.group.duplicate", {
+      sourceId: id,
+      children: children.map((c) => c.id),
+      duplicatedCount: duplicated.length,
+      nodeType: "group",
+    });
+
     setNodes((prev) => [...prev, ...duplicated]);
     setEdges((prev) => [...prev, ...duplicatedRelatedEdges]);
   };
@@ -209,12 +230,23 @@ export default function GroupNode({
   };
 
   const handleGraphFromText = async () => {
-    // edit label to scene graph
     const position = getMyPosition();
+    logEvent("node.group.text_to_graph_requested", {
+      sourceNodeId: id,
+      text: editLabel,
+      position,
+      nodeType: "group",
+    });
+
     const { nodes, edges } = await generateTextToGraph(editLabel, id, position);
 
-    console.log("Generated nodes:", nodes);
-    console.log("Generated edges:", edges);
+    logEvent("node.group.text_to_graph_generated", {
+      sourceNodeId: id,
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+      nodeType: "group",
+    });
+
     setNodes((prev) => [...prev, ...nodes]);
     setEdges((prev) => [...prev, ...edges]);
   };
@@ -289,9 +321,14 @@ export default function GroupNode({
             {/* ✅ 여기에만 클릭 이벤트 걸기 */}
             <span
               onClick={(e) => {
-                e.stopPropagation(); // ✅ prevents parent from hijacking the drag
-                e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
+                e.stopPropagation();
+                e.preventDefault();
                 onToggleCollapse(id);
+                logEvent("node.group.toggle_collapsed", {
+                  nodeId: id,
+                  collapsed: !data.collapsed,
+                  nodeType: "group",
+                });
               }}
               style={{
                 display: "inline-flex",

@@ -7,6 +7,7 @@ import {
   DARK_GREY_TRANS,
 } from "../../utils/constants";
 import { useReactFlow } from "@xyflow/react";
+import { logEvent } from "../../api/logEvent"; // ✅ 로깅 함수 임포트
 
 function ResizableNode({ id, data, nodeType, style }) {
   const connection = useConnection();
@@ -18,6 +19,7 @@ function ResizableNode({ id, data, nodeType, style }) {
     e.stopPropagation(); // ✅ prevents parent from hijacking the drag
     e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
   };
+
   const handleResize = (resizedId, { width, height }) => {
     const nodes = getNodes();
     const edges = getEdges();
@@ -34,7 +36,6 @@ function ResizableNode({ id, data, nodeType, style }) {
       height: height - prevHeight,
     };
 
-    // size 핸들로 연결된 노드들
     const linkedSizeNodeIds = edges
       .filter(
         (e) =>
@@ -43,7 +44,14 @@ function ResizableNode({ id, data, nodeType, style }) {
       )
       .map((e) => (e.source === resizedId ? e.target : e.source));
 
-    console.log("[handleResize] ", linkedSizeNodeIds);
+    // ✅ 로깅 추가
+    logEvent("node.resizable.resized", {
+      nodeId: resizedId,
+      prevSize: { width: prevWidth, height: prevHeight },
+      newSize: { width, height },
+      delta,
+      linkedSizeNodeIds,
+    });
 
     setNodes((prev) =>
       prev.map((n) => {

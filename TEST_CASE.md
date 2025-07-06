@@ -29,7 +29,7 @@
 
 - [X] Resize a `Resizable` node using resize handles
 - [X] Duplicate a `Group` node
-    - [ ] With different label
+    - [X] With different label
 - [X] Delete a `Group` node
 - [X] Add a new `Attribute` node and edit its label
 - [X] Add a new `Relationship` node and edit its label
@@ -59,11 +59,11 @@
 - [X] Confirm that additional connected nodes not in Class Graph are included
 - [X] Confirm that additional connected nodes not in Instance board are included
 
-- [ ] Changes in Class Graphs are synced
+- [X] Changes in Class Graphs are synced
 - [X] Changes in Instance Graphs are synced
 
 - [X] Collapse and expand a group node correctly
-- [ ] Check for duplicated labels in nodes
+- [X] Check for duplicated labels in nodes
 - [ ] Ensure no unexpected or redundant nodes exist
 
 ## Test 4. Image Generation

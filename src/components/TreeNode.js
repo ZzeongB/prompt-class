@@ -10,6 +10,7 @@ import {
   REL_COLOR_TRANS_DARK,
 } from "../utils/constants";
 import { ChevronRight, ChevronDown, MoveDiagonal } from "lucide-react";
+import { logEvent } from "../api/logEvent";
 
 export default function TreeNode({ node, depth = 0 }) {
   const [expanded, setExpanded] = useState(true);
@@ -98,7 +99,14 @@ export default function TreeNode({ node, depth = 0 }) {
             </div>
             {hasChildren && (
               <div
-                onClick={() => setExpanded(!expanded)}
+                onClick={() => {
+                  setExpanded(!expanded);
+                  logEvent("instanceboard.node.toggle_collapsed", {
+                    nodeId: node.id,
+                    label: node.data?.label,
+                    expanded: !expanded,
+                  });
+                }}
                 style={{
                   marginLeft: 10,
                   width: 20,
@@ -111,10 +119,10 @@ export default function TreeNode({ node, depth = 0 }) {
                 }}
               >
                 {!expanded ? (
-                <ChevronRight size={16} />
-              ) : (
-                <ChevronDown size={16} />
-              )}
+                  <ChevronRight size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
               </div>
             )}
           </div>

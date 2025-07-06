@@ -31,6 +31,7 @@ import { generateImageFromInstanceData } from "../api/generateImage";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
+import { logEvent } from "../api/logEvent";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -100,6 +101,14 @@ function LayoutBoard({ onImageGenerated }) {
       );
 
       setIsSelectingRegion(false);
+
+      // 드래그로 임시 노드 생성 로그
+      logEvent("layoutboard.tmp_node.created", {
+        x: dragState.start.x,
+        y: dragState.start.y,
+        width: dragState.rect.width,
+        height: dragState.rect.height,
+      });
       return;
     } else {
       if (id && type) {
@@ -112,7 +121,7 @@ function LayoutBoard({ onImageGenerated }) {
         let count = 1;
 
         while (existingLabels.includes(uniqueLabel)) {
-          uniqueLabel = `${baseLabel}${count}`;
+          uniqueLabel = `${baseLabel} ${count}`;
           count++;
         }
 
@@ -127,7 +136,11 @@ function LayoutBoard({ onImageGenerated }) {
           classEdges
         );
 
-        console.log("Layout newNodes", newNodes);
+        logEvent("layoutboard.node.add.instantance", {
+          classId: id,
+          instanceLabel: uniqueLabel,
+          createdNodeIds: newNodes.map((n) => n.id),
+        });
 
         setNodes((prevNodes) => [...prevNodes, ...newNodes]);
         setEdges((prevEdges) => [...prevEdges, ...newEdges]);
@@ -192,9 +205,25 @@ function LayoutBoard({ onImageGenerated }) {
   );
 
   const handleClick = async () => {
-    setProgress(0); // 진행률 초기화
-    setIsGenerating(true); // ✅ 진행 시작
+    setProgress(0);
+    setIsGenerating(true);
     setErrorMessage();
+
+    const startTime = performance.now();
+
+    // ✅ 입력 정보 저장
+    const inputSnapshot = {
+      nodes,
+      edges,
+      classNodes,
+      classEdges,
+    };
+
+    logEvent("imagegen.started", {
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+      inputs: inputSnapshot,
+    });
 
     setTimeout(async () => {
       const result = extractSentencesAndBoxes(
@@ -205,31 +234,50 @@ function LayoutBoard({ onImageGenerated }) {
         flowToScreenPosition
       );
 
-      console.log("result", result);
+      console.log("[LayoutBoard] extractSentencesAndBoxes", result);
+      logEvent("imagegen.extracted", {
+        sentences: result.sentences,
+        boxes: result.boxes,
+      });
 
       try {
         const response = await generateImageFromInstanceData(
           result.sentences,
           result.boxes,
-          "" // globalCaption
+          "" // global caption placeholder
         );
 
-        console.log("response", response);
-        onImageGenerated(response.image); // 이미지 생성 후 부모 컴포넌트에 전달
-        setImage(response.image); // 상태 업데이트
-        setImageBoard(response.image); // 이미지 보드 상태 업데이트
-        // setGlobalCaption(response.globalCaption); // 상태 업데이트
-      } catch (err) {
-        console.error("Image generation failed", err);
+        const durationMs = performance.now() - startTime;
 
+        logEvent("imagegen.succeeded", {
+          durationMs,
+          imageSize: response.image.length,
+          globalCaptionUsed: response.globalCaption,
+          outputPreview: {
+            sentences: result.sentences.slice(0, 3),
+            boxes: result.boxes.slice(0, 3),
+          },
+        });
+
+        onImageGenerated(response.image);
+        setImage(response.image);
+        setImageBoard(response.image);
+      } catch (err) {
+        const durationMs = performance.now() - startTime;
         const message =
           err?.response?.data?.message ||
           err?.message ||
           "알 수 없는 오류가 발생했습니다.";
 
+        logEvent("imagegen.failed", {
+          durationMs,
+          errorMessage: message,
+        });
+
+        console.error("Image generation failed", err);
         setErrorMessage(message);
       } finally {
-        setIsGenerating(false); // ✅ 완료 or 실패 후 종료
+        setIsGenerating(false);
       }
     }, 200);
   };

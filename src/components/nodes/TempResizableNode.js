@@ -14,6 +14,7 @@ import { Eraser, Trash2, Network } from "lucide-react";
 import { generateTextToGraph } from "../../api/generateTextToGraph";
 import { useInstanceGraph } from "../../context/InstanceGraphContext";
 import { useClassGraph } from "../../context/ClassGraphContext";
+import { logEvent } from "../../api/logEvent"; // ✅ 로깅 함수 임포트
 
 function TempResizableNode({ id, data, width, height }) {
   const { deleteElements, getNode, flowToScreenPosition, setNodes, setEdges } =
@@ -46,13 +47,26 @@ function TempResizableNode({ id, data, width, height }) {
 
   const handleGenerateDescription = async () => {
     try {
+      logEvent("node.tmp-resizable.description_generation_requested", {
+        nodeId: id,
+        cropBox: crop_box,
+        globalCaption,
+      });
+
       const response = await generateDescription(
         image,
         crop_box,
         globalCaption
       );
+
       const label = response.label || "New Object";
       const description = response.description;
+
+      logEvent("node.tmp-resizable.description_generated", {
+        nodeId: id,
+        label,
+        description,
+      });
 
       if (label && description) {
         const groupNode = {
@@ -79,17 +93,36 @@ function TempResizableNode({ id, data, width, height }) {
           style: { width: 280, height: 500 },
         };
 
+        logEvent("node.tmp-resizable.text_to_graph_requested", {
+          sourceNodeId: id,
+          description,
+        });
+
         const { nodes, edges } = await generateTextToGraph(
           description,
           `class-${id}`,
           groupNode_.position
         );
 
+        logEvent("node.tmp-resizable.text_to_graph_generated", {
+          sourceNodeId: id,
+          nodeCount: nodes.length,
+          edgeCount: edges.length,
+        });
+
         const newNodes = [groupNode_, ...nodes];
 
         setNodes((prev) =>
           prev
-            .map((n) => (n.id === id ? { ...n, type: "resizable", data: { ...n.data, type: "object" } } : n))
+            .map((n) =>
+              n.id === id
+                ? {
+                    ...n,
+                    type: "resizable",
+                    data: { ...n.data, type: "object" },
+                  }
+                : n
+            )
             .concat(groupNode)
         );
         setNodesFromFlow((prev) => [...prev, ...newNodes]);
@@ -97,10 +130,19 @@ function TempResizableNode({ id, data, width, height }) {
       }
     } catch (error) {
       console.error("Error generating description:", error);
+      logEvent("node.tmp-resizable.description_generation_failed", {
+        nodeId: id,
+        error: error.message,
+      });
     }
   };
 
   const handleEraseFromImage = () => {
+    logEvent("node.tmp-resizable.erase_from_image", {
+      nodeId: id,
+      position: node?.position,
+    });
+
     const emptyNode = {
       id: `empty-${id}`,
       type: "instance",
@@ -163,7 +205,10 @@ function TempResizableNode({ id, data, width, height }) {
           title="Delete node"
           icon={<Trash2 size={16} />}
           danger
-          onClick={() => deleteElements({ nodes: [{ id }] })}
+          onClick={() => {
+            logEvent("node.tmp-resizable.delete", { nodeId: id, from: "temp_resizable" });
+            deleteElements({ nodes: [{ id }] });
+          }}
         />
       </NodeToolbar>
 

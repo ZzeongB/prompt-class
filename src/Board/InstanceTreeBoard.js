@@ -1,10 +1,22 @@
-// App.jsx
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import InstanceTree from "../components/InstanceTree.js";
 import { useInstanceGraph } from "../context/InstanceGraphContext.js";
 import { useClassGraph } from "../context/ClassGraphContext.js";
 import { getRenderedInstanceBoard } from "../utils/instance/getRenderedInstanceBoard.js";
+
+function getClassGraphSignature(nodes, edges) {
+  const nodeSig = nodes
+    .map((n) => `${n.id}-${n.data?.label}-${JSON.stringify(n.data?.attributes ?? [])}`)
+    .sort()
+    .join("|");
+
+  const edgeSig = edges
+    .map((e) => `${e.source}-${e.target}-${e.label}`)
+    .sort()
+    .join("|");
+
+  return `${nodeSig}::${edgeSig}`;
+}
 
 function InstanceTreeBoard() {
   const { classNodes, classEdges } = useClassGraph();
@@ -14,7 +26,13 @@ function InstanceTreeBoard() {
   const [edges, setEdges] = useState([]);
   const [filledAttrMap, setFilledAttrMap] = useState({});
 
-  // instanceNodes 바뀔 때는 무조건 반영
+  // ✅ classGraph 구조 변화에 대한 signature 생성
+  const classGraphSignature = useMemo(
+    () => getClassGraphSignature(classNodes, classEdges),
+    [classNodes, classEdges]
+  );
+
+  // ✅ instanceNodes 또는 의미 있는 classGraph 변화가 있을 때만 렌더링
   useEffect(() => {
     const {
       nodes: newNodes,
@@ -27,14 +45,11 @@ function InstanceTreeBoard() {
       classEdges,
       filledAttrMap,
     });
-    console.log("[InstanceTreeBoard] instanceNodes", instanceNodes)
-    console.log("[InstanceTreeBoard] getRenderedInstanceBoard", nodes, newNodes)
 
     setNodes(newNodes);
     setEdges(newEdges);
-
     setFilledAttrMap(newFilledAttrMap);
-  }, [instanceNodes]);
+  }, [instanceNodes, classGraphSignature]); // 👈 핵심
 
   return (
     <div>
