@@ -32,6 +32,7 @@ import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
 import { logEvent } from "../api/logEvent";
+import { LEFT_OFFSET, TOP_OFFSET } from "../utils/constants";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -228,7 +229,9 @@ function LayoutBoard({ onImageGenerated }) {
         edges,
         classNodes,
         classEdges,
-        flowToScreenPosition
+        flowToScreenPosition,
+        LEFT_OFFSET,
+        TOP_OFFSET
       );
 
       logEvent("imagegen.extracted", {
@@ -298,8 +301,8 @@ function LayoutBoard({ onImageGenerated }) {
         <div
           style={{
             position: "absolute",
-            top: `${dragState.rect.y - 40}px`,
-            left: `${dragState.rect.x - 660}px`,
+            top: `${dragState.rect.y - TOP_OFFSET}px`,
+            left: `${dragState.rect.x - LEFT_OFFSET}px`,
             width: `${dragState.rect.width}px`,
             height: `${dragState.rect.height}px`,
             border: "1px dashed #007bff",
@@ -308,34 +311,6 @@ function LayoutBoard({ onImageGenerated }) {
           }}
         />
       )}
-
-      {/* input 필드: 전체 너비 차지 */}
-      {/* <div
-        style={{
-          position: "absolute",
-          bottom: "-30px", // 진행 바 + 버튼 위쪽에 위치하도록
-          width: "100%",
-          // padding: "0 16px",
-          boxSizing: "border-box",
-        }}
-      >
-        <input
-          type="text"
-          value={globalCaption}
-          onChange={(e) => setGlobalCaption(e.target.value)}
-          placeholder="Write global caption here!"
-          style={{
-            width: "100%",
-            // padding: "8px",
-            fontSize: "14px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            boxSizing: "border-box",
-          }}
-          onMouseDown={(e) => e.stopPropagation()} // 드래그 방지
-        />
-      </div> */}
-
       {/* 진행 바 + 버튼: 나란히 정렬 */}
       <div
         style={{
@@ -373,7 +348,6 @@ function LayoutBoard({ onImageGenerated }) {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            // padding: "0 16px",
             boxSizing: "border-box",
           }}
         >

@@ -75,7 +75,9 @@ export function extractSentencesAndBoxes(
   instanceEdges,
   classGraphNodes,
   classGraphEdges,
-  flowToScreenPosition
+  flowToScreenPosition,
+  offset_left = 660,
+  offset_top = 20
 ) {
   const objectNodes = instanceNodes.filter(
     (n) =>
@@ -113,8 +115,8 @@ export function extractSentencesAndBoxes(
       const box = getNormalizedBox(
         resizableNode,
         flowToScreenPosition,
-        660,
-        40,
+        offset_left,
+        offset_top,
         true
       );
       boxes.push(box);
@@ -155,8 +157,8 @@ export function extractSentencesAndBoxes(
       const box = getNormalizedBox(
         resizableNode,
         flowToScreenPosition,
-        660,
-        40,
+        offset_left,
+        offset_top,
         true
       );
       boxes.push(box);

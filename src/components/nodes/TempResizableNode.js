@@ -16,6 +16,7 @@ import { useInstanceGraph } from "../../context/InstanceGraphContext";
 import { useClassGraph } from "../../context/ClassGraphContext";
 import { logEvent } from "../../api/logEvent"; 
 import { getNonOverlappingPosition } from "../../utils/node/getNonOverlappingPosition";
+import { LEFT_OFFSET, TOP_OFFSET } from "../../utils/constants";
 
 function TempResizableNode({ id, data, width, height }) {
   const { deleteElements, getNode, flowToScreenPosition, setNodes, setEdges } =
@@ -44,7 +45,7 @@ function TempResizableNode({ id, data, width, height }) {
       document.removeEventListener("pointerdown", handleClickOutside, true);
   }, []);
 
-  const crop_box = getNormalizedBox(node, flowToScreenPosition, 660, 40, false);
+  const crop_box = getNormalizedBox(node, flowToScreenPosition, LEFT_OFFSET, TOP_OFFSET, false);
 
   const handleGenerateDescription = async () => {
     try {
