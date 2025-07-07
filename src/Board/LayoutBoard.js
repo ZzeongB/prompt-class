@@ -53,7 +53,7 @@ function LayoutBoard({ onImageGenerated }) {
   const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
   const [dragState, setDragState] = useState(null);
   const [imageBoard, setImageBoard] = useState();
-  // const [globalCaption, setGlobalCaption] = useState("");
+  const [globalCaption, setGlobalCaption] = useState("");
   const [progress, setProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -240,24 +240,25 @@ function LayoutBoard({ onImageGenerated }) {
         const response = await generateImageFromInstanceData(
           result.sentences,
           result.boxes,
-          "" // global caption placeholder
+          globalCaption // global caption placeholder
         );
 
         const durationMs = performance.now() - startTime;
 
         logEvent("imagegen.succeeded", {
           durationMs,
-          imageSize: response.image.length,
-          globalCaptionUsed: response.globalCaption,
-          outputPreview: {
-            sentences: result.sentences.slice(0, 3),
-            boxes: result.boxes.slice(0, 3),
-          },
+          image_size: response.image.length,
+          global_caption: response.globalCaption,
+          // output_preview: {
+          //   sentences: result.sentences.slice(0, 3),
+          //   boxes: result.boxes.slice(0, 3),
+          // },
         });
 
         onImageGenerated(response.image);
         setImage(response.image);
         setImageBoard(response.image);
+        setGlobalCaption(response.globalCaption || "");
       } catch (err) {
         const durationMs = performance.now() - startTime;
         const message =

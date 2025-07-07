@@ -14,13 +14,14 @@ import { Eraser, Trash2, Network } from "lucide-react";
 import { generateTextToGraph } from "../../api/generateTextToGraph";
 import { useInstanceGraph } from "../../context/InstanceGraphContext";
 import { useClassGraph } from "../../context/ClassGraphContext";
-import { logEvent } from "../../api/logEvent"; // ✅ 로깅 함수 임포트
+import { logEvent } from "../../api/logEvent"; 
+import { getNonOverlappingPosition } from "../../utils/node/getNonOverlappingPosition";
 
 function TempResizableNode({ id, data, width, height }) {
   const { deleteElements, getNode, flowToScreenPosition, setNodes, setEdges } =
     useReactFlow();
   const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
-  const { setNodesFromFlow, setEdgesFromFlow } = useClassGraph();
+  const { setNodesFromFlow, setEdgesFromFlow, classNodes } = useClassGraph();
   const node = getNode(id);
   const [isSelected, setIsSelected] = useState(true);
   const nodeRef = useRef(null);
@@ -81,10 +82,11 @@ function TempResizableNode({ id, data, width, height }) {
           },
         };
 
+        const position_classboard = getNonOverlappingPosition( classNodes, 280, 500, node.position.x, node.position.y, 50);
         const groupNode_ = {
           id: `class-${id}`,
           type: "object-group",
-          position: { x: node.position.x, y: node.position.y },
+          position: position_classboard,
           data: {
             label,
             type: "object",
@@ -106,8 +108,8 @@ function TempResizableNode({ id, data, width, height }) {
 
         logEvent("layoutboard.node.tmp-resizable.text_to_graph_generated", {
           sourceNodeId: id,
-          nodeCount: nodes.length,
-          edgeCount: edges.length,
+          nodes: nodes,
+          edges: edges,
         });
 
         const newNodes = [groupNode_, ...nodes];
@@ -125,6 +127,7 @@ function TempResizableNode({ id, data, width, height }) {
             )
             .concat(groupNode)
         );
+        setInstanceNodes((prev) => [...prev, groupNode]);
         setNodesFromFlow((prev) => [...prev, ...newNodes]);
         setEdgesFromFlow((prev) => [...prev, ...edges]);
       }

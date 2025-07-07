@@ -242,9 +242,8 @@ export default function GroupNode({
 
     logEvent("node.group.text_to_graph_generated", {
       sourceNodeId: id,
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-      nodeType: "group",
+      nodes: nodes, 
+      edges: edges,
     });
 
     setNodes((prev) => [...prev, ...nodes]);
