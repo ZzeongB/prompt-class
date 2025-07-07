@@ -294,22 +294,6 @@ function LayoutBoard({ onImageGenerated }) {
       onMouseDown={onMouseDown}
       style={{ userSelect: "none" }}
     >
-      <CustomButton
-        color={isSelectingRegion ? "neutral" : "grey"}
-        size="md"
-        onClick={() => setIsSelectingRegion(!isSelectingRegion)}
-      >
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            fontWeight: "bold",
-          }}
-        >
-          {isSelectingRegion ? "Cancel Selection" : "Select Region"}
-        </span>
-      </CustomButton>
       {dragState?.rect && (
         <div
           style={{
@@ -356,27 +340,55 @@ function LayoutBoard({ onImageGenerated }) {
       <div
         style={{
           position: "absolute",
-          bottom: "-70px",
+          bottom: "-40px",
           width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
+          display: "column",
+          // alignItems: "center",
+          // gap: "8px",
           // padding: "0 16px",
-          boxSizing: "border-box",
+          // boxSizing: "border-box",
         }}
       >
-        <ProgressBar now={progress} errorMessage={errorMessage} />
-
         <CustomButton
-          onClick={handleClick}
-          color="purpleBlue"
-          size="lg"
-          disabled={isGenerating}
+          color={isSelectingRegion ? "neutral" : "grey"}
+          size="sm"
+          onClick={() => setIsSelectingRegion(!isSelectingRegion)}
         >
-          {isGenerating ? "Generating" : "Generate"}
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: "bold",
+            }}
+          >
+            {isSelectingRegion ? "Cancel Selection" : "Select Region"}
+          </span>
         </CustomButton>
-      </div>
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-35px",
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            // padding: "0 16px",
+            boxSizing: "border-box",
+          }}
+        >
+          <ProgressBar now={progress} errorMessage={errorMessage} />
 
+          <CustomButton
+            onClick={handleClick}
+            color="purpleBlue"
+            size="lg"
+            disabled={isGenerating}
+          >
+            {isGenerating ? "Generating" : "Generate"}
+          </CustomButton>
+        </div>
+      </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}

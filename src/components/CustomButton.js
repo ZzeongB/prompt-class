@@ -3,7 +3,8 @@ import React from "react";
 const sizeStyles = {
   sm: {
     padding: "6px 12px",
-    fontSize: "10px",
+    fontSize: "12px",
+    borderRadius: "6px",
   },
   md: {
     padding: "8px 16px",
