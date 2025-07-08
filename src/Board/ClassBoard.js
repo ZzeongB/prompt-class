@@ -242,7 +242,7 @@ function ClassBoard() {
       },
       position: { x: 0, y: 0 },
       measured: { width: 200, height: 150 },
-      style: { width: 200, height: 150 },
+      style: { width: 200, height: 100 },
     });
   };
 
@@ -261,6 +261,7 @@ function ClassBoard() {
   const handleGhostClick = (e) => {
     if (!ghostNode) return;
     e.preventDefault();
+    e.stopPropagation();
 
     const newId = `class-${nodes.length + 1}`;
     const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });

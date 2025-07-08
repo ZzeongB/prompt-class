@@ -40,6 +40,8 @@ export default function BaseNode({
         toolbarRef.current &&
         !toolbarRef.current.contains(event.target)
       ) {
+        if (isEditing) handleLabelUpdateFixed();
+
         setIsSelected(false);
         setIsEditing(false);
       }

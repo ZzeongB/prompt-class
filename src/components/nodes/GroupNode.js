@@ -59,6 +59,8 @@ export default function GroupNode({
         toolbarRef.current &&
         !toolbarRef.current.contains(event.target)
       ) {
+        if (isEditing) handleLabelUpdate();
+
         setIsSelected(false);
         setIsEditing(false);
       }

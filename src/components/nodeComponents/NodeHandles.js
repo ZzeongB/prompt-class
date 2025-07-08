@@ -42,7 +42,7 @@ export default function NodeHandles({ id, isSelected, nodeType }) {
     (sourceType == "object" && nodeType == "attribute");
   return (
     <>
-      {["Top", "Right", "Bottom", "Left"].map((pos) => (
+      {["Right", "Bottom", "Top"].map((pos) => (
         <React.Fragment key={pos}>
           {!connection.inProgress && (
             <Handle
