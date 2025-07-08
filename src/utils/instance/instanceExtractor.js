@@ -77,7 +77,8 @@ export function extractSentencesAndBoxes(
   classGraphEdges,
   flowToScreenPosition,
   offset_left = 660,
-  offset_top = 20
+  offset_top = 20,
+  filledAttrMap = {}
 ) {
   const objectNodes = instanceNodes.filter(
     (n) =>
@@ -101,8 +102,10 @@ export function extractSentencesAndBoxes(
 
   const sentences = [];
   const boxes = [];
+  const labels = [];
 
-  if (emptyNodes.length > 0) { // 빈 노드가 있는 경우
+  if (emptyNodes.length > 0) {
+    // 빈 노드가 있는 경우
     emptyNodes.forEach((emptyNode) => {
       sentences.push("no objects, only background");
 
@@ -146,6 +149,25 @@ export function extractSentencesAndBoxes(
 
       structuredClass.attributes.push(...groupAttributes); // ✅ 주입
       structuredClass.attributes.push(...groupAttributes_); // ✅ 주입
+
+      // filledAttrMap에서 해당 instanceId의 빈 attributeId를 받아와서 값을 주입
+      // --- 여기 수정 ---
+      const instanceId = objNode.id;
+      if (filledAttrMap[instanceId]) {
+        structuredClass.attributes.forEach((attr) => {
+          if (!attr.value) {
+            attr.value = filledAttrMap[instanceId][attr.id] || null;
+          }
+        });
+
+        structuredClass.objects?.forEach((obj) => {
+          obj.attributes?.forEach((attr) => {
+            if (!attr.value) {
+              attr.value = filledAttrMap[instanceId][attr.id] || null;
+            }
+          });
+        });
+      }
 
       if (!structuredClass) return;
 
@@ -211,5 +233,5 @@ export function extractSentencesAndBoxes(
     });
   }
 
-  return { sentences, boxes };
+  return { sentences, boxes, labels };
 }

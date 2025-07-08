@@ -6,9 +6,10 @@ const InstanceGraphContext = createContext();
 export const InstanceGraphProvider = ({ children }) => {
   const [instanceNodes, setInstanceNodes] = useState([]);
   const [instanceEdges, setInstanceEdges] = useState([]);
+  const [instanceAttrMap, setInstanceAttrMap] = useState({});
 
   return (
-    <InstanceGraphContext.Provider value={{ instanceNodes, setInstanceNodes, instanceEdges, setInstanceEdges }}>
+    <InstanceGraphContext.Provider value={{ instanceNodes, setInstanceNodes, instanceEdges, setInstanceEdges, instanceAttrMap, setInstanceAttrMap }}>
       {children}
     </InstanceGraphContext.Provider>
   );

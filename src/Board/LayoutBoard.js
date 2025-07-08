@@ -51,7 +51,7 @@ function LayoutBoard({ onImageGenerated }) {
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges, structuredClasses } = useClassGraph();
-  const { setInstanceNodes, setInstanceEdges } = useInstanceGraph();
+  const { setInstanceNodes, setInstanceEdges, instanceAttrMap } = useInstanceGraph();
   const [dragState, setDragState] = useState(null);
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
@@ -231,12 +231,14 @@ function LayoutBoard({ onImageGenerated }) {
         classEdges,
         flowToScreenPosition,
         LEFT_OFFSET,
-        TOP_OFFSET
+        TOP_OFFSET,
+        instanceAttrMap
       );
 
       logEvent("imagegen.extracted", {
         sentences: result.sentences,
         boxes: result.boxes,
+        required_keywords: result.labels,
       });
 
       try {

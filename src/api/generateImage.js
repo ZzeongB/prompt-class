@@ -1,8 +1,17 @@
 import { generateGlobalCaption } from "./generateGlobalCaption";
 
-export async function generateImageFromInstanceData(sentences, boxes, globalCaption_) {
+export async function generateImageFromInstanceData(
+  sentences,
+  boxes,
+  globalCaption_,
+  requiredKeywords
+) {
   try {
-    const { refinedCaptions, globalCaption } = await generateGlobalCaption(sentences, globalCaption_);
+    const { refinedCaptions, globalCaption } = await generateGlobalCaption(
+      sentences,
+      globalCaption_,
+      requiredKeywords || null
+    );
 
     const response = await fetch("http://127.0.0.1:5000/generate", {
       method: "POST",

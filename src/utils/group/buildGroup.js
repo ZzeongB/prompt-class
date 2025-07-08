@@ -26,6 +26,7 @@ export function buildGroup(groupId, nodes, edges, visited = new Set()) {
         return {
           name: attrNode.data?.label,
           value: attrNode.data?.hasValue ?? null,
+          id: attrNode.id,
         };
       })
       .filter(Boolean);
@@ -57,6 +58,7 @@ export function buildGroup(groupId, nodes, edges, visited = new Set()) {
     .map(attrNode => ({
       name: attrNode.data?.label,
       value: attrNode.data?.hasValue ?? null,
+      id: attrNode.id,
     }));
 
   // ✅ group scope의 relation 수집
