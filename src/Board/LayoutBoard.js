@@ -243,7 +243,8 @@ function LayoutBoard({ onImageGenerated }) {
         const response = await generateImageFromInstanceData(
           result.sentences,
           result.boxes,
-          globalCaption // global caption placeholder
+          globalCaption, // global caption placeholder
+          result.labels
         );
 
         const durationMs = performance.now() - startTime;

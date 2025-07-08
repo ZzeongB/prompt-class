@@ -88,34 +88,50 @@ def safe_split_refined_captions(text, expected_count):
     return fallback_lines[:expected_count]
 
 
-def generate_global_caption_and_refinements(sentences, global_caption=""):
-    # 프롬프트 구성def generate_global_caption_and_refinements(sentences, global_caption=""):
-    # 프롬프트 구성
-    # 프롬프트 구성
-    has_caption = bool(global_caption)
+def generate_global_caption_and_refinements(
+    sentences,
+    global_caption="",
+    required_keywords=None,
+    max_retries=2
+):
+    required_keywords = required_keywords or []
 
-    region_desc = chr(10).join([f"{i+1}. {s}" for i, s in enumerate(sentences)])
-    caption_block = f"\nPreliminary global description:\n{global_caption}" if has_caption else ""
+    def contains_all_required(captions, keywords):
+        full_text = " ".join(captions).lower()
+        return all(k.lower() in full_text for k in keywords)
 
-    prompt = caption_prompt(has_caption, region_desc, caption_block)
-        
-    response = client.chat.completions.create(
-        model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}]
-    )
+    for attempt in range(max_retries):
+        has_caption = bool(global_caption)
+        region_desc = "\n".join([f"{i+1}. {s}" for i, s in enumerate(sentences)])
+        caption_block = f"\nPreliminary global description:\n{global_caption}" if has_caption else ""
+        prompt = caption_prompt(has_caption, region_desc, caption_block, required_keywords)
 
-    response_text = response.choices[0].message.content
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        response_text = response.choices[0].message.content
 
-    # 파싱
-    region_matches = re.findall(r"^\d+\.\s(.+)", response_text, re.MULTILINE)
-    global_match = re.search(r"Global image description:\s*([\s\S]+)", response_text)
-    global_caption = global_match.group(1).strip() if global_match else ""
+        region_matches = re.findall(r"^\d+\.\s(.+)", response_text, re.MULTILINE)
+        global_match = re.search(r"Global image description:\s*([\s\S]+)", response_text)
+        global_caption = global_match.group(1).strip() if global_match else ""
 
-    # 안전 처리
-    if len(region_matches) != len(sentences):
-        print("⚠️ Warning: refined captions count mismatch! Trying fallback parsing.")
-        region_matches = safe_split_refined_captions(response_text, len(sentences))
+        if len(region_matches) != len(sentences):
+            print("⚠️ Warning: caption count mismatch. Fallback parsing triggered.")
+            region_matches = safe_split_refined_captions(response_text, len(sentences))
 
-    return {"refined_captions": region_matches, "global_caption": global_caption}
+        if contains_all_required(region_matches, required_keywords):
+            return {
+                "refined_captions": region_matches,
+                "global_caption": global_caption
+            }
+
+        print(f"🔁 Retry #{attempt + 1} due to missing required keywords: {required_keywords}")
+
+    return {
+        "refined_captions": region_matches,
+        "global_caption": global_caption
+    }
 
 
 def generate_description(region, global_caption):

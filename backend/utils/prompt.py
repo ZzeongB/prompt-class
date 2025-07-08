@@ -1,4 +1,9 @@
-def caption_prompt(has_caption=False, region_desc="", caption_block=""):
+def caption_prompt(has_caption=False, region_desc="", caption_block="", required_keywords=None):
+    keyword_block = ""
+    if required_keywords:
+        keyword_list = ", ".join(required_keywords)
+        keyword_block = f"\n\nRequired keywords:\n{keyword_list}"
+
     return f"""
 You are an AI assistant that converts structured scene descriptions into image generation prompts for a generative model.
 
@@ -6,6 +11,7 @@ Your role is not to verify whether the description makes sense in reality. Even 
 
 # Guidelines:
 - All original words and phrases must appear in the final prompt. DO NOT omit or change any word.
+- All **required keywords** must also appear somewhere in the output. These keywords are essential and must not be skipped or altered.
 - You may reorder, rephrase, or insert connecting words to make the prompt more natural for image generation, but NO words should be removed or replaced.
 - If there are multiple, same objects, exactly specify number of it (e.g. five cups, three coke cans)
 - You are allowed to slightly adjust grammar or word forms (e.g., plural/singular, articles), but you must preserve all concepts.
@@ -32,7 +38,7 @@ a surreal scene featuring a mole with poop on its head, a pink elephant flying o
 # Now process the following input:
 
 Original region descriptions:
-{region_desc}{caption_block}
+{region_desc}{caption_block}{keyword_block}
 
 Please return the result in this format:
 
@@ -44,6 +50,7 @@ Corrected region descriptions:
 Global image description:
 ...
 """
+
 
 def description_prompt(global_caption):
     return f"""Your task is to:

@@ -95,13 +95,15 @@ def generate_caption_route():
     data = request.get_json()
     sentences = data.get("sentences", [])
     global_caption = data.get("globalCaption", "")
+    required_keywords = data.get("requiredKeywords", None)
 
     log_event("generate_caption_requested", {
         "sentences": sentences,
         "global_caption": global_caption,
+        "required_keywords": required_keywords
     })
 
-    result = generate_global_caption_and_refinements(sentences, global_caption)
+    result = generate_global_caption_and_refinements(sentences, global_caption, required_keywords)
 
     log_event("generate_caption_completed", {
         "refinements": result

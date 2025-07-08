@@ -120,6 +120,8 @@ export function extractSentencesAndBoxes(
         true
       );
       boxes.push(box);
+
+      labels.push("empty");
     });
   }
   if (objectNodes.length > 0) {
@@ -162,6 +164,10 @@ export function extractSentencesAndBoxes(
         true
       );
       boxes.push(box);
+
+      const rawLabel = objNode.data.label ?? "";
+      const cleanLabel = rawLabel.replace(/\s*\d+$/, ""); // ✅ 숫자 제거
+      labels.push(cleanLabel || "");
     });
   } else {
     const baselineNodes = instanceNodes.filter(
@@ -188,6 +194,20 @@ export function extractSentencesAndBoxes(
 
       const sentence = buildCompositionalSentence(structuredClass);
       sentences.push(sentence);
+
+      const resizableNode = resizableNodes.find(
+        (n) => n.id.replace(/-resizable/g, "") === node.id
+      );
+
+      const box = getNormalizedBox(
+        resizableNode,
+        flowToScreenPosition,
+        offset_left,
+        offset_top,
+        true
+      );
+      boxes.push(box);
+      labels.push("");
     });
   }
 
