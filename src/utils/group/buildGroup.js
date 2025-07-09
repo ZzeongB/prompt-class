@@ -9,9 +9,9 @@ export function buildGroup(groupId, nodes, edges, visited = new Set()) {
   const attributeNodes = children.filter((n) => n.data?.type === "attribute");
   const relationNodes = children.filter((n) => n.data?.type === "relationship");
 
-  // ✅ object 후보: object-node + object-group-node 둘 다!
+  // ✅ object 후보: object-node + class-group-node 둘 다!
   const objectCandidates = children.filter(n =>
-    (n.data?.type === "object" || n.type === "object-group")
+    (n.data?.type === "object" || n.type === "class-group")
   );
 
   const objectEntries = objectCandidates.map((objNode) => {
@@ -31,10 +31,10 @@ export function buildGroup(groupId, nodes, edges, visited = new Set()) {
       })
       .filter(Boolean);
 
-    // ✅ nested object-group 재귀적 처리
+    // ✅ nested class-group 재귀적 처리
     let nestedObjects = [];
     let nestedRelations = [];
-    if (objNode.type === "object-group") {
+    if (objNode.type === "class-group") {
       const nested = buildGroup(objNode.id, nodes, edges, visited);
       if (nested) {
         nestedObjects = nested.objects ?? [];

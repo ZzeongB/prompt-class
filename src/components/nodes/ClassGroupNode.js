@@ -38,7 +38,7 @@ export default function ClassGroupNode(props) {
     <GroupNode
       {...props}
       dragSourceType="class"
-      forceType="object-group"
+      forceType="class-group"
       withBackground={false}
       onToggleCollapse={handleToggleCollapse}
       resizable={true}

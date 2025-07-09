@@ -83,13 +83,13 @@ export function extractSentencesAndBoxes(
   const objectNodes = instanceNodes.filter(
     (n) =>
       (n.type === "instance" || n.type === "instance-group") &&
-      (n.data.type === "object" || n.data.type === "object-group")
+      (n.data.type === "object" || n.data.type === "class-group")
   );
 
   const resizableNodes = instanceNodes.filter(
     (n) =>
       n.type === "resizable" &&
-      (n.data.type === "object" || n.data.type === "object-group")
+      (n.data.type === "object" || n.data.type === "class-group")
   );
 
   const emptyNodes = instanceNodes.filter(

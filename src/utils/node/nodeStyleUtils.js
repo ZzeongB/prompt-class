@@ -24,7 +24,7 @@ export function getInstanceNodeStyle(type, options = {}) {
     maxWidth: 100,
   };
 
-  if (type === "object-group") {
+  if (type === "class-group") {
     return { ...base, background: OBJ_COLOR_TRANS_DARK };
   }
   if (type === "attribute") {

@@ -87,7 +87,7 @@ function InstanceBoard() {
 
   const nodeTypes = useMemo(
     () => ({
-      "object-group": ClassGroupNode,
+      "class-group": ClassGroupNode,
       "instance-group": (props) => (
         <InstanceGroupNode
           {...props}

@@ -79,11 +79,11 @@ function createSimpleInstance(
 
   const newNode = {
     id: sharedId,
-    type: type === "object-group" ? "instance-group" : "instance",
+    type: type === "class-group" ? "instance-group" : "instance",
     position,
     data: {
       label,
-      type: type === "object-group" ? "object" : type,
+      type: type === "class-group" ? "object" : type,
       sharedId,
       classId: id,
       instanceId: sharedId,
@@ -298,7 +298,7 @@ function cloneSubtreeInstance(
       return {
         ...n,
         id: newId,
-        type: n.type === "object-group" ? "instance-group" : "instance",
+        type: n.type === "class-group" ? "instance-group" : "instance",
         position: newPosition,
         parentNode: newParent,
         extent: n.extent,
@@ -349,7 +349,7 @@ export function createInstance(
 ) {
   if (!type || !label) return;
 
-  if (type === "object-group" && resizable === false) {
+  if (type === "class-group" && resizable === false) {
     // from InstanceBoard
     return cloneSubtreeInstance(
       event,

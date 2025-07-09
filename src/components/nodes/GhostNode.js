@@ -30,7 +30,7 @@ const GhostNode = () => {
         background:
           type === "attribute"
             ? ATTR_COLOR_TRANS
-            : (type === "object") | (type === "object-group")
+            : (type === "object") | (type === "class-group")
             ? OBJ_COLOR_TRANS
             : type === "relationship"
             ? REL_COLOR_TRANS

@@ -4,7 +4,7 @@ export function recalculateLayout({ nodes }) {
   let currentY = 0;
 
   const groupTypes = new Set([
-    "object-group",
+    "class-group",
     "attribute-group",
     "instance-group",
   ]);

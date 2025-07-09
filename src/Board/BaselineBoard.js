@@ -40,7 +40,7 @@ const baseGhostStyle = {
 };
 
 const ghostNodeStyles = {
-  "object-group": {
+  "class-group": {
     ...baseGhostStyle,
     borderColor: OBJ_COLOR_TRANS, // 기존 색상 유지
   },
@@ -51,7 +51,7 @@ const edgeTypes = {
 };
 
 const nodeTypes = {
-  "object-group": ClassGroupNode,
+  "class-group": ClassGroupNode,
   class: ClassNode,
   instance: ClassNode,
 };
@@ -59,12 +59,12 @@ const nodeTypes = {
 function getVisibleNodes(allNodes) {
   const collapsed = new Set(
     allNodes
-      .filter((n) => n.type === "object-group" && n.data?.collapsed)
+      .filter((n) => n.type === "class-group" && n.data?.collapsed)
       .map((n) => n.id)
   );
 
   return allNodes.filter((n) => {
-    if (n.type === "object-group") return true;
+    if (n.type === "class-group") return true;
 
     return !collapsed.has(n.parentNode);
   });
@@ -102,9 +102,9 @@ function BaselineBoard() {
       });
 
       syncedNodes = syncedNodes.map((node) => {
-        if (node.type === "object-group") return node; // class 노드 자체는 대상 아님
+        if (node.type === "class-group") return node; // class 노드 자체는 대상 아님
 
-        const classNodes = nodes.filter((n) => n.type === "object-group");
+        const classNodes = nodes.filter((n) => n.type === "class-group");
         const newParent = getParentNodeForPosition(node, classNodes);
 
         // parentNode가 변경된 경우만 반영
@@ -128,7 +128,7 @@ function BaselineBoard() {
     const newId = `class-${nodes.length + 1}`;
     const newNode = {
       id: newId,
-      type: "object-group",
+      type: "class-group",
       position: {
         x: 0,
         y: 0, // 아래로 계속 쌓이게
@@ -147,7 +147,7 @@ function BaselineBoard() {
   const handleAddGroupNode = () => {
     setGhostNode({
       id: `ghost-${Date.now()}`,
-      type: "object-group",
+      type: "class-group",
       data: {
         label: "New Group",
         collapsed: false,

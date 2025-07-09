@@ -65,14 +65,14 @@ const ghostNodeStyles = {
     ...baseGhostStyle,
     borderColor: OBJ_COLOR, // 예: object용 붉은 계열
   },
-  "object-group": {
+  "class-group": {
     ...baseGhostStyle,
     borderColor: OBJ_COLOR_TRANS, // 기존 색상 유지
   },
 };
 
 const nodeTypes = {
-  "object-group": ClassGroupNode,
+  "class-group": ClassGroupNode,
   class: ClassNode,
   instance: ClassNode,
 };
@@ -81,7 +81,7 @@ export function getVisibleNodes(allNodes) {
   // 모든 collapsed 노드 ID를 미리 수집
   const collapsedSet = new Set(
     allNodes
-      .filter((n) => n.type === "object-group" && n.data?.collapsed)
+      .filter((n) => n.type === "class-group" && n.data?.collapsed)
       .map((n) => n.id)
   );
 
@@ -165,7 +165,7 @@ function ClassBoard() {
 
       // 3. 부모 할당 다시 계산
       const classGroupNodes = nextNodes.filter(
-        (n) => n.type === "object-group"
+        (n) => n.type === "class-group"
       );
 
       nextNodes = nextNodes.map((node) => {
@@ -237,7 +237,7 @@ function ClassBoard() {
   const handleAddGroupNode = () => {
     setGhostNode({
       id: `ghost-${Date.now()}`,
-      type: "object-group",
+      type: "class-group",
       data: {
         label: "New Group",
         collapsed: false,

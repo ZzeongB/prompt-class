@@ -8,10 +8,10 @@ export function convertClassGroup(nodes, edges, visited = new Set()) {
 
     const children = nodes.filter((n) => n.parentNode === groupId);
 
-    // 1. 먼저 object-group 자식들 수집
-    const groupChildren = children.filter((n) => n.type === "object-group");
+    // 1. 먼저 class-group 자식들 수집
+    const groupChildren = children.filter((n) => n.type === "class-group");
 
-    // 2. object-group ID로 만든 Set
+    // 2. class-group ID로 만든 Set
     const excludedIds = new Set(groupChildren.map((n) => n.id));
 
     // 3. object 노드 중에서, group ID와 중복되지 않는 애들만 수집
@@ -66,9 +66,9 @@ export function convertClassGroup(nodes, edges, visited = new Set()) {
     };
   }
 
-  // top-level object-group들만 시작점
+  // top-level class-group들만 시작점
   const topGroups = nodes.filter(
-    (n) => n.type === "object-group" && !n.parentNode
+    (n) => n.type === "class-group" && !n.parentNode
   );
 
   return topGroups.map((g) => buildGroup(g.id)).filter(Boolean);

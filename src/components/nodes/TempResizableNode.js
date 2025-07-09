@@ -102,7 +102,7 @@ function TempResizableNode({ id, data, width, height }) {
         );
         const groupNode_ = {
           id: `class-${id}`,
-          type: "object-group",
+          type: "class-group",
           position: position_classboard,
           data: {
             label,

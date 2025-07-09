@@ -23,7 +23,7 @@ export default function TreeNode({ node, depth = 0 }) {
   const LINE_WIDTH = 2;
 
   const type =
-    node.type === "instance-group" || node.type === "object-group"
+    node.type === "instance-group" || node.type === "class-group"
       ? node.type
       : node.data?.type ?? node.type;
   const hasValue = node.data?.hasValue ?? false;
@@ -51,7 +51,7 @@ export default function TreeNode({ node, depth = 0 }) {
 
   let boxStyle = { ...baseBoxStyle, background: WHITE };
 
-  if (type === "instance-group" || type === "object-group") {
+  if (type === "instance-group" || type === "class-group") {
     boxStyle = {
       ...baseBoxStyle,
       background: OBJ_COLOR_TRANS,
@@ -79,7 +79,7 @@ export default function TreeNode({ node, depth = 0 }) {
   }
 
   // 그룹 노드 렌더링 (margin 제거)
-  if (type === "instance-group" || type === "object-group") {
+  if (type === "instance-group" || type === "class-group") {
     return (
       <div style={{ marginTop: 10, marginLeft: depth * INDENT }}>
         <div
