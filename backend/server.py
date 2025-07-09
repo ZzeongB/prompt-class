@@ -52,10 +52,6 @@ height = 512
 width = 512
 
 save_root = "output"
-img_save_root = os.path.join(save_root, "images")
-os.makedirs(img_save_root, exist_ok=True)
-img_with_layout_save_root = os.path.join(save_root, "images_with_layout")
-os.makedirs(img_with_layout_save_root, exist_ok=True)
 
 pipe = load_model(device)
 
@@ -155,17 +151,33 @@ def generate():
 
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-    filename = timestamp
+    
+    # ✅ 세션 디렉토리 생성
+    timestamp_dir = os.path.join(save_root, timestamp)
+    os.makedirs(timestamp_dir, exist_ok=True)
+
+    # ✅ Prompt 저장
+    prompt_path = os.path.join(timestamp_dir, "prompt.json")
+    with open(prompt_path, "w") as f:
+        json.dump({
+            "global_caption": global_caption,
+            "region_captions": region_caption_list,
+            "region_bboxes": region_bboxes_list
+        }, f, indent=2)
+
+    log_event("prompt_saved", {
+        "path": prompt_path
+    })
 
     for j, image in enumerate(images):
-        image_path = os.path.join(img_save_root, f"{filename}_{j}.png")
+        image_path = os.path.join(timestamp_dir, "image.png")
         image.save(image_path)
 
         log_event("image_saved", {
             "path": image_path
         })
 
-        img_with_layout_save_name = os.path.join(img_with_layout_save_root, f"{filename}_{j}.png")
+        img_with_layout_save_name = os.path.join(timestamp_dir,"image_with_layout.png")
 
         white_image = Image.new("RGB", (width, height), color="rgb(256,256,256)")
         show_input = {
@@ -203,12 +215,27 @@ def describe_region():
         "crop_box": crop_box,
         "global_caption": global_caption
     })
+    
+    now = datetime.now()
+    timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+
+    # ✅ 세션 디렉토리 생성
+    timestamp_dir = os.path.join(save_root, timestamp)
+    os.makedirs(timestamp_dir, exist_ok=True)
+
+    # ✅ Prompt 저장
+    prompt_path = os.path.join(timestamp_dir, "prompt.json")
+    with open(prompt_path, "w") as f:
+        json.dump({
+            "global_caption": global_caption,
+            "crop_box": crop_box
+        }, f, indent=2)
 
     image_bytes = base64.b64decode(base64_image)
     full_image = Image.open(BytesIO(image_bytes)).convert("RGB")
 
     region = full_image.crop(crop_box)
-    region_path = os.path.join(img_save_root, "_region.png")
+    region_path = os.path.join(timestamp_dir, "region.png")
     region.save(region_path)
 
     log_event("describe_region_saved", {

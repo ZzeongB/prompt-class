@@ -281,14 +281,14 @@ function ClassBoard() {
       position: flowPos,
     });
   };
-  
-    const onNodeDragStop = (_event, node) => {
-      logEvent("classboard.node.moved", {
-        nodeId: node.id,
-        newPos: node.position,
-      });
-    };
-  
+
+  const onNodeDragStop = (_event, node) => {
+    logEvent("classboard.node.moved", {
+      nodeId: node.id,
+      newPos: node.position,
+    });
+  };
+
   return (
     <div
       className="reactflow-wrapper"
