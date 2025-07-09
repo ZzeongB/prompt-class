@@ -177,7 +177,7 @@ function BaselineLayoutBoard({ onImageGenerated }) {
 
     const newNodes = [resizableNode, objNode];
 
-    logEvent("baselineboard.node.add.instantance", {
+    logEvent("baselineboard.node.add.instance", {
       classId: sharedId,
       instanceLabel: "New Box",
       createdNodeIds: newNodes.map((n) => n.id),

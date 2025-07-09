@@ -21,6 +21,7 @@ export function getInstanceNodeStyle(type, options = {}) {
     alignItems: "center",
     background: WHITE,
     fontSize: "11px",
+    maxWidth: 100,
   };
 
   if (type === "object-group") {
@@ -51,7 +52,7 @@ export function getInstanceNodeStyle(type, options = {}) {
       borderColor: REL_COLOR,
     };
   }
-if (type === "empty") {
+  if (type === "empty") {
     return { ...base, background: DARK_GREY_TRANS };
   }
   return base;
@@ -67,6 +68,7 @@ export function getClassNodeStyle(type, options = {}) {
     alignItems: "center",
     background: WHITE,
     fontSize: 15,
+    maxWidth: 100,
   };
 
   if (type === "attribute") {

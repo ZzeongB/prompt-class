@@ -215,6 +215,8 @@ export default function BaseNode({
           display: "flex", // ✅ 수평 배치 및 자식 크기 제한
           alignItems: "center",
           fontSize: fontSize,
+          wordBreak: "break-word", // ✅ 이 줄 추가
+          whiteSpace: "normal", // ✅ 이 줄 추가
         }}
         onMouseDown={onDragStart}
       >
@@ -225,9 +227,22 @@ export default function BaseNode({
             label={editLabel}
             onChange={setEditLabel}
             onSave={handleLabelUpdateFixed}
+            isBaseline={data.baseline}
           />
         ) : (
-          label
+          <div
+            style={{
+              padding: "0 6px",
+              fontSize: fontSize,
+              lineHeight: 1.2,
+              whiteSpace: "normal", // ✅ 줄바꿈 허용
+              wordBreak: "break-word", // ✅ 긴 단어 줄바꿈
+              overflowWrap: "break-word", // ✅ edge-case 줄바꿈
+              width: "100%",
+            }}
+          >
+            {label}
+          </div>
         )}
         {!data.baseline && (
           <NodeHandles id={id} isSelected={isSelected} nodeType={data.type} />
