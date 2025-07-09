@@ -34,6 +34,7 @@ import { useImage } from "../context/ImageContext";
 import { logEvent } from "../api/logEvent";
 import { LEFT_OFFSET, TOP_OFFSET } from "../utils/constants";
 import {
+  onEdgeClick,
   onEdgeMouseEnter,
   onEdgeMouseLeave,
 } from "../utils/onEdgeMouseUtils.js";
@@ -379,12 +380,13 @@ function LayoutBoard({ onImageGenerated }) {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
-        onEdgeMouseEnter={(event, edge) =>
-          onEdgeMouseEnter(event, edge, setEdges)
-        }
-        onEdgeMouseLeave={(event, edge) =>
-          onEdgeMouseLeave(event, edge, setEdges)
-        }
+        // onEdgeMouseEnter={(event, edge) =>
+        //   onEdgeMouseEnter(event, edge, setEdges)
+        // }
+        // onEdgeMouseLeave={(event, edge) =>
+        //   onEdgeMouseLeave(event, edge, setEdges)
+        // }
+        onEdgeClick={(event, edge) => onEdgeClick(event, edge, setEdges)}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}

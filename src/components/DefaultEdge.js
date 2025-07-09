@@ -1,5 +1,5 @@
 // DefaultEdge.js 또는 DefaultEdge.tsx
-import { useState } from "react";
+import { useRef, useEffect } from "react";
 import {
   getBezierPath,
   useInternalNode,
@@ -14,9 +14,30 @@ import HoverButton from "./nodeComponents/HoverButton";
 import { Trash2 } from "lucide-react";
 
 export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
-  const { deleteElements } = useReactFlow();
+  const { deleteElements, setEdges } = useReactFlow();
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) {
+        setEdges((prev) =>
+          prev.map((e) =>
+            e.data?.isHovered
+              ? { ...e, data: { ...e.data, isHovered: false } }
+              : e
+          )
+        );
+      }
+    };
+
+    window.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [setEdges]);
+
   if (!sourceNode || !targetNode) return null;
 
   const { sx, sy, tx, ty } = getEdgeParams(sourceNode, targetNode);
@@ -52,14 +73,15 @@ export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
               display: "flex",
               alignItems: "center",
               backgroundColor: "#2B2B2B",
-              borderRadius: "10px",
+              borderRadius: "6px",
               boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.25)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              backdropFilter: "blur(4px)",
               position: "absolute",
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${
+                labelY - 15
+              }px)`,
               pointerEvents: "all",
             }}
+            // ref={ref}
           >
             <HoverButton
               title="Delete edge"

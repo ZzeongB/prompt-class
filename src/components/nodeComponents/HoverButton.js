@@ -18,8 +18,6 @@ function HoverButton({ title, icon, onClick, danger = false, style={} }) {
       backgroundColor: hovered ? "rgba(255,107,107,0.15)" : "transparent",
     }),
   };
-    console.log("Hovered", hovered, baseStyle)
-
 
   return (
     <button

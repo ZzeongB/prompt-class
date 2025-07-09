@@ -37,6 +37,7 @@ import { logEvent } from "../api/logEvent.js";
 import {
   onEdgeMouseEnter,
   onEdgeMouseLeave,
+  onEdgeClick,
 } from "../utils/onEdgeMouseUtils.js";
 
 const edgeTypes = {
@@ -349,13 +350,13 @@ function ClassBoard() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
-        // onPaneClick={ghostNode ? undefined : handlePaneClick}
-        onEdgeMouseEnter={(event, edge) =>
-          onEdgeMouseEnter(event, edge, setEdges)
-        }
-        onEdgeMouseLeave={(event, edge) =>
-          onEdgeMouseLeave(event, edge, setEdges)
-        }
+        // onEdgeMouseEnter={(event, edge) =>
+        //   onEdgeMouseEnter(event, edge, setEdges)
+        // }
+        // onEdgeMouseLeave={(event, edge) =>
+        //   onEdgeMouseLeave(event, edge, setEdges)
+        // }
+        onEdgeClick={(event, edge) => onEdgeClick(event, edge, setEdges)}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
