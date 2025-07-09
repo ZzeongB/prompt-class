@@ -49,7 +49,9 @@ export function duplicateNodesWithMapping(
 
   for (const groupKey in groupMap) {
     const group = groupMap[groupKey];
-    const representative = group.find((n) => n.data?.label); // 보이는 노드 기준
+    console.log(`Duplicating group: ${groupKey} (${group.length} nodes)`);
+    const representative = group.filter((n) => n.type !== "resizable").find((n) => n.data?.label); // 보이는 노드 기준
+    console.log("Filtered: ", group.filter((n) => n.type !== "resizable"), representative);
     const baseLabel = extractLabelBase(
       representative?.data?.label ?? "Untitled"
     );
