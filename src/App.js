@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import GhostNode from "./components/nodes/GhostNode";
-import BaselineBoardWithProvider from "./Board/BaselineBoard";
 import BaselineLayoutBoardWithProvider from "./Board/BaselineLayoutBoard";
 import ClassBoardWithProvider from "./Board/ClassBoard";
-import InstanceBoardWithProvider from "./Board/InstanceBoard";
 import LayoutBoardWithProvider from "./Board/LayoutBoard";
-import ImageBoard from "./Board/ImageBoard";
 import { ClassGraphProvider } from "./context/ClassGraphContext";
 import { InstanceGraphProvider } from "./context/InstanceGraphContext";
 import { ImageProivder } from "./context/ImageContext";
@@ -15,6 +12,7 @@ import InstanceTreeBoard from "./Board/InstanceTreeBoard";
 
 export default function App() {
   const [imageSrc, setImageSrc] = useState("");
+  const [isBaseline, setIsBaseline] = useState(false);
 
   useEffect(() => {
     const errorHandler = (e) => {
@@ -54,21 +52,25 @@ export default function App() {
         <InstanceGraphProvider>
           <ImageProivder>
             <DnDProvider>
-              <div
-                style={{
-                  width: "600px",
-                  height: "600px",
-                  boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
-                  marginLeft: "20px",
-                  // marginRight: "20px",
-                  marginTop: "20px",
-                  background: "#FEFEFE",
-                  borderRadius: "8px",
-                }}
-              >
-                {/* <ClassBoardWithProvider /> */}
-                <BaselineBoardWithProvider />
-              </div>
+              {isBaseline ? (
+                <div style={{
+                    width: "20px",
+                  }}></div>
+              ) : (
+                <div
+                  style={{
+                    width: "600px",
+                    height: "600px",
+                    boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
+                    marginLeft: "20px",
+                    marginTop: "20px",
+                    background: "#FEFEFE",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <ClassBoardWithProvider />
+                </div>
+              )}
               <div
                 style={{
                   display: "flex",
@@ -115,8 +117,13 @@ export default function App() {
                       background: imageSrc ? "" : "#FEFEFE",
                     }}
                   >
-                    {/* <LayoutBoardWithProvider onImageGenerated={setImageSrc} /> */}
-                    <BaselineLayoutBoardWithProvider onImageGenerated={setImageSrc} />
+                    {isBaseline ? (
+                      <BaselineLayoutBoardWithProvider
+                        onImageGenerated={setImageSrc}
+                      />
+                    ) : (
+                      <LayoutBoardWithProvider onImageGenerated={setImageSrc} />
+                    )}
                   </div>
                 </div>
 
@@ -137,21 +144,9 @@ export default function App() {
                     marginBottom: "12px", // LayoutBoard와의 거리
                   }}
                 >
-                  {/* <InstanceBoardWithProvider /> */}
                   <InstanceTreeBoard />
                 </div>
               </div>
-              {/* </div> */}
-
-              {/* <div
-              style={{
-                width: "512px",
-                height: "512px",
-                border: "1px solid #777",
-              }}
-            >
-              <ImageBoard imageSrc={imageSrc} />
-            </div> */}
               <GhostNode />
             </DnDProvider>
           </ImageProivder>

@@ -8,32 +8,53 @@ import {
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useDnD } from "../context/DragAndDropContext";
 import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
 import LayoutNode from "../components/nodes/LayoutNode";
 import ResizableNode from "../components/nodes/ResizableNode";
 import TempResizableNode from "../components/nodes/TempResizableNode";
-import {
-  handleConnect,
-  handleConnectEnd,
-} from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { useInstanceGraph } from "../context/InstanceGraphContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
-import { extractSentencesAndBoxes } from "../utils/instance/instanceExtractor";
-import {
-  handleMouseDown,
-  handleMouseMove,
-  handleMouseUp,
-} from "../utils/layout/handleTempLayout";
-import { createInstance } from "../utils/instance/instanceBuilder";
+import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 import { generateImageFromInstanceData } from "../api/generateImage";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
 import { logEvent } from "../api/logEvent";
-import { LEFT_OFFSET, TOP_OFFSET } from "../utils/constants";
+import {
+  LEFT_OFFSET,
+  TOP_OFFSET,
+  BACKGROUND_COLOR,
+  OBJ_COLOR,
+} from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
+
+const baseGhostStyle = {
+  padding: 4,
+  border: "2px solid",
+  borderRadius: 3,
+  backgroundColor: BACKGROUND_COLOR,
+  opacity: 0.6,
+  pointerEvents: "none",
+  userSelect: "none",
+  position: "absolute",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 999,
+  fontSize: "8px",
+};
+
+const ghostNodeStyles = {
+  "instance-group": {
+    ...baseGhostStyle,
+    borderColor: OBJ_COLOR, // 예: object용 붉은 계열
+  },
+  // "instance-group": {
+  //   ...baseGhostStyle,
+  //   borderColor: OBJ_COLOR_TRANS, // 기존 색상 유지
+  // },
+};
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -50,8 +71,6 @@ function BaselineLayoutBoard({ onImageGenerated }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
-  const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
-  const { classNodes, classEdges, structuredClasses } = useClassGraph();
   const { setInstanceNodes, setInstanceEdges, instanceAttrMap } =
     useInstanceGraph();
   const [imageBoard, setImageBoard] = useState();
@@ -60,6 +79,7 @@ function BaselineLayoutBoard({ onImageGenerated }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSelectingRegion, setIsSelectingRegion] = useState(false);
+  const [ghostNode, setGhostNode] = useState(null); // ghostNode for Node Addition
 
   const { image, setImage } = useImage();
 
@@ -80,157 +100,19 @@ function BaselineLayoutBoard({ onImageGenerated }) {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
-  // const onMouseDown = (e) => {
-  //   if (isSelectingRegion) {
-  //     handleMouseDown(e, setDragState);
-  //   }
-  // };
-
-  // const onMouseMove = (e) => {
-  //   handleMouseMove(e, dragState, setDragState);
-  // };
-
-  const createNewNode = (event) => {
-    const uniqueId = uuidv4();
-    const sharedId = `instance-${uniqueId}`;
-    const position = screenToFlowPosition({
-      x: 200,
-      y: 200,
-    });
-    const updatedAt = new Date().toISOString();
-
-    const objNode = {
-      id: sharedId,
+  const handleAddNewNode = () => {
+    setGhostNode({
+      id: `ghost-${Date.now()}`,
       type: "instance-group",
-      position,
       data: {
         label: "New Box",
+        expandedHeight: 70,
         type: "object",
-        sharedId,
-        classId: null,
-        instanceId: sharedId,
+        justCreated: true,
       },
-      updatedAt,
-    };
-
-    const resizableNode = {
-      id: `${sharedId}-resizable`,
-      type: "resizable",
-      position: { x: position.x, y: position.y },
-      data: objNode.data,
-      style: { height: 50, width: 50 },
-    };
-
-    const newNodes = [objNode, resizableNode];
-
-    logEvent("layoutboard.node.add.instantance", {
-        classId: id,
-        instanceLabel: "New Box",
-        createdNodeIds: newNodes.map((n) => n.id),
-      });
-
-      setNodes((prevNodes) => [...prevNodes, ...newNodes]);
-
-      setInstanceNodes((prevNodes) => [...prevNodes, ...newNodes]);
+      position: { x: 0, y: 0 },
+    });
   };
-
-  const onMouseUp = (event) => {
-    // if (dragState?.rect && dragState?.start) {
-    //   handleMouseUp(
-    //     dragState,
-    //     setDragState,
-    //     screenToFlowPosition,
-    //     nodes,
-    //     setNodes
-    //   );
-
-    //   setIsSelectingRegion(false);
-
-    //   // 드래그로 임시 노드 생성 로그
-    //   logEvent("layoutboard.tmp_node.created", {
-    //     x: dragState.start.x,
-    //     y: dragState.start.y,
-    //     width: dragState.rect.width,
-    //     height: dragState.rect.height,
-    //   });
-    //   return;
-    // } else {
-    // if (id && type) {
-    //   // 기존 노드들의 라벨 모음
-    //   const existingLabels = nodes.map((n) => n.data?.label).filter(Boolean);
-
-    //   // 중복 라벨 처리
-    //   let baseLabel = label;
-    //   let uniqueLabel = baseLabel;
-    //   let count = 1;
-
-    //   while (existingLabels.includes(uniqueLabel)) {
-    //     uniqueLabel = `${baseLabel} ${count}`;
-    //     count++;
-    //   }
-
-    //   const { newNodes, newEdges, _ } = createInstance(
-    //     event,
-    //     id,
-    //     uniqueLabel,
-    //     type,
-    //     screenToFlowPosition,
-    //     nodes,
-    //     classNodes,
-    //     classEdges
-    //   );
-
-    //   logEvent("layoutboard.node.add.instantance", {
-    //     classId: id,
-    //     instanceLabel: uniqueLabel,
-    //     createdNodeIds: newNodes.map((n) => n.id),
-    //   });
-
-    //   setNodes((prevNodes) => [...prevNodes, ...newNodes]);
-    //   setEdges((prevEdges) => [...prevEdges, ...newEdges]);
-
-    //   setInstanceNodes((prevNodes) => [...prevNodes, ...newNodes]);
-    //   setInstanceEdges((prevEdges) => [...prevEdges, ...newEdges]);
-
-    //   setType(null);
-    //   setLabel(null);
-    //   setGhostPos({ x: 0, y: 0 });
-    // }
-    //}
-  };
-
-  // const onConnect = useCallback(
-  //   (params) => handleConnect({ params, nodes, setNodes, setEdges }),
-  //   [nodes, setNodes, setEdges]
-  // );
-
-  // const onConnectEnd = useCallback(
-  //   (event, connectionState) => {
-  //     const result = handleConnectEnd({
-  //       event,
-  //       connectionState,
-  //       type: "instance",
-  //       nodes,
-  //       setNodes,
-  //       setEdges,
-  //       screenToFlowPosition,
-  //     });
-
-  //     // result.newNodes를 반환받는다고 가정
-  //     if (result?.newNodes) {
-  //       setInstanceNodes((prev) => [...prev, ...result.newNodes]);
-  //       setInstanceEdges((prev) => [...prev, ...(result.newEdges || [])]);
-  //     }
-  //   },
-  //   [
-  //     nodes,
-  //     setNodes,
-  //     setEdges,
-  //     screenToFlowPosition,
-  //     setInstanceNodes,
-  //     setInstanceEdges,
-  //   ]
-  // );
 
   const handleNodesChange = useCallback(
     (changes) => {
@@ -247,6 +129,65 @@ function BaselineLayoutBoard({ onImageGenerated }) {
     [onNodesChange, edges, setNodes]
   );
 
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!ghostNode) return;
+
+      setGhostNode((prev) => ({
+        ...prev,
+        position: { x: e.clientX - LEFT_OFFSET, y: e.clientY - TOP_OFFSET },
+      }));
+    },
+    [ghostNode, screenToFlowPosition]
+  );
+
+  const handleGhostClick = (e) => {
+    if (!ghostNode) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    const uniqueId = uuidv4();
+    const sharedId = `instance-${uniqueId}`;
+    const updatedAt = new Date().toISOString();
+
+    const objNode = {
+      id: sharedId,
+      type: "instance-group",
+      position,
+      data: {
+        label: "New Box",
+        type: "object",
+        sharedId,
+        classId: null,
+        instanceId: sharedId,
+        baseline: true,
+      },
+      updatedAt,
+      style: { height: 20 },
+    };
+
+    const resizableNode = {
+      id: `${sharedId}-resizable`,
+      type: "resizable",
+      position: { x: position.x, y: position.y },
+      data: objNode.data,
+      style: { height: 50, width: 50 },
+    };
+
+    const newNodes = [resizableNode, objNode];
+
+    logEvent("baselineboard.node.add.instantance", {
+      classId: sharedId,
+      instanceLabel: "New Box",
+      createdNodeIds: newNodes.map((n) => n.id),
+    });
+
+    setNodes((prevNodes) => [...prevNodes, ...newNodes]);
+    setInstanceNodes((prevNodes) => [...prevNodes, ...newNodes]);
+    setGhostNode(null);
+  };
+
   const handleClick = async () => {
     setProgress(0);
     setIsGenerating(true);
@@ -258,8 +199,6 @@ function BaselineLayoutBoard({ onImageGenerated }) {
     const inputSnapshot = {
       nodes,
       edges,
-      classNodes,
-      classEdges,
     };
 
     logEvent("imagegen.started", {
@@ -269,29 +208,31 @@ function BaselineLayoutBoard({ onImageGenerated }) {
     });
 
     setTimeout(async () => {
-      const result = extractSentencesAndBoxes(
-        nodes,
-        edges,
-        classNodes,
-        classEdges,
-        flowToScreenPosition,
-        LEFT_OFFSET,
-        TOP_OFFSET,
-        instanceAttrMap
-      );
+      const sentences = nodes
+        .filter((n) => n.type !== "resizable")
+        .map((n) => n.data.label || "No label");
+      const boxes = nodes
+        .filter((n) => n.type === "resizable")
+        .map((n) => {
+          return getNormalizedBox(
+            n,
+            flowToScreenPosition,
+            LEFT_OFFSET,
+            TOP_OFFSET,
+            true
+          );
+        });
 
       logEvent("imagegen.extracted", {
-        sentences: result.sentences,
-        boxes: result.boxes,
-        required_keywords: result.labels,
+        sentences: sentences,
+        boxes: boxes,
       });
 
       try {
         const response = await generateImageFromInstanceData(
-          result.sentences,
-          result.boxes,
-          globalCaption, // global caption placeholder
-          result.labels
+          sentences,
+          boxes,
+          globalCaption // global caption placeholder
         );
 
         const durationMs = performance.now() - startTime;
@@ -301,10 +242,6 @@ function BaselineLayoutBoard({ onImageGenerated }) {
           image_size: response.image.length,
           global_caption: response.globalCaption,
           refined_caption: response.refinedCaptions,
-          // output_preview: {
-          //   sentences: result.sentences.slice(0, 3),
-          //   boxes: result.boxes.slice(0, 3),
-          // },
         });
 
         onImageGenerated(response.image);
@@ -332,7 +269,7 @@ function BaselineLayoutBoard({ onImageGenerated }) {
   };
 
   const onNodeDragStop = (_event, node) => {
-    logEvent("layoutboard.node.moved", {
+    logEvent("baselineboard.node.moved", {
       nodeId: node.id,
       newPos: node.position,
     });
@@ -341,43 +278,22 @@ function BaselineLayoutBoard({ onImageGenerated }) {
   return (
     <div
       className="reactflow-wrapper"
-      onMouseUp={onMouseUp}
-      // onMouseMove={onMouseMove}
-      // onMouseDown={onMouseDown}
       style={{ userSelect: "none" }}
+      onMouseMove={handleMouseMove}
+      onClick={ghostNode ? handleGhostClick : undefined}
     >
-      {/* {dragState?.rect && (
-        <div
-          style={{
-            position: "absolute",
-            top: `${dragState.rect.y - TOP_OFFSET}px`,
-            left: `${dragState.rect.x - LEFT_OFFSET}px`,
-            width: `${dragState.rect.width}px`,
-            height: `${dragState.rect.height}px`,
-            border: "1px dashed #007bff",
-            backgroundColor: "rgba(0, 123, 255, 0.05)",
-            zIndex: 1000,
-          }}
-        />
-      )} */}
-      {/* 진행 바 + 버튼: 나란히 정렬 */}
       <div
         style={{
           position: "absolute",
           bottom: "-40px",
           width: "100%",
           display: "column",
-          // alignItems: "center",
-          // gap: "8px",
-          // padding: "0 16px",
-          // boxSizing: "border-box",
         }}
       >
-
         <CustomButton
           color={isSelectingRegion ? "neutral" : "grey"}
           size="sm"
-          onClick={(e) => createNewNode(e)}
+          onClick={(e) => handleAddNewNode(e)}
         >
           <span
             style={{
@@ -388,7 +304,6 @@ function BaselineLayoutBoard({ onImageGenerated }) {
             }}
           >
             Create New Box
-            {/* {isSelectingRegion ? "Cancel Selection" : "Select Region"} */}
           </span>
         </CustomButton>
         <div
@@ -414,13 +329,23 @@ function BaselineLayoutBoard({ onImageGenerated }) {
           </CustomButton>
         </div>
       </div>
+      {ghostNode && (
+        <div
+          style={{
+            ...ghostNodeStyles[ghostNode.type],
+            left: ghostNode.position.x,
+            top: ghostNode.position.y,
+          }}
+        >
+          {ghostNode.data?.label}
+        </div>
+      )}
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
-        // onConnect={onConnect}
-        // onConnectEnd={onConnectEnd}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
@@ -453,19 +378,9 @@ function BaselineLayoutBoard({ onImageGenerated }) {
 }
 
 function BaselineLayoutBoardWithProvider({ onImageGenerated }) {
-  const [, , type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
-
   return (
     <ReactFlowProvider debounce={200}>
-      <BaselineLayoutBoard
-        type={type}
-        ghostPos={ghostPos}
-        setGhostPos={setGhostPos}
-        setType={setType}
-        label={label}
-        setLabel={setLabel}
-        onImageGenerated={onImageGenerated}
-      />
+      <BaselineLayoutBoard onImageGenerated={onImageGenerated} />
     </ReactFlowProvider>
   );
 }

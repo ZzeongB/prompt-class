@@ -229,7 +229,9 @@ export default function BaseNode({
         ) : (
           label
         )}
-        <NodeHandles id={id} isSelected={isSelected} nodeType={data.type} />
+        {!data.baseline && (
+          <NodeHandles id={id} isSelected={isSelected} nodeType={data.type} />
+        )}
       </div>
     </div>
   );

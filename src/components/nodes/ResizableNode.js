@@ -88,7 +88,7 @@ function ResizableNode({ id, data, nodeType, style }) {
         minHeight={50}
         onResizeEnd={(e, params) => handleResize(id, params)}
       />
-      {!connection.inProgress && (
+      {!data.baseline && !connection.inProgress && (
         <Handle
           className="classHandle"
           position={Position.Right}
@@ -97,7 +97,7 @@ function ResizableNode({ id, data, nodeType, style }) {
           style={{ top: "50%", transform: "translateY(-50%)", right: "-8px" }}
         />
       )}
-      {(!connection.inProgress || isTarget) && (
+      {(!data.baseline) && (!connection.inProgress || isTarget) && (
         <>
           <Handle
             id="size"
@@ -136,7 +136,7 @@ function ResizableNode({ id, data, nodeType, style }) {
         </>
       )}
 
-      {(!connection.inProgress || isTarget) && (
+      {(!data.baseline) && (!connection.inProgress || isTarget) && (
         <>
           <Handle
             id="position"

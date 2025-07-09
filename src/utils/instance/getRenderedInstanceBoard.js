@@ -19,6 +19,10 @@ export function getRenderedInstanceBoard({
 
   const filtered = instanceNodes.filter((n) => n.type !== "resizable");
 
+  if(classNodes.length === 0 && classEdges.length === 0) {
+    allNodes.push(...filtered);
+  }
+
   filtered.forEach((node, index) => {
     const classNode = classNodes.find((c) => c.id === node.data?.classId);
     // 해당 노드가 참조하는 classNode가 없으면 건너뛰기
