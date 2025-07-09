@@ -13,6 +13,10 @@ export async function generateImageFromInstanceData(
       requiredKeywords || null
     );
 
+    if (!refinedCaptions || refinedCaptions.length === 0) {
+      console.warn("No refined captions generated, using original sentences.");
+    }
+
     const response = await fetch("http://127.0.0.1:5000/generate", {
       method: "POST",
       headers: {
@@ -35,6 +39,7 @@ export async function generateImageFromInstanceData(
     return {
       image: `data:image/png;base64,${data.image}`,
       globalCaption: globalCaption,
+      refinedCaptions: refinedCaptions || [],
     };
   } catch (error) {
     console.error("Error generating image:", error);

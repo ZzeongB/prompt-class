@@ -107,7 +107,6 @@ export function extractSentencesAndBoxes(
   if (emptyNodes.length > 0) {
     // 빈 노드가 있는 경우
     emptyNodes.forEach((emptyNode) => {
-      sentences.push("no objects, only background");
 
       const resizableNode = emptyResizableNodes.find(
         (n) => n.data.sharedId === emptyNode.data.sharedId
@@ -122,8 +121,8 @@ export function extractSentencesAndBoxes(
         offset_top,
         true
       );
+      sentences.push("no objects, only background");
       boxes.push(box);
-
       labels.push("empty");
     });
   }

@@ -255,6 +255,7 @@ function LayoutBoard({ onImageGenerated }) {
           durationMs,
           image_size: response.image.length,
           global_caption: response.globalCaption,
+          refined_caption: response.refinedCaptions,
           // output_preview: {
           //   sentences: result.sentences.slice(0, 3),
           //   boxes: result.boxes.slice(0, 3),

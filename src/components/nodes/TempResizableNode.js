@@ -14,7 +14,7 @@ import { Eraser, Trash2, Network } from "lucide-react";
 import { generateTextToGraph } from "../../api/generateTextToGraph";
 import { useInstanceGraph } from "../../context/InstanceGraphContext";
 import { useClassGraph } from "../../context/ClassGraphContext";
-import { logEvent } from "../../api/logEvent"; 
+import { logEvent } from "../../api/logEvent";
 import { getNonOverlappingPosition } from "../../utils/node/getNonOverlappingPosition";
 import { LEFT_OFFSET, TOP_OFFSET } from "../../utils/constants";
 
@@ -45,15 +45,24 @@ function TempResizableNode({ id, data, width, height }) {
       document.removeEventListener("pointerdown", handleClickOutside, true);
   }, []);
 
-  const crop_box = getNormalizedBox(node, flowToScreenPosition, LEFT_OFFSET, TOP_OFFSET, false);
+  const crop_box = getNormalizedBox(
+    node,
+    flowToScreenPosition,
+    LEFT_OFFSET,
+    TOP_OFFSET,
+    false
+  );
 
   const handleGenerateDescription = async () => {
     try {
-      logEvent("layoutboard.node.tmp-resizable.description_generation_requested", {
-        nodeId: id,
-        cropBox: crop_box,
-        globalCaption,
-      });
+      logEvent(
+        "layoutboard.node.tmp-resizable.description_generation_requested",
+        {
+          nodeId: id,
+          cropBox: crop_box,
+          globalCaption,
+        }
+      );
 
       const response = await generateDescription(
         image,
@@ -83,7 +92,14 @@ function TempResizableNode({ id, data, width, height }) {
           },
         };
 
-        const position_classboard = getNonOverlappingPosition( classNodes, 280, 500, node.position.x, node.position.y, 50);
+        const position_classboard = getNonOverlappingPosition(
+          classNodes,
+          280,
+          500,
+          node.position.x,
+          node.position.y,
+          50
+        );
         const groupNode_ = {
           id: `class-${id}`,
           type: "object-group",
@@ -122,7 +138,7 @@ function TempResizableNode({ id, data, width, height }) {
                 ? {
                     ...n,
                     type: "resizable",
-                    data: { ...n.data, type: "object" },
+                    data: { ...n.data, type: "object", sharedId: id },
                   }
                 : n
             )
@@ -160,7 +176,11 @@ function TempResizableNode({ id, data, width, height }) {
 
     setNodes((prev) =>
       prev
-        .map((n) => (n.id === id ? { ...n, type: "resizable" } : n))
+        .map((n) =>
+          n.id === id
+            ? { ...n, type: "tmpResizable", data: { ...n.data, sharedId: id, type: "empty" } }
+            : n
+        )
         .concat(emptyNode)
     );
   };
@@ -210,7 +230,10 @@ function TempResizableNode({ id, data, width, height }) {
           icon={<Trash2 size={16} />}
           danger
           onClick={() => {
-            logEvent("layoutboard.node.tmp-resizable.delete", { nodeId: id, from: "temp_resizable" });
+            logEvent("layoutboard.node.tmp-resizable.delete", {
+              nodeId: id,
+              from: "temp_resizable",
+            });
             deleteElements({ nodes: [{ id }] });
           }}
         />
