@@ -34,6 +34,10 @@ import {
 import CustomButton from "../components/CustomButton.js";
 import { Plus, Box, FolderPlus } from "lucide-react";
 import { logEvent } from "../api/logEvent.js";
+import {
+  onEdgeMouseEnter,
+  onEdgeMouseLeave,
+} from "../utils/onEdgeMouseUtils.js";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -346,6 +350,12 @@ function ClassBoard() {
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
         // onPaneClick={ghostNode ? undefined : handlePaneClick}
+        onEdgeMouseEnter={(event, edge) =>
+          onEdgeMouseEnter(event, edge, setEdges)
+        }
+        onEdgeMouseLeave={(event, edge) =>
+          onEdgeMouseLeave(event, edge, setEdges)
+        }
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}

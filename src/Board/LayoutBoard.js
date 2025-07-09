@@ -33,6 +33,10 @@ import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
 import { logEvent } from "../api/logEvent";
 import { LEFT_OFFSET, TOP_OFFSET } from "../utils/constants";
+import {
+  onEdgeMouseEnter,
+  onEdgeMouseLeave,
+} from "../utils/onEdgeMouseUtils.js";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -51,7 +55,8 @@ function LayoutBoard({ onImageGenerated }) {
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges, structuredClasses } = useClassGraph();
-  const { setInstanceNodes, setInstanceEdges, instanceAttrMap } = useInstanceGraph();
+  const { setInstanceNodes, setInstanceEdges, instanceAttrMap } =
+    useInstanceGraph();
   const [dragState, setDragState] = useState(null);
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
@@ -374,6 +379,12 @@ function LayoutBoard({ onImageGenerated }) {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
+        onEdgeMouseEnter={(event, edge) =>
+          onEdgeMouseEnter(event, edge, setEdges)
+        }
+        onEdgeMouseLeave={(event, edge) =>
+          onEdgeMouseLeave(event, edge, setEdges)
+        }
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultEdgeOptions={defaultEdgeOptions}

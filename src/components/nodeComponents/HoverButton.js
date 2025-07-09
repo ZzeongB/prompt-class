@@ -1,9 +1,10 @@
 import { useState } from "react";
 
-function HoverButton({ title, icon, onClick, danger = false }) {
+function HoverButton({ title, icon, onClick, danger = false, style={} }) {
   const [hovered, setHovered] = useState(false);
 
   const baseStyle = {
+    ...style,
     fontSize: "16px",
     padding: "6px 8px",
     backgroundColor: hovered ? "rgba(255,255,255,0.1)" : "transparent",
@@ -17,6 +18,8 @@ function HoverButton({ title, icon, onClick, danger = false }) {
       backgroundColor: hovered ? "rgba(255,107,107,0.15)" : "transparent",
     }),
   };
+    console.log("Hovered", hovered, baseStyle)
+
 
   return (
     <button
