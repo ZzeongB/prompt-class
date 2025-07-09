@@ -69,7 +69,10 @@ function LayoutBoard({ onImageGenerated }) {
   const { image, setImage } = useImage();
 
   useEffect(() => {
-    if (!isGenerating) return;
+    if (!isGenerating) {
+      setProgress(100);
+      return;
+    }
 
     const interval = setInterval(async () => {
       const res = await fetch("http://127.0.0.1:5000/progress");
@@ -289,7 +292,7 @@ function LayoutBoard({ onImageGenerated }) {
       } finally {
         setIsGenerating(false);
       }
-    }, 200);
+    }, 100);
   };
 
   const onNodeDragStop = (_event, node) => {
