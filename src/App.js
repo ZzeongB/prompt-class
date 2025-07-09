@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import GhostNode from "./components/nodes/GhostNode";
 import BaselineBoardWithProvider from "./Board/BaselineBoard";
+import BaselineLayoutBoardWithProvider from "./Board/BaselineLayoutBoard";
 import ClassBoardWithProvider from "./Board/ClassBoard";
 import InstanceBoardWithProvider from "./Board/InstanceBoard";
 import LayoutBoardWithProvider from "./Board/LayoutBoard";
@@ -65,8 +66,8 @@ export default function App() {
                   borderRadius: "8px",
                 }}
               >
-                <ClassBoardWithProvider />
-                {/* <BaselineBoardWithProvider /> */}
+                {/* <ClassBoardWithProvider /> */}
+                <BaselineBoardWithProvider />
               </div>
               <div
                 style={{
@@ -114,7 +115,8 @@ export default function App() {
                       background: imageSrc ? "" : "#FEFEFE",
                     }}
                   >
-                    <LayoutBoardWithProvider onImageGenerated={setImageSrc} />
+                    {/* <LayoutBoardWithProvider onImageGenerated={setImageSrc} /> */}
+                    <BaselineLayoutBoardWithProvider onImageGenerated={setImageSrc} />
                   </div>
                 </div>
 
