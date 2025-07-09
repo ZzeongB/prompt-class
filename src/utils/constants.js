@@ -29,4 +29,5 @@ export const WHITE = "#FAFAF8";
 export const BLACK = "#1a1a1a";
 
 export const LEFT_OFFSET = 660; // LayoutBoard에서 왼쪽 여백
-export const TOP_OFFSET = 20; // LayoutBoard에서 위쪽 여백
+export const LEFT_OFFSET_BASELINE = 70;
+export const TOP_OFFSET = 40; // LayoutBoard에서 위쪽 여백

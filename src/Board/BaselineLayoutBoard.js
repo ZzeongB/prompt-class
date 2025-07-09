@@ -22,7 +22,7 @@ import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
 import { logEvent } from "../api/logEvent";
 import {
-  LEFT_OFFSET,
+  LEFT_OFFSET_BASELINE as LEFT_OFFSET,
   TOP_OFFSET,
   BACKGROUND_COLOR,
   OBJ_COLOR,
