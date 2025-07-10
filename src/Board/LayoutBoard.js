@@ -65,6 +65,7 @@ function LayoutBoard({ onImageGenerated }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSelectingRegion, setIsSelectingRegion] = useState(false);
+  const [showImageOnly, setShowImageOnly] = useState(false);
 
   const { image, setImage } = useImage();
 
@@ -131,7 +132,7 @@ function LayoutBoard({ onImageGenerated }) {
           setGhostPos({ x: 0, y: 0 });
           return;
         }
-        
+
         // 기존 노드들의 라벨 모음
         const existingLabels = nodes.map((n) => n.data?.label).filter(Boolean);
 
@@ -365,6 +366,24 @@ function LayoutBoard({ onImageGenerated }) {
             {isSelectingRegion ? "Cancel Selection" : "Select Region"}
           </span>
         </CustomButton>
+
+        <CustomButton
+          color="grey"
+          size="sm"
+          onClick={() => setShowImageOnly(!showImageOnly)}
+        >
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: "bold",
+            }}
+          >
+            {showImageOnly ? "Show Layout" : "Show Image Only"}
+          </span>
+        </CustomButton>
+
         <div
           style={{
             position: "absolute",
@@ -388,47 +407,73 @@ function LayoutBoard({ onImageGenerated }) {
           </CustomButton>
         </div>
       </div>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onConnectEnd={onConnectEnd}
-        // onEdgeMouseEnter={(event, edge) =>
-        //   onEdgeMouseEnter(event, edge, setEdges)
-        // }
-        // onEdgeMouseLeave={(event, edge) =>
-        //   onEdgeMouseLeave(event, edge, setEdges)
-        // }
-        onEdgeClick={(event, edge) => onEdgeClick(event, edge, setEdges)}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        defaultEdgeOptions={defaultEdgeOptions}
-        panOnDrag={false}
-        panOnScroll={false}
-        selectNodesOnDrag={false} // ✅ 선택 드래그 방지
-        zoomOnScroll={false}
-        zoomOnDoubleClick={false}
-        zoomOnPinch={false}
-        nodeDragBounds={{
-          left: 0,
-          top: 0,
-          right: 512,
-          bottom: 512,
-        }}
-        onNodeDragStop={onNodeDragStop}
-        translateExtent={[
-          [0, 0],
-          [512, 512],
-        ]}
-        nodeExtent={[
-          [-50, -50],
-          [540, 540],
-        ]} // 노드 배치 가능한 범위 제한
-        proOptions={{ hideAttribution: true }}
-        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-      />
+      {!showImageOnly && (
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onConnectEnd={onConnectEnd}
+          // onEdgeMouseEnter={(event, edge) =>
+          //   onEdgeMouseEnter(event, edge, setEdges)
+          // }
+          // onEdgeMouseLeave={(event, edge) =>
+          //   onEdgeMouseLeave(event, edge, setEdges)
+          // }
+          onEdgeClick={(event, edge) => onEdgeClick(event, edge, setEdges)}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          defaultEdgeOptions={defaultEdgeOptions}
+          panOnDrag={false}
+          panOnScroll={false}
+          selectNodesOnDrag={false} // ✅ 선택 드래그 방지
+          zoomOnScroll={false}
+          zoomOnDoubleClick={false}
+          zoomOnPinch={false}
+          nodeDragBounds={{
+            left: 0,
+            top: 0,
+            right: 512,
+            bottom: 512,
+          }}
+          onNodeDragStop={onNodeDragStop}
+          translateExtent={[
+            [0, 0],
+            [512, 512],
+          ]}
+          nodeExtent={[
+            [-50, -50],
+            [540, 540],
+          ]} // 노드 배치 가능한 범위 제한
+          proOptions={{ hideAttribution: true }}
+          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        />
+      )}
+      {showImageOnly && imageBoard && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "512px",
+          }}
+        >
+          <img
+            src={imageBoard}
+            alt="No Image"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              zIndex: 0,
+              objectFit: "contain", // ✅ 비율 유지 + 잘리지 않음 (빈 여백 생길 수 있음)
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
