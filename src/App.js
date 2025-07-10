@@ -53,14 +53,17 @@ export default function App() {
           <ImageProivder>
             <DnDProvider>
               {isBaseline ? (
-                <div style={{
+                <div
+                  style={{
                     width: "20px",
-                  }}></div>
+                  }}
+                ></div>
               ) : (
                 <div
                   style={{
                     width: "600px",
                     height: "600px",
+                    flexShrink: 0, // 고정 너비 유지
                     boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
                     marginLeft: "20px",
                     marginTop: "20px",
