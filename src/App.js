@@ -12,7 +12,7 @@ import InstanceTreeBoard from "./Board/InstanceTreeBoard";
 
 export default function App() {
   const [imageSrc, setImageSrc] = useState("");
-  const [isBaseline, setIsBaseline] = useState(false);
+  const [isBaseline, setIsBaseline] = useState(true);
 
   useEffect(() => {
     const errorHandler = (e) => {

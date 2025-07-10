@@ -120,6 +120,18 @@ function LayoutBoard({ onImageGenerated }) {
       return;
     } else {
       if (id && type) {
+        // ✅ 현재 resizable이 아닌 노드 개수 확인
+        const nonResizableCount = nodes.filter(
+          (n) => n.type !== "resizable"
+        ).length;
+        if (nonResizableCount >= 10) {
+          alert("최대 10개의 노드까지만 생성할 수 있습니다.");
+          setType(null);
+          setLabel(null);
+          setGhostPos({ x: 0, y: 0 });
+          return;
+        }
+        
         // 기존 노드들의 라벨 모음
         const existingLabels = nodes.map((n) => n.data?.label).filter(Boolean);
 
@@ -226,7 +238,7 @@ function LayoutBoard({ onImageGenerated }) {
       classEdges,
     };
 
-    logEvent("imagegen.started", {
+    logEvent("layoutboard.imagegen.started", {
       nodeCount: nodes.length,
       edgeCount: edges.length,
       inputs: inputSnapshot,
@@ -244,7 +256,7 @@ function LayoutBoard({ onImageGenerated }) {
         instanceAttrMap
       );
 
-      logEvent("imagegen.extracted", {
+      logEvent("layoutboard.imagegen.extracted", {
         sentences: result.sentences,
         boxes: result.boxes,
         required_keywords: result.labels,
@@ -260,7 +272,7 @@ function LayoutBoard({ onImageGenerated }) {
 
         const durationMs = performance.now() - startTime;
 
-        logEvent("imagegen.succeeded", {
+        logEvent("layoutboard.imagegen.succeeded", {
           durationMs,
           image_size: response.image.length,
           global_caption: response.globalCaption,
@@ -282,7 +294,7 @@ function LayoutBoard({ onImageGenerated }) {
           err?.message ||
           "알 수 없는 오류가 발생했습니다.";
 
-        logEvent("imagegen.failed", {
+        logEvent("layoutboard.imagegen.failed", {
           durationMs,
           errorMessage: message,
         });

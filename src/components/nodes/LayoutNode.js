@@ -39,6 +39,17 @@ export default function LayoutNode({ id, data }) {
       });
 
       const updated = [...prev, ...duplicated];
+
+      // ✅ 제한 검사
+      const newNonResizable = updated.filter(
+        (n) => n.type !== "resizable"
+      ).length;
+
+      if (newNonResizable > 10) {
+        alert("최대 10개의 노드까지만 생성할 수 있습니다.");
+        return prev;
+      }
+
       setInstanceNodes(updated);
       return updated;
     });

@@ -146,6 +146,16 @@ function BaselineLayoutBoard({ onImageGenerated }) {
     e.preventDefault();
     e.stopPropagation();
 
+    // ✅ 1. 현재 resizable이 아닌 노드 개수 확인
+    const nonResizableCount = nodes.filter(
+      (n) => n.type !== "resizable"
+    ).length;
+    if (nonResizableCount >= 10) {
+      alert("최대 10개의 노드까지만 생성할 수 있습니다.");
+      setGhostNode(null);
+      return;
+    }
+
     const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     const uniqueId = uuidv4();
     const sharedId = `instance-${uniqueId}`;
@@ -162,6 +172,7 @@ function BaselineLayoutBoard({ onImageGenerated }) {
         classId: null,
         instanceId: sharedId,
         baseline: true,
+        justCreated: true,
       },
       updatedAt,
       style: { height: 20 },
@@ -201,7 +212,7 @@ function BaselineLayoutBoard({ onImageGenerated }) {
       edges,
     };
 
-    logEvent("imagegen.started", {
+    logEvent("baselineboard.imagegen.started", {
       nodeCount: nodes.length,
       edgeCount: edges.length,
       inputs: inputSnapshot,
@@ -223,7 +234,7 @@ function BaselineLayoutBoard({ onImageGenerated }) {
           );
         });
 
-      logEvent("imagegen.extracted", {
+      logEvent("baselineboard.imagegen.extracted", {
         sentences: sentences,
         boxes: boxes,
       });
@@ -237,7 +248,7 @@ function BaselineLayoutBoard({ onImageGenerated }) {
 
         const durationMs = performance.now() - startTime;
 
-        logEvent("imagegen.succeeded", {
+        logEvent("baselineboard.imagegen.succeeded", {
           durationMs,
           image_size: response.image.length,
           global_caption: response.globalCaption,
@@ -255,7 +266,7 @@ function BaselineLayoutBoard({ onImageGenerated }) {
           err?.message ||
           "알 수 없는 오류가 발생했습니다.";
 
-        logEvent("imagegen.failed", {
+        logEvent("baselineboard.imagegen.failed", {
           durationMs,
           errorMessage: message,
         });
