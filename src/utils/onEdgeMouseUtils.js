@@ -42,8 +42,6 @@ export const onEdgeClick = (event, edge, setEdges) => {
   event.stopPropagation(); // ✅ 다른 노드/보드 클릭 무시
   const edgeId = edge.id;
 
-  console.log("Edge clicked")
-
   setEdges((prev) =>
     prev.map(
       (e) =>

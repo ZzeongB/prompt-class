@@ -13,13 +13,31 @@ export function getNonOverlappingPosition(existingNodes, width, height, startX =
     });
   };
 
-  // 간단히 아래로 쌓기 (혹은 나선형으로 바꿀 수도 있음)
   let x = startX;
   let y = startY;
 
   while (isOverlapping(x, y)) {
-    y += height + gap; // 수직 방향으로 아래로 내림
+    y += gap; // 수직 방향으로 아래로 내림
   }
 
   return { x, y };
+}
+
+export function getSmartStartPosition(existingNodes, defaultX = 0, gap = 0) {
+  if (existingNodes.length === 0) return { x: defaultX, y: 0 };
+
+  const maxBottom = Math.max(
+    ...existingNodes.map(
+      (n) => n.position.y + (n.style?.height || 0)
+    )
+  );
+
+  const minX = Math.min(...existingNodes.map((n) => n.position.x));
+  const maxX = Math.max(...existingNodes.map((n) => n.position.x));
+  const centerX = (minX + maxX) / 2;
+
+  return {
+    x: centerX,
+    y: maxBottom + gap,
+  };
 }

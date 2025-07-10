@@ -15,7 +15,7 @@ import { generateTextToGraph } from "../../api/generateTextToGraph";
 import { useInstanceGraph } from "../../context/InstanceGraphContext";
 import { useClassGraph } from "../../context/ClassGraphContext";
 import { logEvent } from "../../api/logEvent";
-import { getNonOverlappingPosition } from "../../utils/node/getNonOverlappingPosition";
+import { getNonOverlappingPosition, getSmartStartPosition } from "../../utils/node/getNonOverlappingPosition";
 import { LEFT_OFFSET, TOP_OFFSET } from "../../utils/constants";
 
 function TempResizableNode({ id, data, width, height }) {
@@ -92,12 +92,14 @@ function TempResizableNode({ id, data, width, height }) {
           },
         };
 
+        const { x: startX, y: startY } = getSmartStartPosition(classNodes);
+
         const position_classboard = getNonOverlappingPosition(
           classNodes,
           280,
-          500,
-          node.position.x,
-          node.position.y,
+          400,
+          startX,
+          startY,
           50
         );
         const groupNode_ = {
@@ -107,9 +109,10 @@ function TempResizableNode({ id, data, width, height }) {
           data: {
             label,
             type: "object",
+            expandedHeight: 400
           },
-          measured: { width: 280, height: 500 },
-          style: { width: 280, height: 500 },
+          measured: { width: 280, height: 400 },
+          style: { width: 280, height: 400 },
         };
 
         logEvent("layoutboard.node.tmp-resizable.text_to_graph_requested", {

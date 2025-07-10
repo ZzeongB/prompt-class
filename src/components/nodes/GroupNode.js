@@ -209,7 +209,7 @@ export default function GroupNode({
     const { duplicated, idMap, randomId } = duplicateNodesWithMapping(
       [groupNode, ...children],
       {
-        offset: { x: 0, y: 350 },
+        offset: { x: 0, y: data.expandedHeight + 50 },
       }
     );
 
@@ -244,7 +244,7 @@ export default function GroupNode({
 
     logEvent("node.group.text_to_graph_generated", {
       sourceNodeId: id,
-      nodes: nodes, 
+      nodes: nodes,
       edges: edges,
     });
 

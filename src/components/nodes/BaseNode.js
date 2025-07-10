@@ -207,7 +207,7 @@ export default function BaseNode({
         isVisible={isHovered}
       />
       <div
-        className="nodrag"
+        // className="nodrag"
         style={{
           width: "100%",
           height: "100%",
