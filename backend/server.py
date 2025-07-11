@@ -40,8 +40,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"])
+app = Flask(__name__, static_folder=None)
+CORS(app, origins="*")
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 seed = 42
@@ -266,6 +266,22 @@ def log_from_frontend():
     })
 
     return jsonify({"status": "ok"})
+
+from flask import send_from_directory
+
+REACT_BUILD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "build"))
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_react_app(path):
+    target_path = os.path.join(REACT_BUILD_DIR, path)
+    print("Serving from:", target_path)
+
+    if path != "" and os.path.exists(target_path):
+        return send_from_directory(REACT_BUILD_DIR, path)
+    else:
+        return send_from_directory(REACT_BUILD_DIR, "index.html")
+
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)
