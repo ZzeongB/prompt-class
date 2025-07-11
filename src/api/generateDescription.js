@@ -5,7 +5,7 @@ export async function generateDescription(
 ) {
   const base64Data = base64FullImage.split(",")[1]; // 👈 "data:image/png;base64," 제거
 
-  const response = await fetch("http://127.0.0.1:5000/describe", {
+  const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/describe`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     mode: "cors",

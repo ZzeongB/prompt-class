@@ -1,5 +1,5 @@
 export async function generateGlobalCaption(sentences, globalCaption, requiredKeywords) {
-  const response = await fetch("http://127.0.0.1:5000/generate-caption", {
+  const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/generate-caption`,{ 
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -76,8 +76,10 @@ function LayoutBoard({ onImageGenerated }) {
     }
 
     const interval = setInterval(async () => {
-      const res = await fetch("http://127.0.0.1:5000/progress");
-      const data = await res.json();
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/progress`);
+      const text = await res.text(); // 👈 일단 text로 받아보기
+
+      const data = JSON.parse(text); // 👈 여기서 수동 파싱 시도
       setProgress(data.progress);
 
       if (data.progress >= 100) {

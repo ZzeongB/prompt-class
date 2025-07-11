@@ -91,7 +91,7 @@ function BaselineLayoutBoard({ onImageGenerated }) {
     }
 
     const interval = setInterval(async () => {
-      const res = await fetch("http://127.0.0.1:5000/progress");
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/progress`);
       const data = await res.json();
       setProgress(data.progress);
 
