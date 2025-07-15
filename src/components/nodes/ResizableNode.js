@@ -12,7 +12,7 @@ import { logEvent } from "../../api/logEvent"; // ✅ 로깅 함수 임포트
 function ResizableNode({ id, data, nodeType, style }) {
   const connection = useConnection();
   const isTarget = connection.inProgress && connection.fromNode.id !== id;
-  const showHandle = connection.inProgress && isTarget;
+  const showHandle = connection.inProgress && connection.fromNode?.type == "resizable" && isTarget;
   const { setNodes, getNodes, getEdges } = useReactFlow();
 
   const handleMouseDown = (e) => {

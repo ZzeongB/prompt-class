@@ -34,7 +34,10 @@ const getHandleStyle = (pos) => {
 export default function NodeHandles({ id, isSelected, nodeType }) {
   const connection = useConnection();
   const isTarget = connection.inProgress && connection.fromNode?.id !== id;
-  const sourceType = connection.fromNode?.data?.type;
+  const sourceType =
+    connection.fromNode?.type == "resizable"
+      ? "resizable"
+      : connection.fromNode?.data?.type;
 
   const showTargetHandle =
     !connection.inProgress ||
