@@ -5,7 +5,7 @@ import BaseNode from "./BaseNode";
 
 export default function LayoutNode({ id, data }) {
   const { getNodes, setNodes, deleteElements } = useReactFlow();
-  const { setInstanceNodes } = useInstanceGraph();
+  const { setInstanceNodes, setHighlight } = useInstanceGraph();
 
   const handleDelete = () => {
     const nodes = getNodes();
@@ -75,6 +75,9 @@ export default function LayoutNode({ id, data }) {
     });
   };
 
+  const handleClick = () => setHighlight(id);
+  const handleClickCancel = () => setHighlight(null);
+
   return (
     <BaseNode
       id={id}
@@ -83,6 +86,8 @@ export default function LayoutNode({ id, data }) {
       onDelete={handleDelete}
       onDuplicate={handleDuplicate}
       onLableUpdate={handleLabelUpdate}
+      onClickProp={handleClick}
+      onClickCancelProp={handleClickCancel}
       fontSize={10}
     />
   );

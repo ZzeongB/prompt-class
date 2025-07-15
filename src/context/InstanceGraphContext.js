@@ -8,9 +8,23 @@ export const InstanceGraphProvider = ({ children }) => {
   const [instanceEdges, setInstanceEdges] = useState([]);
   const [instanceAttrMap, setInstanceAttrMap] = useState({});
   const [editedLabelMap, setEditedLabelMap] = useState({});
+  const [highlight, setHighlight] = useState({});
 
   return (
-    <InstanceGraphContext.Provider value={{ instanceNodes, setInstanceNodes, instanceEdges, setInstanceEdges, instanceAttrMap, setInstanceAttrMap, editedLabelMap, setEditedLabelMap }}>
+    <InstanceGraphContext.Provider
+      value={{
+        instanceNodes,
+        setInstanceNodes,
+        instanceEdges,
+        setInstanceEdges,
+        instanceAttrMap,
+        setInstanceAttrMap,
+        editedLabelMap,
+        setEditedLabelMap,
+        highlight,
+        setHighlight,
+      }}
+    >
       {children}
     </InstanceGraphContext.Provider>
   );

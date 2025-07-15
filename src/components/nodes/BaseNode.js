@@ -18,6 +18,8 @@ export default function BaseNode({
   onDelete: onDeleteProp,
   onDuplicate: onDuplicateProp,
   onLableUpdate: onLabelUpdateProp,
+  onClickProp,
+  onClickCancelProp,
   fontSize,
 }) {
   const { getNodes, setNodes } = useReactFlow();
@@ -44,6 +46,7 @@ export default function BaseNode({
 
         setIsSelected(false);
         setIsEditing(false);
+        if(onClickCancelProp) onClickCancelProp();
       }
     };
 
@@ -187,6 +190,8 @@ export default function BaseNode({
         setIsSelected(true);
         e.stopPropagation(); // ✅ prevents parent from hijacking the drag
         e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
+
+        if(onClickProp) onClickProp();
       }}
       onDoubleClick={() => setIsEditing(true)}
     >

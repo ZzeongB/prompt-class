@@ -11,6 +11,8 @@ export default function InstanceTree({
   editedLabelMap,
   setEditedLabelMap,
   setNodes,
+  highlight,
+  setHighlight,
 }) {
   const treeData = buildTree(nodes, edges);
 
@@ -34,6 +36,8 @@ export default function InstanceTree({
           key={rootNode.id}
           node={rootNode}
           onLabelChange={handleLabelChange}
+          highlight={highlight}
+          setHighlight={setHighlight}
         />
       ))}
     </div>

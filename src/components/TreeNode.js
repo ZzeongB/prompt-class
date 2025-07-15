@@ -16,6 +16,8 @@ export default function TreeNode({
   node,
   depth = 0,
   onLabelChange,
+  highlight = null,
+  setHighlight = null,
 }) {
   const [expanded, setExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -92,6 +94,19 @@ export default function TreeNode({
     };
   }
 
+  console.log("Highlight", highlight, node.data);
+
+  if (node.data.instanceId === highlight) {
+    console.log("Highlight!!");
+    boxStyle = {
+      ...boxStyle,
+      outline: "2px solid #007bff",
+      outlineOffset: "2px",
+      fontWeight: "bold",
+      backgroundColor: "#e6f0ff", // 약간 파란 배경 (선택사항)
+    };
+  }
+
   // 그룹 노드 렌더링 (margin 제거)
   if (type === "instance-group" || type === "class-group") {
     return (
@@ -103,6 +118,12 @@ export default function TreeNode({
             background: OBJ_COLOR_TRANS,
             boxShadow: "1px 1px 5px rgba(0,0,0,0.1)",
             position: "relative",
+            border: "none",
+            boxShadow:
+              node.data.instanceId === highlight
+                ? "0 0 10px 4px rgba(0, 0, 0, 0.3)" // ✅ blur=10, spread=4
+                : "1px 1px 5px rgba(0, 0, 0, 0.1)",
+            transition: "box-shadow 0.2s ease",
           }}
         >
           <div
@@ -124,10 +145,16 @@ export default function TreeNode({
                   onKeyDown={(e) => e.key === "Enter" && handleLabelSave()}
                   autoFocus
                   style={{
-                    fontSize: "14px",
-                    padding: "2px 4px",
-                    border: "1px solid #ccc",
-                    borderRadius: 4,
+                    fontSize: "13px",
+                    padding: "4px 6px",
+                    border: "1px solid transparent",
+                    borderRadius: "4px",
+                    backgroundColor: "transparent",
+                    color: "#333",
+                    outline: "none",
+                    maxWidth: "100%",
+                    minWidth: "60px",
+                    width: `${Math.max(8, label.length)}ch`, // ✅ label 길이에 따라 너비 조절
                   }}
                 />
               ) : (
@@ -168,7 +195,12 @@ export default function TreeNode({
           {expanded && hasChildren && (
             <div>
               {children.map((child) => (
-                <TreeNode key={child.id} node={child} depth={depth + 1} onLabelChange={onLabelChange}/>
+                <TreeNode
+                  key={child.id}
+                  node={child}
+                  depth={depth + 1}
+                  onLabelChange={onLabelChange}
+                />
               ))}
             </div>
           )}
@@ -190,10 +222,15 @@ export default function TreeNode({
             autoFocus
             style={{
               fontSize: "13px",
-              padding: "2px 4px",
-              border: "1px solid #ccc",
-              borderRadius: 4,
-              maxWidth: 150,
+              padding: "4px 6px",
+              border: "1px solid transparent",
+              borderRadius: "4px",
+              backgroundColor: "transparent",
+              color: "#333",
+              outline: "none",
+              maxWidth: "100%",
+              minWidth: "60px",
+              width: `${Math.max(8, label.length)}ch`, // ✅ label 길이에 따라 너비 조절
             }}
           />
         ) : type === "attribute" ? (
@@ -230,7 +267,11 @@ export default function TreeNode({
                   background: "#999",
                 }}
               />
-              <TreeNode node={child} depth={depth} onLabelChange={onLabelChange}/>
+              <TreeNode
+                node={child}
+                depth={depth}
+                onLabelChange={onLabelChange}
+              />
             </div>
           ))}
         </div>
