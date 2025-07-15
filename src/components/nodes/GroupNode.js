@@ -267,6 +267,7 @@ export default function GroupNode({
         e.stopPropagation(); // ✅ prevents parent from hijacking the drag
         e.preventDefault(); // ✅ optional but helps prevent text selection, etc.
       }}
+      onDoubleClick={() => setIsEditing(true)}
     >
       <NodeToolbarMenu
         ref={toolbarRef}

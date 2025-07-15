@@ -12,8 +12,22 @@ import {
 import { ChevronRight, ChevronDown, MoveDiagonal } from "lucide-react";
 import { logEvent } from "../api/logEvent";
 
-export default function TreeNode({ node, depth = 0 }) {
+export default function TreeNode({
+  node,
+  depth = 0,
+  onLabelChange,
+}) {
   const [expanded, setExpanded] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [label, setLabel] = useState(node.data?.label ?? "");
+
+  const handleLabelSave = () => {
+    setIsEditing(false);
+    if (label !== node.data?.label) {
+      onLabelChange?.(node.id, label); // ✅ 외부 전달
+    }
+  };
+
   const children = node.children ?? [];
   const hasChildren = children.length > 0;
 
@@ -94,9 +108,33 @@ export default function TreeNode({ node, depth = 0 }) {
           <div
             style={{ display: "flex", alignItems: "center", marginBottom: 10 }}
           >
-            <div style={{ fontWeight: "bold", fontSize: "14px" }}>
-              {node.data?.label}
+            <div
+              style={{
+                fontWeight: "bold",
+                fontSize: "14px",
+                cursor: "pointer",
+              }}
+              onDoubleClick={() => setIsEditing(true)}
+            >
+              {isEditing ? (
+                <input
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  onBlur={handleLabelSave}
+                  onKeyDown={(e) => e.key === "Enter" && handleLabelSave()}
+                  autoFocus
+                  style={{
+                    fontSize: "14px",
+                    padding: "2px 4px",
+                    border: "1px solid #ccc",
+                    borderRadius: 4,
+                  }}
+                />
+              ) : (
+                label
+              )}
             </div>
+
             {hasChildren && (
               <div
                 onClick={() => {
@@ -130,7 +168,7 @@ export default function TreeNode({ node, depth = 0 }) {
           {expanded && hasChildren && (
             <div>
               {children.map((child) => (
-                <TreeNode key={child.id} node={child} depth={depth + 1} />
+                <TreeNode key={child.id} node={child} depth={depth + 1} onLabelChange={onLabelChange}/>
               ))}
             </div>
           )}
@@ -142,8 +180,27 @@ export default function TreeNode({ node, depth = 0 }) {
   // 일반 노드 렌더링 (연결선 포함)
   return (
     <div style={{ position: "relative", marginTop: 10, marginLeft: INDENT }}>
-      <div style={boxStyle}>
-        {type === "attribute" ? node.data?.hasValue : node.data?.label}
+      <div style={boxStyle} onDoubleClick={() => setIsEditing(true)}>
+        {isEditing ? (
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            onBlur={handleLabelSave}
+            onKeyDown={(e) => e.key === "Enter" && handleLabelSave()}
+            autoFocus
+            style={{
+              fontSize: "13px",
+              padding: "2px 4px",
+              border: "1px solid #ccc",
+              borderRadius: 4,
+              maxWidth: 150,
+            }}
+          />
+        ) : type === "attribute" ? (
+          node.data?.hasValue
+        ) : (
+          label
+        )}
       </div>
 
       {hasChildren && (
@@ -173,7 +230,7 @@ export default function TreeNode({ node, depth = 0 }) {
                   background: "#999",
                 }}
               />
-              <TreeNode node={child} depth={depth} />
+              <TreeNode node={child} depth={depth} onLabelChange={onLabelChange}/>
             </div>
           ))}
         </div>

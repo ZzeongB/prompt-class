@@ -185,6 +185,7 @@ function cloneSubtreeInstance(
   updatedAt,
   collapsed,
   filledAttrMap,
+  editedLabelMap,
   instanceNodes,
   instanceEdges
 ) {
@@ -221,6 +222,11 @@ function cloneSubtreeInstance(
   const groupInstanceId = `instance-${groupNode.id}-${uniqueId}`;
   idMap.set(groupNode.id, groupInstanceId);
 
+  const label =
+    editedLabelMap?.[instanceId]?.[groupNode.id] ??
+    instanceLabel ??
+    groupNode.data.label;
+
   // 최상위 group 복제
   const newGroupNode = {
     ...groupNode,
@@ -229,10 +235,11 @@ function cloneSubtreeInstance(
     position: event,
     data: {
       ...groupNode.data,
-      label: instanceLabel || groupNode.data.label,
+      label: label,
       type: groupNode.data.type,
       collapsed,
       instanceId,
+      originalClassId: groupNode.id,
     },
     class: id,
     updatedAt,
@@ -266,18 +273,22 @@ function cloneSubtreeInstance(
         ...n.data,
         type: n.data.type,
         instanceId,
-        label: n.data.label,
+        label: editedLabelMap?.[instanceId]?.[n.id] ?? n.data.label,
+        hasValue: n.data.type === "attribute" ? editedLabelMap?.[instanceId]?.[n.id] ?? n.data.label : null,
+        originalClassId: n.id,
       };
 
       // 5. ⚙️ attribute일 경우 값 부여 (filledAttrMap 기반)
       if (n.data.type === "attribute" && !n.data.hasValue) {
-        const value = getAttributeValue(
+        let value = getAttributeValue(
           n.data.label,
           filledAttrMap,
           instanceId,
           n.id
         );
         if (!value) return null;
+        
+        value = editedLabelMap?.[instanceId]?.[n.id] ?? value;
 
         return {
           ...n,
@@ -345,7 +356,8 @@ export function createInstance(
   instanceLabel = null,
   updatedAt = new Date().toISOString(),
   collapsed = false,
-  filledAttrMap = {}
+  filledAttrMap = {},
+  editedLabelMap = {}
 ) {
   if (!type || !label) return;
 
@@ -361,6 +373,7 @@ export function createInstance(
       updatedAt,
       collapsed,
       filledAttrMap,
+      editedLabelMap,
       instanceNodes,
       instanceEdges
     );

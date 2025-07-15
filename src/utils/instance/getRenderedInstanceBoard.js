@@ -9,6 +9,7 @@ export function getRenderedInstanceBoard({
   screenToFlowPosition,
   collapsedClassMap = {},
   filledAttrMap = {},
+  editedLabelMap = {}
 }) {
   const allNodes = [];
   const allEdges = [];
@@ -60,6 +61,7 @@ export function getRenderedInstanceBoard({
       node.updatedAt,
       isCollapsed,
       filledAttrMap,
+      editedLabelMap
     );
 
     allNodes.push(...newNodes);

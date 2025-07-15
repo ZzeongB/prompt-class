@@ -20,7 +20,7 @@ function getClassGraphSignature(nodes, edges) {
 
 function InstanceTreeBoard() {
   const { classNodes, classEdges } = useClassGraph();
-  const { instanceNodes, instanceEdges, setInstanceAttrMap } = useInstanceGraph();
+  const { instanceNodes, instanceEdges, setInstanceAttrMap, editedLabelMap, setEditedLabelMap } = useInstanceGraph();
 
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -44,17 +44,18 @@ function InstanceTreeBoard() {
       classNodes,
       classEdges,
       filledAttrMap,
+      editedLabelMap,
     });
 
     setNodes(newNodes);
     setEdges(newEdges);
     setFilledAttrMap(newFilledAttrMap);
     setInstanceAttrMap(newFilledAttrMap); // instanceAttrMap 업데이트
-  }, [instanceNodes, classGraphSignature]); // 👈 핵심
+  }, [instanceNodes, classGraphSignature, editedLabelMap]); // 👈 핵심
 
   return (
     <div>
-      <InstanceTree nodes={nodes} edges={edges} />
+      <InstanceTree nodes={nodes} edges={edges} setNodes={setNodes} editedLabelMap={editedLabelMap} setEditedLabelMap={setEditedLabelMap}/>
     </div>
   );
 }

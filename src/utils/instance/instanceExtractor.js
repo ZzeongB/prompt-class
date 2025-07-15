@@ -70,6 +70,39 @@ function buildCompositionalSentence(classEntry) {
   return `${fullSentence}: ${content}`;
 }
 
+function applyEditedLabels(structuredClass, instanceId, editedLabelMap) {
+  const edited = editedLabelMap?.[instanceId] ?? {};
+
+  // group label
+  if (edited[structuredClass.id]) {
+    structuredClass.class = edited[structuredClass.id];
+  }
+
+  structuredClass.attributes?.forEach((attr) => {
+    if (!attr.value && edited[attr.id]) {
+      attr.value = edited[attr.id];
+    }
+    if (edited[attr.id]) {
+      attr.value = edited[attr.id];
+    }
+  });
+
+  structuredClass.objects?.forEach((obj) => {
+    if (edited[obj.id]) {
+      obj.label = edited[obj.id];
+    }
+
+    obj.attributes?.forEach((attr) => {
+      if (!attr.value && edited[attr.id]) {
+        attr.value = edited[attr.id];
+      }
+      if (edited[attr.id]) {
+        attr.value = edited[attr.id];
+      }
+    });
+  });
+}
+
 export function extractSentencesAndBoxes(
   instanceNodes,
   instanceEdges,
@@ -78,7 +111,8 @@ export function extractSentencesAndBoxes(
   flowToScreenPosition,
   offset_left = 660,
   offset_top = 20,
-  filledAttrMap = {}
+  filledAttrMap = {},
+  editedLabelMap = {}
 ) {
   const objectNodes = instanceNodes.filter(
     (n) =>
@@ -107,7 +141,6 @@ export function extractSentencesAndBoxes(
   if (emptyNodes.length > 0) {
     // 빈 노드가 있는 경우
     emptyNodes.forEach((emptyNode) => {
-
       const resizableNode = emptyResizableNodes.find(
         (n) => n.data.sharedId === emptyNode.data.sharedId
       );
@@ -170,7 +203,9 @@ export function extractSentencesAndBoxes(
 
       if (!structuredClass) return;
 
+      applyEditedLabels(structuredClass, instanceId, editedLabelMap);
       const sentence = buildCompositionalSentence(structuredClass);
+
       sentences.push(sentence);
 
       const resizableNode = resizableNodes.find(

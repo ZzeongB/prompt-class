@@ -56,8 +56,12 @@ function LayoutBoard({ onImageGenerated }) {
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
   const { classNodes, classEdges, structuredClasses } = useClassGraph();
-  const { setInstanceNodes, setInstanceEdges, instanceAttrMap } =
-    useInstanceGraph();
+  const {
+    setInstanceNodes,
+    setInstanceEdges,
+    instanceAttrMap,
+    editedLabelMap,
+  } = useInstanceGraph();
   const [dragState, setDragState] = useState(null);
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
@@ -68,6 +72,28 @@ function LayoutBoard({ onImageGenerated }) {
   const [showImageOnly, setShowImageOnly] = useState(false);
 
   const { image, setImage } = useImage();
+
+  useEffect(() => {
+    setNodes((prevNodes) =>
+      prevNodes.map((node) => {
+        if (!node?.id || !node?.data?.classId) return node;
+
+        const instanceId = node.id;
+        const originalClassId = node.data.classId;
+
+        const edited = editedLabelMap?.[instanceId]?.[originalClassId];
+        if (!edited) return node;
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            label: edited,
+          },
+        };
+      })
+    );
+  }, [editedLabelMap, setNodes]);
 
   useEffect(() => {
     if (!isGenerating) {
@@ -256,7 +282,8 @@ function LayoutBoard({ onImageGenerated }) {
         flowToScreenPosition,
         LEFT_OFFSET,
         TOP_OFFSET,
-        instanceAttrMap
+        instanceAttrMap,
+        editedLabelMap
       );
 
       logEvent("layoutboard.imagegen.extracted", {
@@ -280,10 +307,6 @@ function LayoutBoard({ onImageGenerated }) {
           image_size: response.image.length,
           global_caption: response.globalCaption,
           refined_caption: response.refinedCaptions,
-          // output_preview: {
-          //   sentences: result.sentences.slice(0, 3),
-          //   boxes: result.boxes.slice(0, 3),
-          // },
         });
 
         onImageGenerated(response.image);

@@ -48,6 +48,7 @@ export function buildGroup(groupId, nodes, edges, visited = new Set()) {
       attributes: connectedAttributes,
       objects: nestedObjects,
       relations: nestedRelations,
+      id: objNode.id,
     };
   });
 
@@ -74,6 +75,7 @@ export function buildGroup(groupId, nodes, edges, visited = new Set()) {
         name: rel.data.label,
         source: sourceNode.data.label,
         target: targetNode.data.label,
+        id: rel.id,
       };
     }
     return null;
@@ -84,5 +86,6 @@ export function buildGroup(groupId, nodes, edges, visited = new Set()) {
     attributes: groupAttributes,
     objects: objectEntries,
     relations,
+    id: groupNode.id
   };
 }
