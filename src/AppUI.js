@@ -11,10 +11,13 @@ import { DnDProvider } from "./context/DragAndDropContext";
 import InstanceTreeBoard from "./Board/InstanceTreeBoard";
 import CustomButton from "./components/CustomButton";
 import { logEvent } from "./api/logEvent";
+import { HelpCircle } from "lucide-react";
+import HelpModal from "./components/HelpModal"; // 추가
 
 export default function AppUI({ isBaseline: initialIsBaseline }) {
   const [imageSrc, setImageSrc] = useState("");
   const [isBaseline, setIsBaseline] = useState(initialIsBaseline);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     sessionStorage.setItem("is_baseline", JSON.stringify(isBaseline));
@@ -163,7 +166,34 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                 >
                   <InstanceTreeBoard />
                 </div>
+                <CustomButton
+                  color="grey"
+                  size="sm"
+                  onClick={() => setShowHelp(true)}
+                  style={{
+                    position: "fixed",
+                    top: "20px", // System 버튼 위에 위치
+                    right: "20px",
+                    zIndex: 999,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "36px",
+                    height: "36px",
+                    padding: 0,
+                    borderRadius: "50%",
+                    backgroundColor: "#f0f0f0",
+                    border: "1px solid #ccc",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                    cursor: "pointer",
+                  }}
+                  title="도움말 보기"
+                >
+                  <HelpCircle size={20} />
+                </CustomButton>
               </div>
+              <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+
               <>
                 {isBaseline ? (
                   <BaselineLayoutBoardWithProvider
