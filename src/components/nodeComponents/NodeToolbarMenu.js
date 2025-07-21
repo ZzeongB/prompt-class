@@ -57,7 +57,7 @@ const NodeToolbarMenu = forwardRef((props, ref) => {
       />
       {onConvertFromText && (
         <HoverButton
-          title="Graph from Text"
+          title="Text to Graph"
           icon={<Network size={16} />}
           onClick={onConvertFromText}
         />
