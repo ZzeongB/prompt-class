@@ -215,7 +215,7 @@ export default function TreeNode({
       <div style={boxStyle} onDoubleClick={() => setIsEditing(true)}>
         {isEditing ? (
           <input
-            value={label}
+            value={hasValue ? hasValue : label}
             onChange={(e) => setLabel(e.target.value)}
             onBlur={handleLabelSave}
             onKeyDown={(e) => e.key === "Enter" && handleLabelSave()}

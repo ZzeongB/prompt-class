@@ -14,6 +14,13 @@ function getConnectedAttributes(groupNode, instanceEdges, instanceNodes) {
     }));
 }
 
+function getConnectedRelationships(objNodeId, instanceEdges, instanceNodes) {
+  return instanceEdges
+    .filter((edge) => edge.source === objNodeId)
+    .map((edge) => instanceNodes.find((node) => node.id === edge.target))
+    .filter((node) => node?.data?.type === "relationship");
+}
+
 function buildCompositionalSentence(classEntry) {
   const objectNameMap = {};
 
@@ -161,6 +168,7 @@ export function extractSentencesAndBoxes(
   }
   if (objectNodes.length > 0) {
     objectNodes.forEach((objNode) => {
+      // for each object node
       const groupId = objNode.data.classId;
       const groupAttributes = getConnectedAttributes(
         objNode,
@@ -178,6 +186,8 @@ export function extractSentencesAndBoxes(
         classGraphNodes,
         classGraphEdges
       );
+
+      console.log("[instanceExtractor.js] structuredClass", structuredClass);
 
       structuredClass.attributes.push(...groupAttributes); // ✅ 주입
       structuredClass.attributes.push(...groupAttributes_); // ✅ 주입
@@ -204,10 +214,32 @@ export function extractSentencesAndBoxes(
       if (!structuredClass) return;
 
       applyEditedLabels(structuredClass, instanceId, editedLabelMap);
-      const sentence = buildCompositionalSentence(structuredClass);
 
-      sentences.push(sentence);
+      // Get connected Relationships of this instance
+      const connectedRelationships = getConnectedRelationships(
+        objNode.id,
+        instanceEdges,
+        instanceNodes
+      );
 
+      const instanceRelations = connectedRelationships.map((relNode) => ({
+        source: objNode.data.label, // 또는 instanceId
+        target: instanceNodes.find((n) => n.id === relNode.data.target)?.data
+          ?.label,
+        relation: relNode.data.label,
+      }));
+
+      const relationshipSentences = instanceRelations.map(
+        (rel) => `${rel.source} is ${rel.relation} ${rel.target}`
+      );
+      
+      // Build sentence
+      const sentence = buildCompositionalSentence(structuredClass); // object sentence
+      
+      sentences.push([sentence, ...relationshipSentences].join(". ")); // relationship sentence
+      // sentences.push(sentence);
+
+      // Get Resizable Node
       const resizableNode = resizableNodes.find(
         (n) => n.id.replace(/-resizable/g, "") === objNode.id
       );
@@ -221,8 +253,9 @@ export function extractSentencesAndBoxes(
       );
       boxes.push(box);
 
+      //  숫자 제거
       const rawLabel = objNode.data.label ?? "";
-      const cleanLabel = rawLabel.replace(/\s*\d+$/, ""); // ✅ 숫자 제거
+      const cleanLabel = rawLabel.replace(/\s*\d+$/, "");
       labels.push(cleanLabel || "");
     });
   } else {
