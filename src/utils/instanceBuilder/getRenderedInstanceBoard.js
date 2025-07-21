@@ -1,4 +1,4 @@
-import { createInstance } from "./instanceBuilder";
+import { createInstanceFromGroupNode } from "./createInstanceFromGroupNode";
 import { recalculateLayout } from "../layout/recalculateLayout";
 
 export function getRenderedInstanceBoard({
@@ -44,24 +44,19 @@ export function getRenderedInstanceBoard({
       ? collapsedClassMap[node.data.instanceId]
       : true;
 
-    const { newNodes, newEdges, newFilledAttrMap } = createInstance(
+    const { newNodes, newEdges, newFilledAttrMap } = createInstanceFromGroupNode(
       position,
       classNode.id,
-      classNode.data.label || "Instance",
-      classNode.type || "object",
-      screenToFlowPosition,
-      [],
       classNodes,
       classEdges,
-      instanceNodes,
-      instanceEdges,
-      false,
       node.id,
       node.data.label || "Instance",
       node.updatedAt,
       isCollapsed,
       filledAttrMap,
-      editedLabelMap
+      editedLabelMap,
+      instanceNodes,
+      instanceEdges,
     );
 
     allNodes.push(...newNodes);

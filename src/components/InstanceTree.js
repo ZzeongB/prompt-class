@@ -13,6 +13,7 @@ export default function InstanceTree({
   setNodes,
   highlight,
   setHighlight,
+  isBaseline,
 }) {
   const treeData = buildTree(nodes, edges);
 
@@ -38,6 +39,7 @@ export default function InstanceTree({
           onLabelChange={handleLabelChange}
           highlight={highlight}
           setHighlight={setHighlight}
+          isBaseline={isBaseline}
         />
       ))}
     </div>

@@ -71,8 +71,7 @@ function BaselineLayoutBoard({ onImageGenerated }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
-  const { setInstanceNodes, setInstanceEdges, instanceAttrMap } =
-    useInstanceGraph();
+  const { setInstanceNodes } = useInstanceGraph();
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
   const [progress, setProgress] = useState(0);
@@ -173,7 +172,8 @@ function BaselineLayoutBoard({ onImageGenerated }) {
         label: "New Box",
         type: "object",
         sharedId,
-        classId: null,
+        classId: "__baseline__",
+        originalClassId: "__baseline__",
         instanceId: sharedId,
         baseline: true,
         justCreated: true,

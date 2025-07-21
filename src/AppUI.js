@@ -164,7 +164,7 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                     marginBottom: "12px", // LayoutBoard와의 거리
                   }}
                 >
-                  <InstanceTreeBoard />
+                  <InstanceTreeBoard isBaseline={isBaseline}/>
                 </div>
                 <CustomButton
                   color="grey"

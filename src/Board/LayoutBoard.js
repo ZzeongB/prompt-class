@@ -20,24 +20,20 @@ import {
 import { useClassGraph } from "../context/ClassGraphContext";
 import { useInstanceGraph } from "../context/InstanceGraphContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
-import { extractSentencesAndBoxes } from "../utils/instance/instanceExtractor";
+import { extractSentencesAndBoxes } from "../utils/instanceExtractor/extractSentencesAndBoxes.js";
 import {
   handleMouseDown,
   handleMouseMove,
   handleMouseUp,
 } from "../utils/layout/handleTempLayout";
-import { createInstance } from "../utils/instance/instanceBuilder";
+import { createInstanceFromClassNode } from "../utils/instanceBuilder/createInstanceFromClassNode.js";
 import { generateImageFromInstanceData } from "../api/generateImage";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
 import { logEvent } from "../api/logEvent";
 import { LEFT_OFFSET, TOP_OFFSET } from "../utils/constants";
-import {
-  onEdgeClick,
-  onEdgeMouseEnter,
-  onEdgeMouseLeave,
-} from "../utils/onEdgeMouseUtils.js";
+import { onEdgeClick } from "../utils/onEdgeMouseUtils.js";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -174,15 +170,15 @@ function LayoutBoard({ onImageGenerated }) {
           count++;
         }
 
-        const { newNodes, newEdges, _ } = createInstance(
+        const { newNodes, newEdges, _ } = createInstanceFromClassNode(
           event,
           id,
           uniqueLabel,
           type,
           screenToFlowPosition,
-          nodes,
           classNodes,
           classEdges
+          // updatedAt
         );
 
         logEvent("layoutboard.node.add.instantance", {

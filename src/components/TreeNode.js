@@ -1,8 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   OBJ_COLOR,
-  ATTR_COLOR,
-  REL_COLOR,
   WHITE,
   OBJ_COLOR_TRANS,
   OBJ_COLOR_TRANS_DARK,
@@ -18,10 +16,15 @@ export default function TreeNode({
   onLabelChange,
   highlight = null,
   setHighlight = null,
+  isBaseline = false,
 }) {
   const [expanded, setExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(node.data?.label ?? "");
+
+  useEffect(() => {
+    setLabel(node.data?.label ?? "");
+  }, [node.data?.label]);
 
   const handleLabelSave = () => {
     setIsEditing(false);
@@ -94,10 +97,7 @@ export default function TreeNode({
     };
   }
 
-  console.log("Highlight", highlight, node.data);
-
   if (node.data.instanceId === highlight) {
-    console.log("Highlight!!");
     boxStyle = {
       ...boxStyle,
       outline: "2px solid #007bff",
@@ -135,7 +135,9 @@ export default function TreeNode({
                 fontSize: "14px",
                 cursor: "pointer",
               }}
-              onDoubleClick={() => setIsEditing(true)}
+              onDoubleClick={() => {
+                if (!isBaseline) setIsEditing(true);
+              }}
             >
               {isEditing ? (
                 <input
@@ -212,7 +214,12 @@ export default function TreeNode({
   // 일반 노드 렌더링 (연결선 포함)
   return (
     <div style={{ position: "relative", marginTop: 10, marginLeft: INDENT }}>
-      <div style={boxStyle} onDoubleClick={() => setIsEditing(true)}>
+      <div
+        style={boxStyle}
+        onDoubleClick={() => {
+          if (!isBaseline) setIsEditing(true);
+        }}
+      >
         {isEditing ? (
           <input
             value={hasValue ? hasValue : label}

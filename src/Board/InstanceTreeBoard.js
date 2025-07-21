@@ -2,11 +2,14 @@ import React, { useEffect, useState, useMemo } from "react";
 import InstanceTree from "../components/InstanceTree.js";
 import { useInstanceGraph } from "../context/InstanceGraphContext.js";
 import { useClassGraph } from "../context/ClassGraphContext.js";
-import { getRenderedInstanceBoard } from "../utils/instance/getRenderedInstanceBoard.js";
+import { getRenderedInstanceBoard } from "../utils/instanceBuilder/getRenderedInstanceBoard.js";
 
 function getClassGraphSignature(nodes, edges) {
   const nodeSig = nodes
-    .map((n) => `${n.id}-${n.data?.label}-${JSON.stringify(n.data?.attributes ?? [])}`)
+    .map(
+      (n) =>
+        `${n.id}-${n.data?.label}-${JSON.stringify(n.data?.attributes ?? [])}`
+    )
     .sort()
     .join("|");
 
@@ -18,9 +21,17 @@ function getClassGraphSignature(nodes, edges) {
   return `${nodeSig}::${edgeSig}`;
 }
 
-function InstanceTreeBoard() {
+function InstanceTreeBoard({ isBaseline = false }) {
   const { classNodes, classEdges } = useClassGraph();
-  const { instanceNodes, instanceEdges, setInstanceAttrMap, editedLabelMap, setEditedLabelMap, highlight, setHighlight } = useInstanceGraph();
+  const {
+    instanceNodes,
+    instanceEdges,
+    setInstanceAttrMap,
+    editedLabelMap,
+    setEditedLabelMap,
+    highlight,
+    setHighlight,
+  } = useInstanceGraph();
 
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
@@ -46,6 +57,7 @@ function InstanceTreeBoard() {
       filledAttrMap,
       editedLabelMap,
     });
+    console.log("Instance", instanceNodes, nodes);
 
     setNodes(newNodes);
     setEdges(newEdges);
@@ -55,7 +67,16 @@ function InstanceTreeBoard() {
 
   return (
     <div>
-      <InstanceTree nodes={nodes} edges={edges} setNodes={setNodes} editedLabelMap={editedLabelMap} setEditedLabelMap={setEditedLabelMap} highlight={highlight} setHighlight={setHighlight}/>
+      <InstanceTree
+        nodes={nodes}
+        edges={edges}
+        setNodes={setNodes}
+        editedLabelMap={editedLabelMap}
+        setEditedLabelMap={setEditedLabelMap}
+        highlight={highlight}
+        setHighlight={setHighlight}
+        isBaseline={isBaseline}
+      />
     </div>
   );
 }

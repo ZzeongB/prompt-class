@@ -70,6 +70,8 @@ export default function LayoutNode({ id, data }) {
             }
           : node
       );
+
+      console.log("Updated", updated)
       setInstanceNodes(updated); // ✅ InstanceGraphContext에도 반영
       return updated;
     });
