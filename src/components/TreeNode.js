@@ -20,7 +20,11 @@ export default function TreeNode({
 }) {
   const [expanded, setExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [label, setLabel] = useState(node.data?.label ?? "");
+  const [label, setLabel] = useState(
+    node.data?.type === "attribute" && node.data?.hasValue
+      ? node.data.hasValue
+      : node.data?.label ?? ""
+  );
 
   useEffect(() => {
     setLabel(node.data?.label ?? "");
@@ -222,7 +226,7 @@ export default function TreeNode({
       >
         {isEditing ? (
           <input
-            value={hasValue ? hasValue : label}
+            value={label}
             onChange={(e) => setLabel(e.target.value)}
             onBlur={handleLabelSave}
             onKeyDown={(e) => e.key === "Enter" && handleLabelSave()}
