@@ -185,8 +185,8 @@ def generate():
             "labels": region_caption_list,
         }
 
-        bbox_visualization_img = bbox_visualization(white_image, show_input)
-        image_with_bbox = bbox_visualization(image, show_input)
+        bbox_visualization_img = bbox_visualization(white_image, show_input, font_size = 15)
+        image_with_bbox = bbox_visualization(image, show_input, font_size = 15)
 
         new_image = Image.new("RGB", (width * 2, height))
         new_image.paste(bbox_visualization_img, (0, 0))
