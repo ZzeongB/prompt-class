@@ -1,7 +1,11 @@
 import { getNormalizedBox } from "../node/getNormalizedBox";
 import { buildGroup } from "../group/buildGroup"; // 분리된 유틸 import
 
-export function getConnectedAttributes(groupNode, instanceEdges, instanceNodes) {
+export function getConnectedAttributes(
+  groupNode,
+  instanceEdges,
+  instanceNodes
+) {
   return instanceEdges
     .filter((e) =>
       groupNode.id ? e.source === groupNode.id : e.source === groupNode
@@ -79,6 +83,7 @@ function buildCompositionalSentence(classEntry) {
 
 function applyEditedLabels(structuredClass, instanceId, editedLabelMap) {
   const edited = editedLabelMap?.[instanceId] ?? {};
+  console.log("ApplyingEditedLabels", edited, structuredClass);
 
   // group label
   if (edited[structuredClass.id]) {
@@ -107,6 +112,12 @@ function applyEditedLabels(structuredClass, instanceId, editedLabelMap) {
         attr.value = edited[attr.id];
       }
     });
+  });
+
+  structuredClass.relations?.forEach((rel) => {
+    if (edited[rel.id]) {
+      rel.name = edited[rel.id];
+    }
   });
 }
 
