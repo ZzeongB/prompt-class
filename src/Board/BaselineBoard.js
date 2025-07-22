@@ -22,6 +22,7 @@ import CustomButton from "../components/CustomButton.js";
 import { Plus } from "lucide-react";
 import { logEvent } from "../api/logEvent.js";
 import { OBJ_COLOR_TRANS, BACKGROUND_COLOR } from "../utils/constants.js";
+import { v4 as uuidv4 } from "uuid";
 
 const baseGhostStyle = {
   padding: 4,
@@ -177,7 +178,8 @@ function BaselineBoard() {
     if (!ghostNode) return;
     e.preventDefault();
 
-    const newId = `class-${nodes.length + 1}`;
+        const uniqueId = uuidv4();
+    const newId = `class-${uniqueId}`;
     const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     const newNode = {
       ...ghostNode,
