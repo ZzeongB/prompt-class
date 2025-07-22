@@ -134,9 +134,9 @@ export function processEmptyNodes(
       offset_top,
       true
     );
-    sentences.push("no objects, only background");
+    sentences.push("");
     boxes.push(box);
-    labels.push("empty");
+    labels.push("");
   });
 
   return { sentences, boxes, labels };
