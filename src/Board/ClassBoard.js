@@ -18,13 +18,13 @@ import {
   handleConnectEnd,
 } from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
-import { createNewObjectNode } from "../utils/node/nodeCreateUtils";
 import {
   syncMovedNodePositions,
   syncParentChildNodePositions,
 } from "../utils/node/syncNodePositions.js";
 import { convertClassGroup } from "../utils/group/convertClassGroup.js";
 import { getParentNodeForPosition } from "../utils/node/getParentNodeForPosition.js";
+import { getSmartStartPosition } from "../utils/node/getNonOverlappingPosition";
 import { sortNodesByDepth } from "../utils/node/sortNodeByDepth.js";
 import {
   OBJ_COLOR,
@@ -32,13 +32,11 @@ import {
   BACKGROUND_COLOR,
 } from "../utils/constants.js";
 import CustomButton from "../components/CustomButton.js";
-import { Plus, Box, FolderPlus } from "lucide-react";
+import { Plus, Network, FolderPlus } from "lucide-react";
 import { logEvent } from "../api/logEvent.js";
-import {
-  onEdgeMouseEnter,
-  onEdgeMouseLeave,
-  onEdgeClick,
-} from "../utils/onEdgeMouseUtils.js";
+import { generateTextToGraph } from "../api/generateTextToGraph.js";
+import { onEdgeClick } from "../utils/onEdgeMouseUtils.js";
+import { v4 as uuidv4 } from "uuid";
 
 const edgeTypes = {
   main: DefaultEdge,
@@ -116,6 +114,7 @@ function ClassBoard() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [ghostNode, setGhostNode] = useState(null); // ghostNode for Node Addition
+  const [textInput, setTextInput] = useState("");
 
   useEffect(() => {
     registerSetNodes(setNodes); // ✅ 외부에서 호출할 수 있게 등록
@@ -164,9 +163,7 @@ function ClassBoard() {
       });
 
       // 3. 부모 할당 다시 계산
-      const classGroupNodes = nextNodes.filter(
-        (n) => n.type === "class-group"
-      );
+      const classGroupNodes = nextNodes.filter((n) => n.type === "class-group");
 
       nextNodes = nextNodes.map((node) => {
         const newParent = getParentNodeForPosition(node, classGroupNodes);
@@ -268,7 +265,8 @@ function ClassBoard() {
     e.preventDefault();
     e.stopPropagation();
 
-    const newId = `class-${nodes.length + 1}`;
+    const uniqueId = uuidv4();
+    const newId = `class-${uniqueId}`;
     const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     const newNode = {
       ...ghostNode,
@@ -294,6 +292,35 @@ function ClassBoard() {
     });
   };
 
+  const handleConvertTextToGraph = async () => {
+    const nodes_ = nodes;
+    const position = getSmartStartPosition(nodes_);
+    const uniqueId = uuidv4();
+    const id = `class-${uniqueId}`;
+
+    logEvent("node.group.text_to_graph_requested", {
+      sourceNodeId: id,
+      text: textInput,
+      position,
+      nodeType: "group",
+    });
+
+    const { nodes: newNodes, edges: newEdges } = await generateTextToGraph(
+      textInput,
+      id,
+      position
+    );
+
+    logEvent("node.group.text_to_graph_generated", {
+      sourceNodeId: id,
+      nodes: newNodes,
+      edges: newEdges,
+    });
+
+    setNodes((prev) => [...prev, ...newNodes]);
+    setEdges((prev) => [...prev, ...newEdges]);
+  };
+
   return (
     <div
       className="reactflow-wrapper"
@@ -302,35 +329,80 @@ function ClassBoard() {
       onMouseMove={handleMouseMove}
       onClick={ghostNode ? handleGhostClick : undefined}
     >
-      <div style={{ padding: "5px" }}>
-        <CustomButton onClick={handleAddObjectNode} color="object" size="md">
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontWeight: "bold",
-            }}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "10px 16px",
+          gap: "12px",
+        }}
+      >
+        {/* Object & Group 버튼들 */}
+        <div style={{ display: "flex", gap: "8px" }}>
+          <CustomButton
+            onClick={handleAddObjectNode}
+            color="object"
+            size="md"
+            tooltip="Add Object Node"
+            style={{ margin: 0 }}
           >
             <Plus size={14} strokeWidth={2.5} color="#1a1a1a" />
-            Object
-          </span>
-        </CustomButton>
-
-        <CustomButton onClick={handleAddGroupNode} color="group" size="md">
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontWeight: "bold",
-            }}
+          </CustomButton>
+          <CustomButton
+            onClick={handleAddGroupNode}
+            color="group"
+            size="md"
+            tooltip="Add Group"
+            style={{ margin: 0 }}
           >
             <FolderPlus size={14} strokeWidth={2.5} color="#1a1a1a" />
-            Group
-          </span>
-        </CustomButton>
+          </CustomButton>
+        </div>
+        {/* Input + Convert 버튼 묶음 */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            backgroundColor: "#f9f9f9",
+            border: "1px solid #ddd",
+            borderRadius: "12px",
+            padding: "4px 4px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+            flexGrow: 1,
+            maxWidth: "500px",
+          }}
+        >
+          <input
+            type="text"
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            placeholder="Describe your scene to generate a graph"
+            style={{
+              flexGrow: 1,
+              fontSize: "14px",
+              border: "none",
+              outline: "none",
+              background: "transparent",
+              padding: "6px",
+            }}
+          />
+          <CustomButton
+            onClick={handleConvertTextToGraph}
+            color="grey"
+            size="md"
+            tooltip="Convert Text to Graph"
+            style={{
+              margin: 0,
+              borderRadius: "8px",
+              boxShadow: "none",
+            }}
+          >
+            <Network size={14} strokeWidth={2.5} color="#1a1a1a" />
+          </CustomButton>
+        </div>
       </div>
+
       {ghostNode && (
         <div
           style={{
