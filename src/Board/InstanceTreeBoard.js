@@ -57,7 +57,6 @@ function InstanceTreeBoard({ isBaseline = false }) {
       filledAttrMap,
       editedLabelMap,
     });
-    console.log("Instance", instanceNodes, nodes);
 
     setNodes(newNodes);
     setEdges(newEdges);
