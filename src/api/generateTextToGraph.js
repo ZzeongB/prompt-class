@@ -17,6 +17,7 @@ export const generateTextToGraph = async (
   - You can avoid unnecessary words like "a", "the", "is", "its", etc.
   - Each word must belong to only ONE of: object, attribute, relationship.
   - Output must be strict JSON.
+  - Do not make self-connected relationships, like  { "source": "object1", "target": "object1", "relation": "motion blur" }
   
   Example:
   {
