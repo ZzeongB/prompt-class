@@ -60,7 +60,7 @@ export function duplicateNodesWithMapping(
       uniqueLabel = getNextLabel(baseLabel, Array.from(usedLabels));
       usedLabels.add(uniqueLabel);
     } else {
-      uniqueLabel = `${baseLabel} (Copy)`;
+      uniqueLabel = `${baseLabel}`;
     }
 
     const groupNode = group.find((n) => !n.parentNode);
