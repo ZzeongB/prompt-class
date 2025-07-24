@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useReactFlow } from "@xyflow/react";
-import { generateSceneGraphToText, generateTextToGraph } from "../../api/generateTextToGraph";
+import {
+  generateSceneGraphToText,
+  generateTextToGraph,
+} from "../../api/generateTextToGraph";
 import { transformTreeToSceneGraph } from "../../utils/tree/transformTreeToSceneGraph";
 import { transformSceneGraphToTree } from "../../utils/tree/transformSceneGraphToTree";
 import PanelTemplate from "../PanelTemplate";
@@ -9,7 +12,9 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   const toolbarRef = useRef(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(data?.justCreated === true);
+  const [isInitializing, setIsInitializing] = useState(
+    data?.justCreated === true
+  );
   const [modal, setModal] = useState(null);
 
   const [sceneData, setSceneData] = useState({
@@ -36,10 +41,30 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   };
 
   useEffect(() => {
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        if (node.id === id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              label: sceneData.instanceLabel,
+              textDescription: sceneData.textDescription,
+              tree: sceneData.tree,
+              sceneGraph: sceneData.sceneGraph,
+            },
+          };
+        }
+        return node;
+      })
+    );
+  }, [sceneData, id, setNodes]);
+
+  useEffect(() => {
     if (data?.justCreated && isInitializing && !hasPromptedRef.current) {
       hasPromptedRef.current = true;
       setModal({
-        title: "Enter a description for this scene:",
+        title: "Enter description:",
         defaultValue: "",
         onSubmit: (description) => {
           setModal(null);
@@ -60,8 +85,13 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   const handleInitialDescriptionInput = async (description) => {
     setIsUpdating(true);
     try {
-      const sceneGraph = await generateTextToGraph({ newTextDescription: description });
-      const newTree = transformSceneGraphToTree(sceneGraph, sceneData.instanceLabel);
+      const sceneGraph = await generateTextToGraph({
+        newTextDescription: description,
+      });
+      const newTree = transformSceneGraphToTree(
+        sceneGraph,
+        sceneData.instanceLabel
+      );
       const instanceLabel = sceneGraph.objects?.[0]?.name || "New Box";
       setSceneData({
         instanceLabel,

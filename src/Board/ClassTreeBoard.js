@@ -1,83 +1,200 @@
-import React, { useEffect, useState, useMemo } from "react";
-import InstanceTree from "../components/InstanceTree.js";
-import { useInstanceGraph } from "../context/InstanceGraphContext.js";
-import { useClassGraph } from "../context/ClassGraphContext.js";
-import { getRenderedInstanceBoard } from "../utils/instanceBuilder/getRenderedInstanceBoard.js";
 
-function getClassGraphSignature(nodes, edges) {
-  const nodeSig = nodes
-    .map(
-      (n) =>
-        `${n.id}-${n.data?.label}-${JSON.stringify(n.data?.attributes ?? [])}`
-    )
-    .sort()
-    .join("|");
+import React from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+import { useClassContext } from '../context/ClassContext';
+import PanelTemplate from '../components/PanelTemplate';
+import HoverButton from '../components/nodeComponents/HoverButton';
 
-  const edgeSig = edges
-    .map((e) => `${e.source}-${e.target}-${e.label}`)
-    .sort()
-    .join("|");
-
-  return `${nodeSig}::${edgeSig}`;
-}
-
-function ClassTreeBoard({ isBaseline = false }) {
-  const { classNodes, classEdges } = useClassGraph();
-  const {
-    instanceNodes,
-    instanceEdges,
-    setInstanceAttrMap,
-    editedLabelMap,
-    setEditedLabelMap,
-    highlight,
-    setHighlight,
-  } = useInstanceGraph();
-
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
-  const [filledAttrMap, setFilledAttrMap] = useState({});
-
-  // ✅ classGraph 구조 변화에 대한 signature 생성
-  const classGraphSignature = useMemo(
-    () => getClassGraphSignature(classNodes, classEdges),
-    [classNodes, classEdges]
-  );
-
-  // ✅ instanceNodes 또는 의미 있는 classGraph 변화가 있을 때만 렌더링
-  useEffect(() => {
-    const {
-      nodes: newNodes,
-      edges: newEdges,
-      filledAttrMap: newFilledAttrMap,
-    } = getRenderedInstanceBoard({
-      instanceNodes,
-      instanceEdges,
-      classNodes,
-      classEdges,
-      filledAttrMap,
-      editedLabelMap,
-    });
-
-    setNodes(newNodes);
-    setEdges(newEdges);
-    setFilledAttrMap(newFilledAttrMap);
-    setInstanceAttrMap(newFilledAttrMap); // instanceAttrMap 업데이트
-  }, [instanceNodes, classGraphSignature, editedLabelMap]); // 👈 핵심
-
+// 클래스용 NodeToolbar
+const ClassNodeToolbar = ({ isVisible, onCreateInstance, onDelete, style = {} }) => {
   return (
-    <div>
-      <InstanceTree
-        nodes={nodes}
-        edges={edges}
-        setNodes={setNodes}
-        editedLabelMap={editedLabelMap}
-        setEditedLabelMap={setEditedLabelMap}
-        highlight={highlight}
-        setHighlight={setHighlight}
-        isBaseline={isBaseline}
+    <div
+      style={{
+        position: "absolute",
+        top: "-30px",
+        right: "4px",
+        display: "flex",
+        gap: "4px",
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        padding: "4px",
+        borderRadius: "6px",
+        border: "1px solid #ddd",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        opacity: isVisible ? 1 : 0,
+        visibility: isVisible ? "visible" : "hidden",
+        transition: "all 0.2s ease",
+        zIndex: 200,
+        ...style,
+      }}
+    >
+      <HoverButton
+        title="Create Instance"
+        icon={<Plus size={12} />}
+        onClick={onCreateInstance}
+      />
+      <HoverButton
+        title="Delete Class"
+        icon={<Trash2 size={12} />}
+        danger
+        onClick={onDelete}
       />
     </div>
   );
-}
+};
 
-export default ClassTreeBoard;
+const ClassCard = ({ classData, onCreateInstance, onDelete }) => {
+  // PanelTemplate에서 사용할 sceneData 형태로 변환
+  const sceneData = {
+    instanceLabel: classData.name,
+    tree: classData.template?.tree || {
+      id: "root",
+      data: { label: "Empty", type: "object" },
+      children: [],
+    },
+    sceneGraph: classData.template?.sceneGraph || {},
+  };
+
+  return (
+    <div style={{ marginBottom: '8px' }}>
+      <PanelTemplate
+        id={classData.id}
+        data={{ label: classData.name }}
+        isExpanded={true}
+        setIsExpanded={() => {}} // 클래스는 확장/축소 제어 안 함
+        sceneData={sceneData}
+        setSceneData={() => {}} // 클래스는 편집 안 함
+        isUpdating={false}
+        onInstanceLabelChange={() => {}} // 클래스는 라벨 편집 안 함
+        onDescriptionChangeDebounced={() => {}} // 클래스는 설명 편집 안 함
+        onLabelChange={() => {}} // 트리 노드 편집 안 함
+        onDelete={() => onDelete(classData.id)}
+        modal={null}
+        setModal={() => {}}
+        showToolbar={true}
+        // 클래스 전용 스타일링
+        isClassMode={true}
+      />
+    </div>
+  );
+};
+
+export const ClassTreeBoard = ({ onAddInstance }) => {
+  const { classes, deleteClass, createInstanceFromClass } = useClassContext();
+
+  const handleCreateInstance = (classData) => {
+    const newInstance = createInstanceFromClass(classData);
+    onAddInstance(newInstance);
+  };
+
+  const handleDeleteClass = (classId) => {
+    // if (confirm('Are you sure you want to delete this class?')) {
+      deleteClass(classId);
+    // }
+  };
+
+  return (
+    <div style={{
+      // width: '320px',
+      height: '100vh',
+      backgroundColor: '#f8fafc',
+      borderLeft: '1px solid #e2e8f0',
+      padding: '16px',
+      overflow: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      {/* 헤더 */}
+      <div style={{
+        fontSize: '18px',
+        fontWeight: '700',
+        color: '#1e293b',
+        marginBottom: '20px',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        paddingBottom: '12px',
+        borderBottom: '2px solid #e2e8f0',
+      }}>
+        Class Library
+      </div>
+
+      {/* 클래스 목록 */}
+      <div style={{ flex: 1 }}>
+        {classes.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            color: '#64748b',
+            fontSize: '12px',
+            padding: '40px 20px',
+            fontStyle: 'italic',
+            backgroundColor: '#ffffff',
+            borderRadius: '8px',
+            border: '1px dashed #cbd5e1',
+          }}>
+            No classes yet.<br/>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+              Create a class from an instance using the toolbar!
+            </span>
+          </div>
+        ) : (
+          classes.map(classData => (
+            <ClassCard
+              key={classData.id}
+              classData={classData}
+              onCreateInstance={handleCreateInstance}
+              onDelete={handleDeleteClass}
+            />
+          ))
+        )}
+      </div>
+
+      {/* 하단 정보 */}
+      <div style={{
+        marginTop: '16px',
+        padding: '12px',
+        backgroundColor: '#ffffff',
+        borderRadius: '6px',
+        border: '1px solid #e5e7eb',
+      }}>
+        <div style={{
+          fontSize: '10px',
+          color: '#6b7280',
+          textAlign: 'center',
+          lineHeight: '1.4',
+        }}>
+          {classes.length} class{classes.length !== 1 ? 'es' : ''} available
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+export const useInstanceActions = () => {
+  const { createClass, duplicateInstance } = useClassContext();
+
+  const handleCreateClass = (instanceData, onSuccess) => {
+    try {
+      const newClass = createClass(instanceData);
+      onSuccess?.(`Class "${newClass.name}" created successfully!`);
+      return newClass;
+    } catch (error) {
+      console.error('Failed to create class:', error);
+      alert('Failed to create class. Please try again.');
+    }
+  };
+
+  const handleDuplicateInstance = (instanceData, onAddInstance) => {
+    try {
+      const duplicatedInstance = duplicateInstance(instanceData);
+      onAddInstance(duplicatedInstance);
+      return duplicatedInstance;
+    } catch (error) {
+      console.error('Failed to duplicate instance:', error);
+      alert('Failed to duplicate instance. Please try again.');
+    }
+  };
+
+  return {
+    handleCreateClass,
+    handleDuplicateInstance,
+  };
+};

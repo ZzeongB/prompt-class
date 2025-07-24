@@ -8,7 +8,7 @@ import {
   REL_COLOR_TRANS_DARK,
 } from "../utils/constants";
 
-// TreeNode 컴포넌트 (제공된 코드 기반)
+// TreeNode 컴포넌트 (모던 버전)
 export default function TreeNode({
   node,
   depth = 0,
@@ -17,7 +17,14 @@ export default function TreeNode({
   isBaseline = false,
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [label, setLabel] = useState(node.data?.label ?? "");
+
+  const handleLabelEdit = () => {
+    if (!isBaseline) {
+      setIsEditing(true);
+    }
+  };
 
   const handleLabelSave = () => {
     setIsEditing(false);
@@ -26,82 +33,116 @@ export default function TreeNode({
     }
   };
 
+  const handleLabelCancel = () => {
+    setIsEditing(false);
+    setLabel(node.data?.label ?? "");
+  };
+
   const children = node.children ?? [];
   const hasChildren = children.length > 0;
 
-  const INDENT = 12;
-  const BOX_HEIGHT = 20;
+  const INDENT = 14;
+  const BOX_HEIGHT = 18;
   const LINE_WIDTH = 1;
 
   const type = node.data?.type ?? node.type;
 
-  const MAX_NODE_WIDTH = 300;
+  // 타입별 스타일 정의
+  const getTypeStyle = (nodeType) => {
+    const baseStyle = {
+      borderRadius: "4px",
+      padding: "2px 6px",
+      fontSize: "10px",
+      height: BOX_HEIGHT,
+      minWidth: "20px",
+      maxWidth: "80px",
+      textAlign: "center",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      transition: "all 0.15s ease",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      width: "fit-content",
+      cursor: isBaseline ? "default" : "text",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+      fontWeight: "500",
+      border: "1px solid transparent",
+      position: "relative",
+      zIndex: 100, // 연결선보다 위에!
+    };
 
-  const baseBoxStyle = {
-    borderRadius: 2,
-    padding: "1px 3px",
-    fontSize: "13px",
-    height: BOX_HEIGHT,
-    maxWidth: 80,
-    textAlign: "center",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    boxShadow: "1px 1px 1px rgba(0,0,0,0.1)",
-    transition: "all 0.2s",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    width: "fit-content",
+    switch (nodeType) {
+      case "object":
+        return {
+          ...baseStyle,
+          backgroundColor: isHovered ? "#fecaca" : "#fed7d7",
+          color: "#7f1d1d",
+          border: "1px solid #fca5a5",
+        };
+      case "attribute":
+        return {
+          ...baseStyle,
+          backgroundColor: isHovered ? "#bfdbfe" : "#dbeafe",
+          color: "#1e40af",
+          border: "1px solid #93c5fd",
+        };
+      case "relationship":
+        return {
+          ...baseStyle,
+          backgroundColor: isHovered ? "#bbf7d0" : "#dcfce7",
+          color: "#15803d",
+          border: "1px solid #86efac",
+        };
+      default:
+        return {
+          ...baseStyle,
+          backgroundColor: isHovered ? "#f3f4f6" : "#ffffff",
+          color: "#374151",
+          border: "1px solid #d1d5db",
+        };
+    }
   };
 
-  let boxStyle = { ...baseBoxStyle, background: WHITE };
-
-  if (type === "object") {
-    boxStyle = {
-      ...baseBoxStyle,
-      background: OBJ_COLOR_TRANS_DARK,
-    };
-  }
-  if (type === "attribute") {
-    boxStyle = {
-      ...baseBoxStyle,
-      background: ATTR_COLOR_TRANS_DARK,
-    };
-  }
-  if (type === "relationship") {
-    boxStyle = {
-      ...baseBoxStyle,
-      background: REL_COLOR_TRANS_DARK,
-    };
-  }
+  const boxStyle = getTypeStyle(type);
 
   return (
-    <div style={{ position: "relative", marginTop: 4, marginLeft: INDENT }}>
+    <div style={{ position: "relative", marginTop: 3, marginLeft: depth === 0 ? 0 : INDENT }}>
       <div
         style={boxStyle}
-        onDoubleClick={() => {
-          if (!isBaseline) setIsEditing(true);
-        }}
+        onDoubleClick={handleLabelEdit}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {isEditing ? (
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             onBlur={handleLabelSave}
-            onKeyDown={(e) => e.key === "Enter" && handleLabelSave()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleLabelSave();
+              } else if (e.key === "Escape") {
+                handleLabelCancel();
+              }
+            }}
             autoFocus
             style={{
-              fontSize: "7px",
-              padding: "1px 2px",
-              border: "1px solid transparent",
-              borderRadius: "2px",
-              backgroundColor: "transparent",
-              color: "#333",
+              fontSize: "10px",
+              padding: "1px 3px",
+              border: "1px solid #3b82f6",
+              borderRadius: "4px",
+              backgroundColor: "#ffffff",
+              color: "#1f2937",
               outline: "none",
+              fontFamily: "system-ui, -apple-system, sans-serif",
+              fontWeight: "500",
               maxWidth: "100%",
               minWidth: "30px",
-              width: `${Math.max(4, label.length)}ch`,
+              width: `${Math.max(4, label.length + 1)}ch`,
+              boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.1)",
+              textAlign: "center",
             }}
           />
         ) : (
@@ -111,17 +152,17 @@ export default function TreeNode({
 
       {hasChildren && (
         <div>
-          {children.map((child) => (
+          {children.map((child, index) => (
             <div key={child.id} style={{ position: "relative" }}>
               {/* 수직선 */}
               <div
                 style={{
                   position: "absolute",
                   top: -BOX_HEIGHT / 2,
-                  left: 8,
-                  width: LINE_WIDTH,
+                  left: 7,
+                  width: "1px",
                   height: BOX_HEIGHT + 1,
-                  background: "#999",
+                  backgroundColor: "#9ca3af",
                 }}
               />
               {/* 수평선 */}
@@ -129,16 +170,19 @@ export default function TreeNode({
                 style={{
                   position: "absolute",
                   top: BOX_HEIGHT / 2,
-                  left: 8,
-                  width: INDENT - 8,
-                  height: LINE_WIDTH,
-                  background: "#999",
+                  left: 7,
+                  width: INDENT - 7,
+                  height: "1px",
+                  backgroundColor: "#9ca3af",
                 }}
               />
+              
               <TreeNode
                 node={child}
-                depth={depth}
+                depth={depth + 1}
                 onLabelChange={onLabelChange}
+                highlight={highlight}
+                isBaseline={isBaseline}
               />
             </div>
           ))}

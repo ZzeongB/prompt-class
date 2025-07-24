@@ -71,7 +71,7 @@ function LayoutBoard({ onImageGenerated }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
-  const { setInstanceNodes } = useInstanceGraph();
+  // const { setInstanceNodes } = useInstanceGraph();
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
   const [progress, setProgress] = useState(0);
@@ -108,7 +108,7 @@ function LayoutBoard({ onImageGenerated }) {
       id: `ghost-${Date.now()}`,
       type: "instance-group",
       data: {
-        label: "New Box",
+        label: "",
         expandedHeight: 70,
         type: "object",
         justCreated: true,
@@ -164,32 +164,13 @@ function LayoutBoard({ onImageGenerated }) {
     const sharedId = `instance-${uniqueId}`;
     const updatedAt = new Date().toISOString();
 
-    // // 초기 description 입력받기
-    // const initialDescription = prompt("Enter a description for this scene:");
-    // if (!initialDescription) {
-    //   setGhostNode(null);
-    //   return;
-    // }
-
-    // let instanceLabel = "New Box";
-    // let sceneGraph = null;
-
-    // try {
-    //   // GPT로 scene graph 생성
-    //   sceneGraph = await generateTextToGraph(initialDescription);
-    //   instanceLabel = sceneGraph.objects?.[0]?.name || "New Box";
-    // } catch (error) {
-    //   console.error("Failed to generate scene graph:", error);
-    //   // 실패해도 기본값으로 계속 진행
-    // }
-
     const objNode = {
       id: sharedId,
       type: "instance-group",
       position,
       data: {
         baseline: false,
-        label: "instanceLabel",
+        label: "",
         type: "object",
         sharedId,
         classId: "__baseline__",
@@ -220,7 +201,7 @@ function LayoutBoard({ onImageGenerated }) {
     });
 
     setNodes((prevNodes) => [...prevNodes, ...newNodes]);
-    setInstanceNodes((prevNodes) => [...prevNodes, ...newNodes]);
+    // setInstanceNodes((prevNodes) => [...prevNodes, ...newNodes]);
     setGhostNode(null);
   };
 
@@ -246,7 +227,7 @@ function LayoutBoard({ onImageGenerated }) {
     setTimeout(async () => {
       const sentences = nodes
         .filter((n) => n.type !== "resizable")
-        .map((n) => n.data.label || "No label");
+        .map((n) => n.data.textDescription || "No label");
       const boxes = nodes
         .filter((n) => n.type === "resizable")
         .map((n) => {
@@ -422,8 +403,8 @@ function LayoutBoard({ onImageGenerated }) {
             [512, 512],
           ]}
           nodeExtent={[
-            [-50, -50],
-            [540, 540],
+            [0, 0],
+            [512, 512],
           ]} // 노드 배치 가능한 범위 제한
           proOptions={{ hideAttribution: true }}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
