@@ -8,88 +8,80 @@ import {
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useDnD } from "../context/DragAndDropContext";
 import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
-import LayoutNode from "../components/nodes/LayoutNode";
+import LayoutTreeNode from "../components/nodes/LayoutTreeNode";
 import ResizableNode from "../components/nodes/ResizableNode";
 import TempResizableNode from "../components/nodes/TempResizableNode";
-import {
-  handleConnect,
-  handleConnectEnd,
-} from "../utils/node/nodeConnectHandlers";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { useInstanceGraph } from "../context/InstanceGraphContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
-import { extractSentencesAndBoxes } from "../utils/instanceExtractor/extractSentencesAndBoxes.js";
-import {
-  handleMouseDown,
-  handleMouseMove,
-  handleMouseUp,
-} from "../utils/layout/handleTempLayout";
-import { createInstanceFromClassNode } from "../utils/instanceBuilder/createInstanceFromClassNode.js";
+import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 import { generateImageFromInstanceData } from "../api/generateImage";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
 import { logEvent } from "../api/logEvent";
-import { LEFT_OFFSET, TOP_OFFSET } from "../utils/constants";
-import { onEdgeClick } from "../utils/onEdgeMouseUtils.js";
+import {
+  LEFT_OFFSET_BASELINE as LEFT_OFFSET,
+  TOP_OFFSET,
+  BACKGROUND_COLOR,
+  OBJ_COLOR,
+} from "../utils/constants";
+import { v4 as uuidv4 } from "uuid";
+
+const baseGhostStyle = {
+  padding: 4,
+  border: "2px solid",
+  borderRadius: 3,
+  backgroundColor: BACKGROUND_COLOR,
+  opacity: 0.6,
+  pointerEvents: "none",
+  userSelect: "none",
+  position: "absolute",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 999,
+  fontSize: "8px",
+};
+
+const ghostNodeStyles = {
+  "instance-group": {
+    ...baseGhostStyle,
+    borderColor: OBJ_COLOR, // 예: object용 붉은 계열
+  },
+  // "instance-group": {
+  //   ...baseGhostStyle,
+  //   borderColor: OBJ_COLOR_TRANS, // 기존 색상 유지
+  // },
+};
 
 const edgeTypes = {
   main: DefaultEdge,
 };
 const nodeTypes = {
-  class: LayoutNode,
-  instance: LayoutNode,
+  class: LayoutTreeNode,
+  instance: LayoutTreeNode,
   resizable: ResizableNode,
   tmpResizable: TempResizableNode,
-  "instance-group": LayoutNode,
+  "instance-group": LayoutTreeNode,
 };
 
 function LayoutBoard({ onImageGenerated }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
-  const [id, , type, setType, , setGhostPos, label, setLabel] = useDnD();
-  const { classNodes, classEdges, structuredClasses } = useClassGraph();
-  const {
-    setInstanceNodes,
-    setInstanceEdges,
-    instanceAttrMap,
-    editedLabelMap,
-  } = useInstanceGraph();
-  const [dragState, setDragState] = useState(null);
+  const { setInstanceNodes } = useInstanceGraph();
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
   const [progress, setProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSelectingRegion, setIsSelectingRegion] = useState(false);
+  const [ghostNode, setGhostNode] = useState(null); // ghostNode for Node Addition
   const [showImageOnly, setShowImageOnly] = useState(false);
 
   const { image, setImage } = useImage();
-
-  useEffect(() => {
-    setNodes((prevNodes) =>
-      prevNodes.map((node) => {
-        if (!node?.id || !node?.data?.classId) return node;
-
-        const instanceId = node.id;
-        const originalClassId = node.data.classId;
-
-        const edited = editedLabelMap?.[instanceId]?.[originalClassId];
-        if (!edited) return node;
-
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            label: edited,
-          },
-        };
-      })
-    );
-  }, [editedLabelMap, setNodes]);
 
   useEffect(() => {
     if (!isGenerating) {
@@ -99,9 +91,7 @@ function LayoutBoard({ onImageGenerated }) {
 
     const interval = setInterval(async () => {
       const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/progress`);
-      const text = await res.text(); // 👈 일단 text로 받아보기
-
-      const data = JSON.parse(text); // 👈 여기서 수동 파싱 시도
+      const data = await res.json();
       setProgress(data.progress);
 
       if (data.progress >= 100) {
@@ -113,125 +103,19 @@ function LayoutBoard({ onImageGenerated }) {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
-  const onMouseDown = (e) => {
-    if (isSelectingRegion) {
-      handleMouseDown(e, setDragState);
-    }
+  const handleAddNewNode = () => {
+    setGhostNode({
+      id: `ghost-${Date.now()}`,
+      type: "instance-group",
+      data: {
+        label: "New Box",
+        expandedHeight: 70,
+        type: "object",
+        justCreated: true,
+      },
+      position: { x: 0, y: 0 },
+    });
   };
-
-  const onMouseMove = (e) => {
-    handleMouseMove(e, dragState, setDragState);
-  };
-
-  const onMouseUp = (event) => {
-    if (dragState?.rect && dragState?.start) {
-      handleMouseUp(
-        dragState,
-        setDragState,
-        screenToFlowPosition,
-        nodes,
-        setNodes
-      );
-
-      setIsSelectingRegion(false);
-
-      // 드래그로 임시 노드 생성 로그
-      logEvent("layoutboard.tmp_node.created", {
-        x: dragState.start.x,
-        y: dragState.start.y,
-        width: dragState.rect.width,
-        height: dragState.rect.height,
-      });
-      return;
-    } else {
-      if (id && type) {
-        // ✅ 현재 resizable이 아닌 노드 개수 확인
-        const nonResizableCount = nodes.filter(
-          (n) => n.type !== "resizable"
-        ).length;
-        if (nonResizableCount >= 10) {
-          alert("최대 10개의 노드까지만 생성할 수 있습니다.");
-          setType(null);
-          setLabel(null);
-          setGhostPos({ x: 0, y: 0 });
-          return;
-        }
-
-        // 기존 노드들의 라벨 모음
-        const existingLabels = nodes.map((n) => n.data?.label).filter(Boolean);
-
-        // 중복 라벨 처리
-        let baseLabel = label;
-        let uniqueLabel = baseLabel;
-        let count = 1;
-
-        while (existingLabels.includes(uniqueLabel)) {
-          uniqueLabel = `${baseLabel} ${count}`;
-          count++;
-        }
-
-        const { newNodes, newEdges, _ } = createInstanceFromClassNode(
-          event,
-          id,
-          uniqueLabel,
-          type,
-          screenToFlowPosition,
-          classNodes,
-          classEdges
-          // updatedAt
-        );
-
-        logEvent("layoutboard.node.add.instantance", {
-          classId: id,
-          instanceLabel: uniqueLabel,
-          createdNodeIds: newNodes.map((n) => n.id),
-        });
-
-        setNodes((prevNodes) => [...prevNodes, ...newNodes]);
-        setEdges((prevEdges) => [...prevEdges, ...newEdges]);
-
-        setInstanceNodes((prevNodes) => [...prevNodes, ...newNodes]);
-        setInstanceEdges((prevEdges) => [...prevEdges, ...newEdges]);
-
-        setType(null);
-        setLabel(null);
-        setGhostPos({ x: 0, y: 0 });
-      }
-    }
-  };
-
-  const onConnect = useCallback(
-    (params) => handleConnect({ params, nodes, setNodes, setEdges }),
-    [nodes, setNodes, setEdges]
-  );
-
-  const onConnectEnd = useCallback(
-    (event, connectionState) => {
-      const result = handleConnectEnd({
-        event,
-        connectionState,
-        type: "instance",
-        nodes,
-        setNodes,
-        setEdges,
-        screenToFlowPosition,
-      });
-
-      // result.newNodes를 반환받는다고 가정
-      if (result?.newNodes) {
-        setInstanceNodes((prev) => [...prev, ...result.newNodes]);
-        setInstanceEdges((prev) => [...prev, ...(result.newEdges || [])]);
-      }
-    },
-    [
-      nodes,
-      setNodes,
-      setEdges,
-      screenToFlowPosition,
-      setInstanceNodes,
-      setInstanceEdges,
-    ]
-  );
 
   const handleNodesChange = useCallback(
     (changes) => {
@@ -248,6 +132,76 @@ function LayoutBoard({ onImageGenerated }) {
     [onNodesChange, edges, setNodes]
   );
 
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!ghostNode) return;
+
+      setGhostNode((prev) => ({
+        ...prev,
+        position: { x: e.clientX - LEFT_OFFSET, y: e.clientY - TOP_OFFSET },
+      }));
+    },
+    [ghostNode, screenToFlowPosition]
+  );
+
+  const handleGhostClick = (e) => {
+    if (!ghostNode) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // ✅ 1. 현재 resizable이 아닌 노드 개수 확인
+    const nonResizableCount = nodes.filter(
+      (n) => n.type !== "resizable"
+    ).length;
+    if (nonResizableCount >= 10) {
+      alert("최대 10개의 노드까지만 생성할 수 있습니다.");
+      setGhostNode(null);
+      return;
+    }
+
+    const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    const uniqueId = uuidv4();
+    const sharedId = `instance-${uniqueId}`;
+    const updatedAt = new Date().toISOString();
+
+    const objNode = {
+      id: sharedId,
+      type: "instance-group",
+      position,
+      data: {
+        baseline: false,
+        label: "New Box",
+        type: "object",
+        sharedId,
+        classId: "__baseline__",
+        instanceId: sharedId,
+        justCreated: true,
+      },
+      updatedAt,
+      style: { height: 20 },
+    };
+
+    const resizableNode = {
+      id: `${sharedId}-resizable`,
+      type: "resizable",
+      position: { x: position.x, y: position.y },
+      data: objNode.data,
+      style: { height: 50, width: 50 },
+    };
+
+    const newNodes = [resizableNode, objNode];
+
+    logEvent("baselineboard.node.add.instance", {
+      classId: sharedId,
+      instanceLabel: "New Box",
+      createdNodeIds: newNodes.map((n) => n.id),
+    });
+
+    setNodes((prevNodes) => [...prevNodes, ...newNodes]);
+    setInstanceNodes((prevNodes) => [...prevNodes, ...newNodes]);
+    setGhostNode(null);
+  };
+
   const handleClick = async () => {
     setProgress(0);
     setIsGenerating(true);
@@ -259,46 +213,45 @@ function LayoutBoard({ onImageGenerated }) {
     const inputSnapshot = {
       nodes,
       edges,
-      classNodes,
-      classEdges,
     };
 
-    logEvent("layoutboard.imagegen.started", {
+    logEvent("baselineboard.imagegen.started", {
       nodeCount: nodes.length,
       edgeCount: edges.length,
       inputs: inputSnapshot,
     });
 
     setTimeout(async () => {
-      const result = extractSentencesAndBoxes(
-        nodes,
-        edges,
-        classNodes,
-        classEdges,
-        flowToScreenPosition,
-        LEFT_OFFSET,
-        TOP_OFFSET,
-        instanceAttrMap,
-        editedLabelMap
-      );
+      const sentences = nodes
+        .filter((n) => n.type !== "resizable")
+        .map((n) => n.data.label || "No label");
+      const boxes = nodes
+        .filter((n) => n.type === "resizable")
+        .map((n) => {
+          return getNormalizedBox(
+            n,
+            flowToScreenPosition,
+            LEFT_OFFSET,
+            TOP_OFFSET,
+            true
+          );
+        });
 
-      logEvent("layoutboard.imagegen.extracted", {
-        sentences: result.sentences,
-        boxes: result.boxes,
-        required_keywords: result.labels,
+      logEvent("baselineboard.imagegen.extracted", {
+        sentences: sentences,
+        boxes: boxes,
       });
 
       try {
         const response = await generateImageFromInstanceData(
-          result.sentences,
-          result.boxes,
-          globalCaption, // global caption placeholder
-          result.labels
+          sentences,
+          boxes,
+          globalCaption // global caption placeholder
         );
 
         const durationMs = performance.now() - startTime;
 
-        logEvent("layoutboard.imagegen.succeeded", {
+        logEvent("baselineboard.imagegen.succeeded", {
           durationMs,
           image_size: response.image.length,
           global_caption: response.globalCaption,
@@ -316,7 +269,7 @@ function LayoutBoard({ onImageGenerated }) {
           err?.message ||
           "알 수 없는 오류가 발생했습니다.";
 
-        logEvent("layoutboard.imagegen.failed", {
+        logEvent("baselineboard.imagegen.failed", {
           durationMs,
           errorMessage: message,
         });
@@ -326,11 +279,11 @@ function LayoutBoard({ onImageGenerated }) {
       } finally {
         setIsGenerating(false);
       }
-    }, 100);
+    }, 200);
   };
 
   const onNodeDragStop = (_event, node) => {
-    logEvent("layoutboard.node.moved", {
+    logEvent("baselineboard.node.moved", {
       nodeId: node.id,
       newPos: node.position,
     });
@@ -339,42 +292,22 @@ function LayoutBoard({ onImageGenerated }) {
   return (
     <div
       className="reactflow-wrapper"
-      onMouseUp={onMouseUp}
-      onMouseMove={onMouseMove}
-      onMouseDown={onMouseDown}
       style={{ userSelect: "none" }}
+      onMouseMove={handleMouseMove}
+      onClick={ghostNode ? handleGhostClick : undefined}
     >
-      {dragState?.rect && (
-        <div
-          style={{
-            position: "absolute",
-            top: `${dragState.rect.y - TOP_OFFSET}px`,
-            left: `${dragState.rect.x - LEFT_OFFSET}px`,
-            width: `${dragState.rect.width}px`,
-            height: `${dragState.rect.height}px`,
-            border: "1px dashed #007bff",
-            backgroundColor: "rgba(0, 123, 255, 0.05)",
-            zIndex: 1000,
-          }}
-        />
-      )}
-      {/* 진행 바 + 버튼: 나란히 정렬 */}
       <div
         style={{
           position: "absolute",
           bottom: "-40px",
           width: "100%",
           display: "column",
-          // alignItems: "center",
-          // gap: "8px",
-          // padding: "0 16px",
-          // boxSizing: "border-box",
         }}
       >
         <CustomButton
           color={isSelectingRegion ? "neutral" : "grey"}
           size="sm"
-          onClick={() => setIsSelectingRegion(!isSelectingRegion)}
+          onClick={(e) => handleAddNewNode(e)}
         >
           <span
             style={{
@@ -384,7 +317,7 @@ function LayoutBoard({ onImageGenerated }) {
               fontWeight: "bold",
             }}
           >
-            {isSelectingRegion ? "Cancel Selection" : "Select Region"}
+            Create New Box
           </span>
         </CustomButton>
 
@@ -428,21 +361,24 @@ function LayoutBoard({ onImageGenerated }) {
           </CustomButton>
         </div>
       </div>
+      {ghostNode && (
+        <div
+          style={{
+            ...ghostNodeStyles[ghostNode.type],
+            left: ghostNode.position.x,
+            top: ghostNode.position.y,
+          }}
+        >
+          {ghostNode.data?.label}
+        </div>
+      )}
+
       {!showImageOnly && (
         <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={handleNodesChange}
           onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onConnectEnd={onConnectEnd}
-          // onEdgeMouseEnter={(event, edge) =>
-          //   onEdgeMouseEnter(event, edge, setEdges)
-          // }
-          // onEdgeMouseLeave={(event, edge) =>
-          //   onEdgeMouseLeave(event, edge, setEdges)
-          // }
-          onEdgeClick={(event, edge) => onEdgeClick(event, edge, setEdges)}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
@@ -500,19 +436,9 @@ function LayoutBoard({ onImageGenerated }) {
 }
 
 function LayoutBoardWithProvider({ onImageGenerated }) {
-  const [, , type, setType, ghostPos, setGhostPos, label, setLabel] = useDnD();
-
   return (
     <ReactFlowProvider debounce={200}>
-      <LayoutBoard
-        type={type}
-        ghostPos={ghostPos}
-        setGhostPos={setGhostPos}
-        setType={setType}
-        label={label}
-        setLabel={setLabel}
-        onImageGenerated={onImageGenerated}
-      />
+      <LayoutBoard onImageGenerated={onImageGenerated} />
     </ReactFlowProvider>
   );
 }

@@ -11,7 +11,7 @@ import { classToFlow } from "../utils/flowUtils";
 import { classSample } from "../classSample.ts";
 import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
 import ClassNode from "../components/nodes/ClassNode";
-import ClassGroupNode from "../components/nodes/ClassGroupNode";
+// import ClassGroupNode from "../components/nodes/ClassGroupNode";
 import { useDnD } from "../context/DragAndDropContext";
 import {
   handleConnect,
@@ -70,7 +70,7 @@ const ghostNodeStyles = {
 };
 
 const nodeTypes = {
-  "class-group": ClassGroupNode,
+  // "class-group": ClassGroupNode,
   class: ClassNode,
   instance: ClassNode,
 };

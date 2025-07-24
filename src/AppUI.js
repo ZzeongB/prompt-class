@@ -69,7 +69,12 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
         <InstanceGraphProvider>
           <ImageProivder>
             <DnDProvider>
-              {isBaseline ? (
+              <div
+                  style={{
+                    width: "20px",
+                  }}
+                ></div>
+              {/* {isBaseline ? (
                 <div
                   style={{
                     width: "20px",
@@ -90,7 +95,7 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                 >
                   <ClassBoardWithProvider />
                 </div>
-              )}
+              )} */}
               <div
                 style={{
                   display: "flex",

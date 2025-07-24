@@ -7,18 +7,15 @@ import {
   ATTR_COLOR_TRANS_DARK,
   REL_COLOR_TRANS_DARK,
 } from "../utils/constants";
-import { ChevronRight, ChevronDown, MoveDiagonal } from "lucide-react";
-import { logEvent } from "../api/logEvent";
 
+// TreeNode 컴포넌트 (제공된 코드 기반)
 export default function TreeNode({
   node,
   depth = 0,
   onLabelChange,
   highlight = null,
-  setHighlight = null,
   isBaseline = false,
 }) {
-  const [expanded, setExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(
     node.data?.type === "attribute" && node.data?.hasValue
@@ -26,50 +23,41 @@ export default function TreeNode({
       : node.data?.label ?? ""
   );
 
-  useEffect(() => {
-    setLabel(node.data?.label ?? "");
-  }, [node.data?.label]);
-
   const handleLabelSave = () => {
     setIsEditing(false);
     if (label !== node.data?.label) {
-      onLabelChange?.(node.id, label); // ✅ 외부 전달
+      onLabelChange?.(node.id, label);
     }
   };
 
   const children = node.children ?? [];
   const hasChildren = children.length > 0;
 
-  const INDENT = 20;
-  const NODE_WIDTH = 70;
-  const BOX_HEIGHT = 10;
-  const LINE_WIDTH = 2;
+  const INDENT = 12;
+  const BOX_HEIGHT = 20;
+  const LINE_WIDTH = 1;
 
-  const type =
-    node.type === "instance-group" || node.type === "class-group"
-      ? node.type
-      : node.data?.type ?? node.type;
+  const type = node.data?.type ?? node.type;
   const hasValue = node.data?.hasValue ?? false;
 
-  const MAX_NODE_WIDTH = 300; // 최대 폭 제한
+  const MAX_NODE_WIDTH = 300;
 
   const baseBoxStyle = {
-    borderRadius: 4,
-    padding: "6px 10px",
-    // fontWeight: "bold",
-    fontSize: "15px",
+    borderRadius: 2,
+    padding: "1px 3px",
+    fontSize: "13px",
     height: BOX_HEIGHT,
-    maxWidth: MAX_NODE_WIDTH,
+    maxWidth: 80,
     textAlign: "center",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    boxShadow: "1px 1px 3px rgba(0,0,0,0.1)",
+    boxShadow: "1px 1px 1px rgba(0,0,0,0.1)",
     transition: "all 0.2s",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
-    width: "fit-content", // ✅ 바로 핵심
+    width: "fit-content",
   };
 
   let boxStyle = { ...baseBoxStyle, background: WHITE };
@@ -101,123 +89,8 @@ export default function TreeNode({
     };
   }
 
-  if (node.data.instanceId === highlight) {
-    boxStyle = {
-      ...boxStyle,
-      outline: "2px solid #007bff",
-      outlineOffset: "2px",
-      fontWeight: "bold",
-      backgroundColor: "#e6f0ff", // 약간 파란 배경 (선택사항)
-    };
-  }
-
-  // 그룹 노드 렌더링 (margin 제거)
-  if (type === "instance-group" || type === "class-group") {
-    return (
-      <div style={{ marginTop: 10, marginLeft: depth * INDENT }}>
-        <div
-          style={{
-            padding: 10,
-            borderRadius: 10,
-            background: OBJ_COLOR_TRANS,
-            boxShadow: "1px 1px 5px rgba(0,0,0,0.1)",
-            position: "relative",
-            border: "none",
-            boxShadow:
-              node.data.instanceId === highlight
-                ? "0 0 10px 4px rgba(0, 0, 0, 0.3)" // ✅ blur=10, spread=4
-                : "1px 1px 5px rgba(0, 0, 0, 0.1)",
-            transition: "box-shadow 0.2s ease",
-          }}
-        >
-          <div
-            style={{ display: "flex", alignItems: "center", marginBottom: 10 }}
-          >
-            <div
-              style={{
-                fontWeight: "bold",
-                fontSize: "14px",
-                cursor: "pointer",
-              }}
-              onDoubleClick={() => {
-                if (!isBaseline) setIsEditing(true);
-              }}
-            >
-              {isEditing ? (
-                <input
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  onBlur={handleLabelSave}
-                  onKeyDown={(e) => e.key === "Enter" && handleLabelSave()}
-                  autoFocus
-                  style={{
-                    fontSize: "13px",
-                    padding: "4px 6px",
-                    border: "1px solid transparent",
-                    borderRadius: "4px",
-                    backgroundColor: "transparent",
-                    color: "#333",
-                    outline: "none",
-                    maxWidth: "100%",
-                    minWidth: "60px",
-                    width: `${Math.max(8, label.length)}ch`, // ✅ label 길이에 따라 너비 조절
-                  }}
-                />
-              ) : (
-                label
-              )}
-            </div>
-
-            {hasChildren && (
-              <div
-                onClick={() => {
-                  setExpanded(!expanded);
-                  logEvent("instanceboard.node.toggle_collapsed", {
-                    nodeId: node.id,
-                    label: node.data?.label,
-                    expanded: !expanded,
-                  });
-                }}
-                style={{
-                  marginLeft: 10,
-                  width: 20,
-                  height: 20,
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                {!expanded ? (
-                  <ChevronRight size={16} />
-                ) : (
-                  <ChevronDown size={16} />
-                )}
-              </div>
-            )}
-          </div>
-
-          {expanded && hasChildren && (
-            <div>
-              {children.map((child) => (
-                <TreeNode
-                  key={child.id}
-                  node={child}
-                  depth={depth + 1}
-                  onLabelChange={onLabelChange}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // 일반 노드 렌더링 (연결선 포함)
   return (
-    <div style={{ position: "relative", marginTop: 10, marginLeft: INDENT }}>
+    <div style={{ position: "relative", marginTop: 4, marginLeft: INDENT }}>
       <div
         style={boxStyle}
         onDoubleClick={() => {
@@ -232,20 +105,20 @@ export default function TreeNode({
             onKeyDown={(e) => e.key === "Enter" && handleLabelSave()}
             autoFocus
             style={{
-              fontSize: "13px",
-              padding: "4px 6px",
+              fontSize: "7px",
+              padding: "1px 2px",
               border: "1px solid transparent",
-              borderRadius: "4px",
+              borderRadius: "2px",
               backgroundColor: "transparent",
               color: "#333",
               outline: "none",
               maxWidth: "100%",
-              minWidth: "60px",
-              width: `${Math.max(8, label.length)}ch`, // ✅ label 길이에 따라 너비 조절
+              minWidth: "30px",
+              width: `${Math.max(4, label.length)}ch`,
             }}
           />
         ) : type === "attribute" ? (
-          node.data?.hasValue
+          node.data?.hasValue || label
         ) : (
           label
         )}
@@ -259,21 +132,20 @@ export default function TreeNode({
               <div
                 style={{
                   position: "absolute",
-                  top: -BOX_HEIGHT,
-                  left: 10,
+                  top: -BOX_HEIGHT / 2,
+                  left: 8,
                   width: LINE_WIDTH,
-                  height: BOX_HEIGHT * 2 + 1,
+                  height: BOX_HEIGHT + 1,
                   background: "#999",
-                  // zIndex: 0,
                 }}
               />
               {/* 수평선 */}
               <div
                 style={{
                   position: "absolute",
-                  top: BOX_HEIGHT,
-                  left: 10,
-                  width: INDENT - 10,
+                  top: BOX_HEIGHT / 2,
+                  left: 8,
+                  width: INDENT - 8,
                   height: LINE_WIDTH,
                   background: "#999",
                 }}

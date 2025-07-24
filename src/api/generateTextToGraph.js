@@ -1,9 +1,4 @@
-export const generateTextToGraph = async (
-  prompt,
-  parentId = null,
-  parentPosition = { x: 0, y: 0 },
-  isInstance = false
-) => {
+export const generateTextToGraph = async (textDescription) => {
   const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
   const endpoint = "https://api.openai.com/v1/chat/completions";
 
@@ -17,12 +12,13 @@ export const generateTextToGraph = async (
   - You can avoid unnecessary words like "a", "the", "is", "its", etc.
   - Each word must belong to only ONE of: object, attribute, relationship.
   - Output must be strict JSON.
-  - Do not make self-connected relationships, like  { "source": "object1", "target": "object1", "relation": "motion blur" }
+  - Do not make self-connected relationships, like { "source": "object1", "target": "object1", "relation": "motion blur" }
+  - Make the main object the first in the objects array
   
   Example:
   {
     "objects": [
-      { "id": "object1", "name": "cat", "attributes": ["white"] },
+      { "id": "object1", "name": "cat", "attributes": ["white", "fluffy"] },
       { "id": "object2", "name": "table", "attributes": ["wooden", "brown"] }
     ],
     "relationships": [
@@ -30,7 +26,7 @@ export const generateTextToGraph = async (
     ]
   }
 
-  Prompt: "${prompt}"
+  Prompt: "${textDescription}"
   `;
 
   try {
@@ -41,7 +37,7 @@ export const generateTextToGraph = async (
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o", // 또는 gpt-4o-mini
+        model: "gpt-4o",
         messages: [{ role: "user", content: systemPrompt }],
         temperature: 0,
         max_tokens: 512,
@@ -52,149 +48,107 @@ export const generateTextToGraph = async (
 
     if (!response.ok) {
       console.error("OpenAI Error:", data);
-      alert("Scene Graph 생성 실패. 콘솔을 확인하세요.");
-      return { nodes: [], edges: [] };
+      throw new Error("Scene Graph 생성 실패");
     }
+
     let content = data.choices[0].message.content;
 
-    // 백틱이 포함된 경우 제거하기 (예: ```json\n ... \n``` 제거)
+    // 백틱 제거
     if (content.startsWith("```")) {
       content = content.replace(/```(?:json)?\n?/g, "").replace(/```$/, "");
     }
 
     const sceneGraph = JSON.parse(content);
+    return sceneGraph;
 
-    return transformSceneGraphToReactFlow(
-      sceneGraph,
-      parentId,
-      parentPosition,
-      isInstance
-    );
   } catch (error) {
-    console.error("Fetch Error:", error);
-    alert("Scene Graph 생성 중 오류 발생");
-    return { nodes: [], edges: [] };
+    console.error("generateTextToSceneGraph Error:", error);
+    throw error;
   }
 };
 
-const transformSceneGraphToReactFlow = (
-  sceneGraph,
-  parentId = null,
-  parentPosition = { x: 0, y: 0 },
-  isInstance = false
-) => {
-  parentPosition = {
-    x: parentPosition.x + 15,
-    y: parentPosition.y + 30,
-  }
+export const generateSceneGraphToText = async (sceneGraph) => {
+  const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
+  const endpoint = "https://api.openai.com/v1/chat/completions";
 
-  const nodes = [];
-  const edges = [];
+  const systemPrompt = `
+  Convert the provided Scene Graph JSON back to a natural language description.
+  Make it concise and natural, describing the main object, its attributes, and relationships.
 
-  const idPrefix = parentId ? `${parentId}__` : `scene__`;
-  const objectMap = new Map();
+  Scene Graph: ${JSON.stringify(sceneGraph)}
+  `;
 
-  const NODE_HEIGHT = 30;
-  const GAP_Y = 10;
-
-  const xObj = parentPosition.x + 10;
-  const xAttr = parentPosition.x + 120;
-  const baseY = parentPosition.y + 10;
-
-  let currentY = baseY;
-
-  sceneGraph.objects.forEach((obj) => {
-    const objNodeId = `${idPrefix}obj-${obj.id}`;
-    objectMap.set(obj.id, objNodeId);
-
-    nodes.push({
-      id: objNodeId,
-      type: isInstance ? "instance" : "class",
-      data: {
-        label: obj.name,
-        type: "object",
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
       },
-      parentNode: parentId,
-      extent: "parent",
-      position: { x: xObj, y: currentY },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: systemPrompt }],
+        temperature: 0,
+        max_tokens: 256,
+      }),
     });
 
-    (obj.attributes || []).forEach((attr, j) => {
-      const attrNodeId = `${objNodeId}-attr-${attr}`;
+    const data = await response.json();
 
-      nodes.push({
-        id: attrNodeId,
-        type: isInstance ? "instance" : "class",
-        data: {
-          label: attr,
-          type: "attribute",
-          hasValue: attr,
-        },
-        parentNode: parentId,
-        extent: "parent",
-        position: {
-          x: xAttr,
-          y: currentY + j * (NODE_HEIGHT + 4),
-        },
-      });
-
-      edges.push({
-        id: `e-${objNodeId}-${attrNodeId}`,
-        source: objNodeId,
-        target: attrNodeId,
-      });
-    });
-
-    // 다음 object는 attr 개수만큼 아래로 밀어줌
-    const attrCount = obj.attributes?.length || 0;
-    const objectBlockHeight =
-      Math.max(1, attrCount) * (NODE_HEIGHT + 4) + GAP_Y;
-
-    currentY += objectBlockHeight;
-  });
-
-  // relationship nodes (아래 따로 배치)
-  const relX = parentPosition.x + 70;
-  let relY = currentY + 20;
-
-  sceneGraph.relationships?.forEach((rel, i) => {
-    const relNodeId = `${idPrefix}rel-${i}`;
-
-    nodes.push({
-      id: relNodeId,
-      type: isInstance ? "instance" : "class",
-      data: {
-        label: rel.relation,
-        type: "relationship",
-      },
-      parentNode: parentId,
-      extent: "parent",
-      position: {
-        x: relX,
-        y: relY,
-      },
-    });
-
-    const sourceId = objectMap.get(rel.source);
-    const targetId = objectMap.get(rel.target);
-
-    if (sourceId && targetId) {
-      edges.push(
-        {
-          id: `e-${sourceId}-${relNodeId}`,
-          source: sourceId,
-          target: relNodeId,
-        },
-        {
-          id: `e-${relNodeId}-${targetId}`,
-          source: relNodeId,
-          target: targetId,
-        }
-      );
+    if (!response.ok) {
+      console.error("OpenAI Error:", data);
+      throw new Error("Text 생성 실패");
     }
 
-    relY += NODE_HEIGHT + GAP_Y;
-  });
+    return data.choices[0].message.content.trim();
 
-  return { nodes, edges };
+  } catch (error) {
+    console.error("generateSceneGraphToText Error:", error);
+    throw error;
+  }
+};
+
+export const generateInstanceLabelFromDescription = async (textDescription) => {
+  const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
+  const endpoint = "https://api.openai.com/v1/chat/completions";
+
+  const systemPrompt = `
+  Extract the main object/subject from the given description and return it as a simple label (1-2 words max).
+  
+  Examples:
+  - "A red car driving on the road" -> "Car"
+  - "Smiling cactus in flower pot" -> "Cactus"
+  - "Beautiful sunset over mountains" -> "Sunset"
+  
+  Description: "${textDescription}"
+  `;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: systemPrompt }],
+        temperature: 0,
+        max_tokens: 50,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("OpenAI Error:", data);
+      throw new Error("Label 생성 실패");
+    }
+
+    return data.choices[0].message.content.trim();
+
+  } catch (error) {
+    console.error("generateInstanceLabelFromDescription Error:", error);
+    throw error;
+  }
 };
