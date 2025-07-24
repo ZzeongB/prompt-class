@@ -11,7 +11,6 @@ import "@xyflow/react/dist/style.css";
 import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
 import LayoutNode from "../components/nodes/LayoutNode";
 import ResizableNode from "../components/nodes/ResizableNode";
-import TempResizableNode from "../components/nodes/TempResizableNode";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { useInstanceGraph } from "../context/InstanceGraphContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
@@ -63,7 +62,6 @@ const nodeTypes = {
   class: LayoutNode,
   instance: LayoutNode,
   resizable: ResizableNode,
-  tmpResizable: TempResizableNode,
   "instance-group": LayoutNode,
 };
 

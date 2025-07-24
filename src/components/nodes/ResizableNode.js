@@ -12,7 +12,10 @@ import { logEvent } from "../../api/logEvent"; // ✅ 로깅 함수 임포트
 function ResizableNode({ id, data, nodeType, style }) {
   const connection = useConnection();
   const isTarget = connection.inProgress && connection.fromNode.id !== id;
-  const showHandle = connection.inProgress && connection.fromNode?.type == "resizable" && isTarget;
+  const showHandle =
+    connection.inProgress &&
+    connection.fromNode?.type == "resizable" &&
+    isTarget;
   const { setNodes, getNodes, getEdges } = useReactFlow();
 
   const handleMouseDown = (e) => {
@@ -75,20 +78,12 @@ function ResizableNode({ id, data, nodeType, style }) {
   return (
     <div>
       <NodeResizer
-        color={
-          data.type === "object" || data.type === "class-group"
-            ? OBJ_COLOR
-            : data.type === "attribute" || data.type === "attribute-group"
-            ? ATTR_COLOR
-            : data.type === "attribute" || data.type === "attribute-group"
-            ? REL_COLOR
-            : DARK_GREY_TRANS
-        }
+        color={DARK_GREY_TRANS}
         minWidth={50}
         minHeight={50}
         onResizeEnd={(e, params) => handleResize(id, params)}
       />
-      {!data.baseline && !connection.inProgress && (
+      {/* {!data.baseline && !connection.inProgress && (
         <Handle
           className="classHandle"
           position={Position.Right}
@@ -96,8 +91,8 @@ function ResizableNode({ id, data, nodeType, style }) {
           onMouseDown={handleMouseDown}
           style={{ top: "50%", transform: "translateY(-50%)", right: "-8px" }}
         />
-      )}
-      {(!data.baseline) && (!connection.inProgress || isTarget) && (
+      )} */}
+      {/* {!data.baseline && (!connection.inProgress || isTarget) && (
         <>
           <Handle
             id="size"
@@ -136,7 +131,7 @@ function ResizableNode({ id, data, nodeType, style }) {
         </>
       )}
 
-      {(!data.baseline) && (!connection.inProgress || isTarget) && (
+      {!data.baseline && (!connection.inProgress || isTarget) && (
         <>
           <Handle
             id="position"
@@ -173,7 +168,7 @@ function ResizableNode({ id, data, nodeType, style }) {
             position
           </span>
         </>
-      )}
+      )} */}
 
       <div style={{ visibility: "hidden", height: "1em" }}>{data.label}</div>
     </div>

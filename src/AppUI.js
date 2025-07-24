@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import GhostNode from "./components/nodes/GhostNode";
 import BaselineLayoutBoardWithProvider from "./Board/BaselineLayoutBoard";
-import ClassBoardWithProvider from "./Board/ClassBoard";
 import LayoutBoardWithProvider from "./Board/LayoutBoard";
 import { ClassGraphProvider } from "./context/ClassGraphContext";
 import { InstanceGraphProvider } from "./context/InstanceGraphContext";

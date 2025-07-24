@@ -17,11 +17,7 @@ export default function TreeNode({
   isBaseline = false,
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [label, setLabel] = useState(
-    node.data?.type === "attribute" && node.data?.hasValue
-      ? node.data.hasValue
-      : node.data?.label ?? ""
-  );
+  const [label, setLabel] = useState(node.data?.label ?? "");
 
   const handleLabelSave = () => {
     setIsEditing(false);
@@ -38,7 +34,6 @@ export default function TreeNode({
   const LINE_WIDTH = 1;
 
   const type = node.data?.type ?? node.type;
-  const hasValue = node.data?.hasValue ?? false;
 
   const MAX_NODE_WIDTH = 300;
 
@@ -62,13 +57,6 @@ export default function TreeNode({
 
   let boxStyle = { ...baseBoxStyle, background: WHITE };
 
-  if (type === "instance-group" || type === "class-group") {
-    boxStyle = {
-      ...baseBoxStyle,
-      background: OBJ_COLOR_TRANS,
-      border: `3px solid ${OBJ_COLOR}`,
-    };
-  }
   if (type === "object") {
     boxStyle = {
       ...baseBoxStyle,
@@ -78,8 +66,7 @@ export default function TreeNode({
   if (type === "attribute") {
     boxStyle = {
       ...baseBoxStyle,
-      background: hasValue ? ATTR_COLOR_TRANS_DARK : WHITE,
-      fontStyle: hasValue ? "normal" : "italic",
+      background: ATTR_COLOR_TRANS_DARK,
     };
   }
   if (type === "relationship") {
@@ -117,8 +104,6 @@ export default function TreeNode({
               width: `${Math.max(4, label.length)}ch`,
             }}
           />
-        ) : type === "attribute" ? (
-          node.data?.hasValue || label
         ) : (
           label
         )}

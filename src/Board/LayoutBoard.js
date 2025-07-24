@@ -9,14 +9,15 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
-import LayoutTreeNode from "../components/nodes/LayoutTreeNode";
+// import LayoutTreeNode from "../components/nodes/LayoutTreeNode";
+import InstancePanelNode from "../components/nodes/InstancePanelNode";
 import ResizableNode from "../components/nodes/ResizableNode";
-import TempResizableNode from "../components/nodes/TempResizableNode";
 import { useClassGraph } from "../context/ClassGraphContext";
 import { useInstanceGraph } from "../context/InstanceGraphContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
 import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 import { generateImageFromInstanceData } from "../api/generateImage";
+import { generateTextToGraph } from "../api/generateTextToGraph";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
@@ -60,11 +61,10 @@ const edgeTypes = {
   main: DefaultEdge,
 };
 const nodeTypes = {
-  class: LayoutTreeNode,
-  instance: LayoutTreeNode,
+  class: InstancePanelNode,
+  instance: InstancePanelNode,
   resizable: ResizableNode,
-  tmpResizable: TempResizableNode,
-  "instance-group": LayoutTreeNode,
+  "instance-group": InstancePanelNode,
 };
 
 function LayoutBoard({ onImageGenerated }) {
@@ -144,12 +144,12 @@ function LayoutBoard({ onImageGenerated }) {
     [ghostNode, screenToFlowPosition]
   );
 
-  const handleGhostClick = (e) => {
+  const handleGhostClick = async (e) => {
     if (!ghostNode) return;
     e.preventDefault();
     e.stopPropagation();
 
-    // ✅ 1. 현재 resizable이 아닌 노드 개수 확인
+    // 현재 resizable이 아닌 노드 개수 확인
     const nonResizableCount = nodes.filter(
       (n) => n.type !== "resizable"
     ).length;
@@ -164,18 +164,39 @@ function LayoutBoard({ onImageGenerated }) {
     const sharedId = `instance-${uniqueId}`;
     const updatedAt = new Date().toISOString();
 
+    // // 초기 description 입력받기
+    // const initialDescription = prompt("Enter a description for this scene:");
+    // if (!initialDescription) {
+    //   setGhostNode(null);
+    //   return;
+    // }
+
+    // let instanceLabel = "New Box";
+    // let sceneGraph = null;
+
+    // try {
+    //   // GPT로 scene graph 생성
+    //   sceneGraph = await generateTextToGraph(initialDescription);
+    //   instanceLabel = sceneGraph.objects?.[0]?.name || "New Box";
+    // } catch (error) {
+    //   console.error("Failed to generate scene graph:", error);
+    //   // 실패해도 기본값으로 계속 진행
+    // }
+
     const objNode = {
       id: sharedId,
       type: "instance-group",
       position,
       data: {
         baseline: false,
-        label: "New Box",
+        label: "instanceLabel",
         type: "object",
         sharedId,
         classId: "__baseline__",
         instanceId: sharedId,
         justCreated: true,
+        initialDescription: "initialDescription",
+        sceneGraph: "sceneGraph",
       },
       updatedAt,
       style: { height: 20 },
@@ -193,7 +214,8 @@ function LayoutBoard({ onImageGenerated }) {
 
     logEvent("baselineboard.node.add.instance", {
       classId: sharedId,
-      instanceLabel: "New Box",
+      instanceLabel: "instanceLabel",
+      initialDescription: "initialDescription",
       createdNodeIds: newNodes.map((n) => n.id),
     });
 

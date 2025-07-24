@@ -11,9 +11,9 @@ const NodeToolbarMenu = forwardRef((props, ref) => {
     style = {},
     data,
     onEditToggle,
-    onSave,
-    onConvertBlank,
-    onDuplicate,
+    onSave = null,
+    onConvertBlank = null,
+    onDuplicate = null,
     onDelete,
     onConvertFromText = null,
   } = props;
@@ -50,11 +50,11 @@ const NodeToolbarMenu = forwardRef((props, ref) => {
         />
       )}
 
-      <HoverButton
+      {onDuplicate && (<HoverButton
         title="Duplicate node"
         icon={<Copy size={16} />}
         onClick={onDuplicate}
-      />
+      />)}
       {onConvertFromText && (
         <HoverButton
           title="Text to Graph"
