@@ -16,7 +16,7 @@ import { useInstanceGraph } from "../context/InstanceGraphContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
 import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 import { generateImageFromInstanceData } from "../api/generateImage";
-import { generateTextToGraph } from "../api/generateTextToGraph";
+import { generateSceneGraphToText } from "../api/generateTextToGraph";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
@@ -68,38 +68,6 @@ const nodeTypes = {
   "instance-group": InstancePanelNode,
 };
 
-// 트리에서 텍스트 설명 생성
-const generateTextDescriptionFromTree = (tree) => {
-  if (!tree || !tree.data) return "New instance";
-  
-  const extractLabels = (node) => {
-    const labels = [];
-    if (node.data?.label) {
-      labels.push(node.data.label);
-    }
-    if (node.children) {
-      node.children.forEach(child => {
-        labels.push(...extractLabels(child));
-      });
-    }
-    return labels;
-  };
-  
-  const labels = extractLabels(tree);
-  return labels.join(" ");
-};
-
-// 트리에서 간단한 scene graph 생성
-const generateSceneGraphFromTree = (tree) => {
-  if (!tree) return { objects: [], relationships: [], root: "object1" };
-  
-  return {
-    objects: [{ id: "object1", name: tree.data?.label || "object", attributes: [] }],
-    relationships: [],
-    root: "object1"
-  };
-};
-
 function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -123,9 +91,11 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
     }
   }, [newInstanceToAdd, onInstanceAdded]);
 
-  const addInstanceToBoard = (instanceData) => {
+  const addInstanceToBoard = async (instanceData) => {
     // 현재 resizable이 아닌 노드 개수 확인
-    const nonResizableCount = nodes.filter(n => n.type !== "resizable").length;
+    const nonResizableCount = nodes.filter(
+      (n) => n.type !== "resizable"
+    ).length;
     if (nonResizableCount >= 10) {
       alert("최대 10개의 노드까지만 생성할 수 있습니다.");
       return;
@@ -135,34 +105,46 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
     const findEmptyPosition = () => {
       const gridSize = 80;
       const maxCols = Math.floor(512 / gridSize);
-      
+
       for (let row = 0; row < 10; row++) {
         for (let col = 0; col < maxCols; col++) {
           const x = col * gridSize + 20;
           const y = row * gridSize + 20;
-          
-          const hasConflict = nodes.some(node => {
+
+          const hasConflict = nodes.some((node) => {
             const distance = Math.sqrt(
-              Math.pow(node.position.x - x, 2) + Math.pow(node.position.y - y, 2)
+              Math.pow(node.position.x - x, 2) +
+                Math.pow(node.position.y - y, 2)
             );
             return distance < 60;
           });
-          
+
           if (!hasConflict) {
             return { x, y };
           }
         }
       }
-      
+
       return {
         x: Math.random() * 400 + 50,
-        y: Math.random() * 400 + 50
+        y: Math.random() * 400 + 50,
       };
     };
 
     const position = findEmptyPosition();
     const uniqueId = uuidv4();
     const sharedId = `instance-${uniqueId}`;
+
+    // 텍스트 설명 생성
+    let textDescription = "";
+    try {
+      textDescription = await generateSceneGraphToText({
+        newSceneGraph: instanceData.sceneGraph,
+      });
+    } catch (error) {
+      console.error("Failed to generate text description:", error);
+      textDescription = instanceData.instanceLabel || "New Instance";
+    }
 
     const objNode = {
       id: sharedId,
@@ -173,15 +155,15 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
         label: instanceData.instanceLabel || "New Instance",
         type: "object",
         sharedId,
-        classId: instanceData.isFromClass ? instanceData.createdFrom : "__baseline__",
+        classId: instanceData.isFromClass
+          ? instanceData.createdFrom
+          : "__baseline__",
         instanceId: sharedId,
         justCreated: false,
-        initialSceneData: {
-          instanceLabel: instanceData.instanceLabel || "New Instance",
-          textDescription: generateTextDescriptionFromTree(instanceData.tree),
-          tree: instanceData.tree,
-          sceneGraph: generateSceneGraphFromTree(instanceData.tree),
-        },
+        // 단순화된 데이터 구조
+        instanceLabel: instanceData.instanceLabel || "New Instance",
+        textDescription: textDescription,
+        sceneGraph: instanceData.sceneGraph,
       },
       updatedAt: new Date().toISOString(),
       style: { height: 20 },
@@ -195,7 +177,7 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
       style: { height: 50, width: 50 },
     };
 
-    setNodes(prevNodes => [...prevNodes, resizableNode, objNode]);
+    setNodes((prevNodes) => [...prevNodes, resizableNode, objNode]);
   };
 
   useEffect(() => {
@@ -251,7 +233,10 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
       if (!ghostNode) return;
       setGhostNode((prev) => ({
         ...prev,
-        position: { x: e.clientX - LEFT_OFFSET - 30, y: e.clientY - TOP_OFFSET - 12 },
+        position: {
+          x: e.clientX - LEFT_OFFSET - 30,
+          y: e.clientY - TOP_OFFSET - 12,
+        },
       }));
     },
     [ghostNode]
@@ -262,7 +247,9 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
     e.preventDefault();
     e.stopPropagation();
 
-    const nonResizableCount = nodes.filter(n => n.type !== "resizable").length;
+    const nonResizableCount = nodes.filter(
+      (n) => n.type !== "resizable"
+    ).length;
     if (nonResizableCount >= 10) {
       alert("최대 10개의 노드까지만 생성할 수 있습니다.");
       setGhostNode(null);
@@ -285,6 +272,10 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
         classId: "__baseline__",
         instanceId: sharedId,
         justCreated: true,
+        // 단순화된 데이터 구조
+        instanceLabel: "New Box",
+        textDescription: "",
+        sceneGraph: {},
       },
       updatedAt: new Date().toISOString(),
       style: { height: 20 },
@@ -504,11 +495,15 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
   );
 }
 
-function LayoutBoardWithProvider({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
+function LayoutBoardWithProvider({
+  onImageGenerated,
+  newInstanceToAdd,
+  onInstanceAdded,
+}) {
   return (
     <ReactFlowProvider debounce={200}>
-      <LayoutBoard 
-        onImageGenerated={onImageGenerated} 
+      <LayoutBoard
+        onImageGenerated={onImageGenerated}
         newInstanceToAdd={newInstanceToAdd}
         onInstanceAdded={onInstanceAdded}
       />

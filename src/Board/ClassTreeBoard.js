@@ -4,42 +4,8 @@ import { useClassContext } from '../context/ClassContext';
 import PanelTemplate from '../components/PanelTemplate';
 import HoverButton from '../components/nodeComponents/HoverButton';
 import { CreateInstanceModal } from '../components/modal/CreateInstanceModal';
+import ClassCardToolbar from '../components/nodeComponents/ClassCardToolbar';
 
-const ClassNodeToolbar = ({ isVisible, onCreateInstance, onDelete, style = {} }) => {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: "-30px",
-        right: "4px",
-        display: "flex",
-        gap: "4px",
-        backgroundColor: "rgba(255, 255, 255, 0.95)",
-        padding: "4px",
-        borderRadius: "6px",
-        border: "1px solid #ddd",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-        opacity: isVisible ? 1 : 0,
-        visibility: isVisible ? "visible" : "hidden",
-        transition: "all 0.2s ease",
-        zIndex: 200,
-        ...style,
-      }}
-    >
-      <HoverButton
-        title="Create Instance"
-        icon={<Plus size={12} />}
-        onClick={onCreateInstance}
-      />
-      <HoverButton
-        title="Delete Class"
-        icon={<Trash2 size={12} />}
-        danger
-        onClick={onDelete}
-      />
-    </div>
-  );
-};
 
 const ClassCard = ({ classData, onCreateInstance, onDelete }) => {
   const sceneData = {
@@ -71,7 +37,7 @@ const ClassCard = ({ classData, onCreateInstance, onDelete }) => {
         setModal={handleDummySetState}
         isClassMode={true}
         customToolbar={
-          <ClassNodeToolbar
+          <ClassCardToolbar 
             isVisible={true}
             onCreateInstance={() => onCreateInstance(classData)}
             onDelete={() => onDelete(classData.id)}
@@ -96,6 +62,7 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
     onAddInstance?.(newInstance);
     setIsModalOpen(false);
     setSelectedClass(null);
+    console.log("handleinstancecreated", newInstance)
   };
 
   const handleCloseModal = () => {
