@@ -1,10 +1,367 @@
 import React, { useState } from "react";
-import { ChevronRight, ChevronDown } from "lucide-react";
-import TreeNode from "./TreeNode";
+import { ChevronRight, ChevronDown, Plus, Trash2, Link } from "lucide-react";
 import PromptModal from "./modal/PromptModal";
 import NodeToolbarMenu from "./nodeComponents/NodeToolbarMenu";
 import { WHITE } from "../utils/constants";
 import { useInstanceActions } from "../utils/actions/useInstanceActions";
+import SceneGraphVisualizer from "./SceneGraphVisualizer";
+
+// Scene Graph 스타일의 TreeNode 컴포넌트
+const TreeNodeStyle = ({ node, onEdit, onDelete, onAddAttribute, onConnect, connecting, isConnectable, depth = 0 }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(node.label);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setEditValue(node.label);
+  };
+
+  const handleSave = () => {
+    onEdit?.(editValue);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditValue(node.label);
+    setIsEditing(false);
+  };
+
+  // 타입별 스타일
+  const getTypeStyle = (type) => {
+    const baseStyle = {
+      borderRadius: "4px",
+      padding: "2px 6px",
+      fontSize: "10px",
+      height: "18px",
+      minWidth: "20px",
+      maxWidth: "80px",
+      textAlign: "center",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      transition: "all 0.15s ease",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      width: "fit-content",
+      cursor: "text",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+      fontWeight: "500",
+      border: "1px solid transparent",
+      position: "relative",
+      zIndex: 100,
+    };
+
+    switch (type) {
+      case "object":
+        return {
+          ...baseStyle,
+          backgroundColor: isHovered ? "#fecaca" : "#fed7d7",
+          color: "#7f1d1d",
+          border: "1px solid #fca5a5",
+        };
+      case "attribute":
+        return {
+          ...baseStyle,
+          backgroundColor: isHovered ? "#bfdbfe" : "#dbeafe",
+          color: "#1e40af",
+          border: "1px solid #93c5fd",
+        };
+      case "relationship":
+        return {
+          ...baseStyle,
+          backgroundColor: isHovered ? "#bbf7d0" : "#dcfce7",
+          color: "#15803d",
+          border: "1px solid #86efac",
+        };
+      default:
+        return {
+          ...baseStyle,
+          backgroundColor: isHovered ? "#f3f4f6" : "#ffffff",
+          color: "#374151",
+          border: "1px solid #d1d5db",
+        };
+    }
+  };
+
+  const style = getTypeStyle(node.type);
+
+  return (
+    <div 
+      style={{ position: "relative", marginTop: 3 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="flex items-center gap-2">
+        <div
+          style={{
+            ...style,
+            boxShadow: connecting && isConnectable ? "0 0 0 2px #3b82f6" : "none",
+          }}
+          onDoubleClick={handleEdit}
+          onClick={() => connecting && isConnectable && onConnect?.()}
+        >
+          {isEditing ? (
+            <input
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSave();
+                if (e.key === "Escape") handleCancel();
+              }}
+              autoFocus
+              style={{
+                fontSize: "10px",
+                padding: "1px 3px",
+                border: "1px solid #3b82f6",
+                borderRadius: "4px",
+                backgroundColor: "#ffffff",
+                color: "#1f2937",
+                outline: "none",
+                fontFamily: "system-ui, -apple-system, sans-serif",
+                fontWeight: "500",
+                maxWidth: "100%",
+                minWidth: "30px",
+                width: `${Math.max(4, editValue.length + 1)}ch`,
+                boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.1)",
+                textAlign: "center",
+              }}
+            />
+          ) : (
+            node.label
+          )}
+        </div>
+
+        {/* 액션 버튼들 */}
+        {isHovered && (
+          <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+            {node.type === "object" && onAddAttribute && (
+              <button
+                onClick={() => onAddAttribute()}
+                style={{
+                  background: "#dbeafe",
+                  border: "1px solid #93c5fd",
+                  borderRadius: "3px",
+                  width: "16px",
+                  height: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: "8px",
+                  color: "#1e40af",
+                }}
+                title="Add Attribute"
+              >
+                A+
+              </button>
+            )}
+            
+            {node.type === "object" && onConnect && (
+              <button
+                onClick={() => onConnect()}
+                style={{
+                  background: connecting === node.id ? "#3b82f6" : "#dcfce7",
+                  border: `1px solid ${connecting === node.id ? "#3b82f6" : "#86efac"}`,
+                  borderRadius: "3px",
+                  width: "16px",
+                  height: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: "8px",
+                  color: connecting === node.id ? "#ffffff" : "#15803d",
+                }}
+                title="Connect to another object"
+              >
+                <Link size={8} />
+              </button>
+            )}
+            
+            {onDelete && (
+              <button
+                onClick={() => onDelete()}
+                style={{
+                  background: "#fee2e2",
+                  border: "1px solid #fca5a5",
+                  borderRadius: "3px",
+                  width: "16px",
+                  height: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  color: "#dc2626",
+                }}
+                title="Delete"
+              >
+                <Trash2 size={8} />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Enhanced TreeNode with Scene Graph styling
+const EnhancedTreeNode = ({ node, onLabelChange, depth = 0, isBaseline = false }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleNodeEdit = (newLabel) => {
+    if (onLabelChange) {
+      onLabelChange(node.id, newLabel);
+    }
+  };
+
+  const handleAttributeEdit = (attrIndex, newValue) => {
+    if (onLabelChange && node.children) {
+      // 속성 수정 로직
+      const updatedNode = {
+        ...node,
+        children: node.children.map((child, index) => 
+          index === attrIndex ? { ...child, label: newValue } : child
+        )
+      };
+      onLabelChange(node.id, updatedNode);
+    }
+  };
+
+  const handleAddAttribute = () => {
+    if (onLabelChange) {
+      const newAttribute = {
+        id: `${node.id}_attr_${Date.now()}`,
+        label: "new",
+        type: "attribute",
+        children: []
+      };
+      const updatedNode = {
+        ...node,
+        children: [...(node.children || []), newAttribute]
+      };
+      onLabelChange(node.id, updatedNode);
+    }
+  };
+
+  const handleDeleteAttribute = (attrIndex) => {
+    if (onLabelChange && node.children) {
+      const updatedNode = {
+        ...node,
+        children: node.children.filter((_, index) => index !== attrIndex)
+      };
+      onLabelChange(node.id, updatedNode);
+    }
+  };
+
+  // Object를 attributes와 함께 렌더링
+  const renderObjectWithAttributes = () => (
+    <div 
+      style={{
+        border: "1px solid #fca5a5",
+        borderRadius: "6px",
+        padding: "8px",
+        background: "linear-gradient(135deg, #fef7f7 0%, #fef2f2 100%)",
+        marginBottom: "4px"
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Object Node */}
+      <TreeNodeStyle
+        node={{ 
+          id: node.id, 
+          label: node.data.label, 
+          type: node.type || "object" 
+        }}
+        onEdit={(newLabel) => handleNodeEdit(newLabel)}
+        onDelete={!isBaseline ? () => {/* 삭제 로직 */} : undefined}
+        onAddAttribute={!isBaseline ? handleAddAttribute : undefined}
+        isBaseline={isBaseline}
+      />
+      
+      {/* Attributes with tree-like connections */}
+      {node.children && node.children.length > 0 && (
+        <div style={{ marginTop: "8px" }}>
+          {node.children.map((child, index) => (
+            <div key={child.id || index} style={{ position: "relative", marginTop: 3, marginLeft: 14 }}>
+              {/* Vertical line */}
+              <div style={{
+                position: "absolute",
+                top: -9,
+                left: 7,
+                width: "1px",
+                height: index === node.children.length - 1 ? 9 : 18,
+                backgroundColor: "#d1d5db",
+              }} />
+              {/* Horizontal line */}
+              <div style={{
+                position: "absolute",
+                top: 9,
+                left: 7,
+                width: 7,
+                height: "1px",
+                backgroundColor: "#d1d5db",
+              }} />
+              
+              <TreeNodeStyle
+                node={{ 
+                  id: child.id || `${node.id}-attr-${index}`, 
+                  label: child.data.label, 
+                  type: "attribute" 
+                }}
+                onEdit={(newValue) => handleAttributeEdit(index, newValue)}
+                onDelete={!isBaseline ? () => handleDeleteAttribute(index) : undefined}
+                isBaseline={isBaseline}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // 다른 타입의 노드들 (relationship 등)
+  const renderOtherNode = () => (
+    <div style={{ marginBottom: "4px" }}>
+      <TreeNodeStyle
+        node={{ 
+          id: node.id, 
+          label: node.data.label, 
+          type: node.type || "default" 
+        }}
+        onEdit={(newLabel) => handleNodeEdit(newLabel)}
+        onDelete={!isBaseline ? () => {/* 삭제 로직 */} : undefined}
+        isBaseline={isBaseline}
+      />
+      
+      {/* Render children recursively */}
+      {node.children && node.children.length > 0 && (
+        <div style={{ marginLeft: "20px", marginTop: "4px" }}>
+          {node.children.map((child, index) => (
+            <EnhancedTreeNode
+              key={child.id || index}
+              node={child}
+              onLabelChange={onLabelChange}
+              depth={depth + 1}
+              isBaseline={isBaseline}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // Object 타입이면 특별한 렌더링, 아니면 일반 렌더링
+  if (node.type === "object" || (!node.type && depth === 0)) {
+    return renderObjectWithAttributes();
+  } else {
+    return renderOtherNode();
+  }
+};
 
 export default function PanelTemplate({
   id,
@@ -21,7 +378,7 @@ export default function PanelTemplate({
   modal,
   setModal,
   isClassMode = false,
-  customToolbar = null, // 추가된 prop
+  customToolbar = null,
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
@@ -97,7 +454,6 @@ export default function PanelTemplate({
           display: "flex",
           alignItems: "center",
           gap: "4px",
-          //   padding: "2px 0",
         }}
       >
         {isEditingLabel ? (
@@ -141,10 +497,10 @@ export default function PanelTemplate({
               padding: "2px 4px",
               borderRadius: "4px",
               transition: "all 0.15s ease",
-              cursor: isClassMode ? "default" : "text", // 클래스 모드에서는 편집 불가
+              cursor: isClassMode ? "default" : "text",
               backgroundColor: "transparent",
             }}
-            onDoubleClick={!isClassMode ? handleInstanceLabelEdit : undefined} // 클래스 모드에서는 편집 불가
+            onDoubleClick={!isClassMode ? handleInstanceLabelEdit : undefined}
             onMouseEnter={(e) => {
               if (!isClassMode) {
                 e.target.style.backgroundColor = "#f3f4f6";
@@ -157,6 +513,7 @@ export default function PanelTemplate({
             {sceneData.instanceLabel}
           </div>
         )}
+        
         {/* 상태 표시 */}
         {isUpdating ? (
           <div
@@ -181,6 +538,7 @@ export default function PanelTemplate({
             Updating...
           </div>
         ) : null}
+        
         {/* 확장/축소 버튼 */}
         {!isClassMode && (
           <button
@@ -219,7 +577,7 @@ export default function PanelTemplate({
         )}
       </div>
 
-      {/* 확장된 콘텐츠 (클래스 모드에서는 항상 표시) */}
+      {/* 확장된 콘텐츠 */}
       {(isExpanded || isClassMode) && (
         <div style={{ marginTop: "0px" }}>
           {/* Text Description Section */}
@@ -299,18 +657,11 @@ export default function PanelTemplate({
           ) : (
             <></>
           )}
-
-          {/* Tree Section */}
-          <TreeNode
-            node={sceneData.tree}
-            onLabelChange={onLabelChange}
-            depth={0}
-            isBaseline={isClassMode} // 클래스 모드에서는 트리 편집 불가
-          />
+        <SceneGraphVisualizer/>
         </div>
       )}
 
-      {/* 모달 - 혹시 다른 곳에서 필요할 수도 있으니 남겨둠 */}
+      {/* 모달 */}
       {modal && (
         <PromptModal
           title={modal.title}
@@ -321,7 +672,7 @@ export default function PanelTemplate({
         />
       )}
 
-      {/* 툴바 - 클래스 모드에서는 customToolbar 사용, 아니면 기본 툴바 */}
+      {/* 툴바 */}
       {isClassMode && customToolbar ? (
         customToolbar
       ) : !isClassMode && isExpanded ? (
