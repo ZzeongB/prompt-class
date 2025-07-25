@@ -3,7 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useClassContext } from '../context/ClassContext';
 import PanelTemplate from '../components/PanelTemplate';
 import HoverButton from '../components/nodeComponents/HoverButton';
-import { CreateInstanceModal } from '../components/CreateInstanceModal';
+import { CreateInstanceModal } from '../components/modal/CreateInstanceModal';
 
 // 클래스용 NodeToolbar
 const ClassNodeToolbar = ({ isVisible, onCreateInstance, onDelete, style = {} }) => {

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import TreeNode from "./TreeNode";
-import PromptModal from "./PromptModal";
+import PromptModal from "./modal/PromptModal";
 import NodeToolbarMenu from "./nodeComponents/NodeToolbarMenu";
 import { WHITE } from "../utils/constants";
 import { useInstanceActions } from "../utils/actions/useInstanceActions";

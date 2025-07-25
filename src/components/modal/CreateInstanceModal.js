@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { suggestPlaceholderValues } from "../api/generatePlaceholders";
-import { useClassContext } from "../context/ClassContext";
+import { suggestPlaceholderValues } from "../../api/generatePlaceholders";
+import { useClassContext } from "../../context/ClassContext";
 
 export const CreateInstanceModal = ({ 
   classData, 
