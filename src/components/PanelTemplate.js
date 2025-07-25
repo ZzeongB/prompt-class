@@ -68,6 +68,7 @@ export default function PanelTemplate({
   return (
     <div
       style={{
+        maxWidth: "150px",
         margin: "0 auto",
         padding: "4px",
         background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",

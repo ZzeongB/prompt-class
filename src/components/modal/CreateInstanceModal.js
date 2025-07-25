@@ -15,23 +15,70 @@ export const CreateInstanceModal = ({
   
   const { createInstanceFromClass } = useClassContext();
 
+  // scene graph에서 placeholder들 추출하는 함수
+  const extractPlaceholdersFromSceneGraph = (sceneGraph) => {
+    const placeholders = new Set();
+    
+    if (!sceneGraph?.objects) return [];
+    
+    sceneGraph.objects.forEach(obj => {
+      // 객체 이름에서 placeholder 추출
+      if (obj.name && obj.name.includes('{') && obj.name.includes('}')) {
+        const placeholder = obj.name.replace(/[{}]/g, '');
+        placeholders.add(placeholder);
+      }
+      
+      // attributes에서 placeholder 추출 (문자열 배열)
+      if (obj.attributes && Array.isArray(obj.attributes)) {
+        obj.attributes.forEach(attr => {
+          if (typeof attr === 'string' && attr.includes('{') && attr.includes('}')) {
+            const placeholder = attr.replace(/[{}]/g, '');
+            placeholders.add(placeholder);
+          }
+        });
+      }
+    });
+    
+    return Array.from(placeholders);
+  };
+
   // 모달이 열릴 때마다 초기화
   useEffect(() => {
-    if (isOpen && classData?.placeholders) {
+    if (isOpen && classData?.template?.sceneGraph) {
       setValues({});
       setIsLoading(true);
       
-      // 클래스의 placeholder들에 대한 제안 가져오기
-      suggestPlaceholderValues(classData.placeholders)
-        .then(setSuggestions)
-        .catch(console.error)
-        .finally(() => setIsLoading(false));
+      // scene graph에서 placeholder들 추출
+      const placeholders = extractPlaceholdersFromSceneGraph(classData.template.sceneGraph);
+      
+      if (placeholders.length > 0) {
+        // placeholder들에 대한 제안 가져오기
+        // placeholders 배열을 객체 형태로 변환 (API 호환성을 위해)
+        const placeholderObj = placeholders.reduce((acc, placeholder) => {
+          acc[placeholder] = placeholder;
+          return acc;
+        }, {});
+        
+        suggestPlaceholderValues(placeholderObj)
+          .then(setSuggestions)
+          .catch(console.error)
+          .finally(() => setIsLoading(false));
+      } else {
+        setIsLoading(false);
+      }
     }
   }, [isOpen, classData]);
 
   const handleCreate = async () => {
     try {
       setIsCreating(true);
+      
+      // values를 sceneGraph 형태로 변환
+      const instanceData = {
+        sceneGraph: createUpdatedSceneGraph(classData.template.sceneGraph, values),
+        instanceLabel: generateInstanceLabel(values)
+      };
+      
       const newInstance = await createInstanceFromClass(classData, values);
       onCreateInstance?.(newInstance);
       onClose();
@@ -43,23 +90,57 @@ export const CreateInstanceModal = ({
     }
   };
 
-  const handleValueChange = (category, value) => {
+  // scene graph를 values로 업데이트하는 함수
+  const createUpdatedSceneGraph = (templateSceneGraph, values) => {
+    const updated = JSON.parse(JSON.stringify(templateSceneGraph)); // deep copy
+    
+    updated.objects?.forEach(obj => {
+      // 객체 이름에서 placeholder 교체
+      if (obj.name && obj.name.includes('{') && obj.name.includes('}')) {
+        const placeholder = obj.name.replace(/[{}]/g, '');
+        if (values[placeholder]) {
+          obj.name = values[placeholder];
+        }
+      }
+      
+      // attributes에서 placeholder 교체
+      if (obj.attributes && Array.isArray(obj.attributes)) {
+        obj.attributes = obj.attributes.map(attr => {
+          if (typeof attr === 'string' && attr.includes('{') && attr.includes('}')) {
+            const placeholder = attr.replace(/[{}]/g, '');
+            if (values[placeholder]) {
+              return values[placeholder];
+            }
+          }
+          return attr;
+        });
+      }
+    });
+    
+    return updated;
+  };
+
+  // 인스턴스 라벨 생성
+  const generateInstanceLabel = (values) => {
+    const mainValue = Object.values(values)[0] || "New";
+    return mainValue.charAt(0).toUpperCase() + mainValue.slice(1);
+  };
+
+  const handleValueChange = (placeholder, value) => {
     setValues(prev => ({
       ...prev,
-      [category]: value
+      [placeholder]: value
     }));
   };
 
-  const handleSuggestionClick = (category, suggestion) => {
-    handleValueChange(category, suggestion);
+  const handleSuggestionClick = (placeholder, suggestion) => {
+    handleValueChange(placeholder, suggestion);
   };
 
   if (!isOpen) return null;
 
-  // 고유한 카테고리들 추출
-  const categories = classData?.placeholders 
-    ? [...new Set(Object.values(classData.placeholders))]
-    : [];
+  // scene graph에서 placeholder들 추출
+  const placeholders = extractPlaceholdersFromSceneGraph(classData?.template?.sceneGraph);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -73,28 +154,28 @@ export const CreateInstanceModal = ({
           {isLoading ? (
             <div className="loading">Loading suggestions...</div>
           ) : (
-            categories.map(category => (
-              <div key={category} className="input-group">
+            placeholders.map(placeholder => (
+              <div key={placeholder} className="input-group">
                 <label className="input-label">
-                  {category.charAt(0).toUpperCase() + category.slice(1)}:
+                  {placeholder.charAt(0).toUpperCase() + placeholder.slice(1)}:
                 </label>
                 
                 <input 
                   type="text"
                   className="input-field"
-                  value={values[category] || ''}
-                  onChange={(e) => handleValueChange(category, e.target.value)}
-                  placeholder={`Enter ${category}...`}
+                  value={values[placeholder] || ''}
+                  onChange={(e) => handleValueChange(placeholder, e.target.value)}
+                  placeholder={`Enter ${placeholder}...`}
                 />
                 
                 {/* 제안된 값들 */}
-                {suggestions[category] && (
+                {suggestions[placeholder] && (
                   <div className="suggestions">
-                    {suggestions[category].map(suggestion => (
+                    {suggestions[placeholder].map(suggestion => (
                       <button 
                         key={suggestion}
                         className="suggestion-button"
-                        onClick={() => handleSuggestionClick(category, suggestion)}
+                        onClick={() => handleSuggestionClick(placeholder, suggestion)}
                       >
                         {suggestion}
                       </button>
@@ -104,13 +185,19 @@ export const CreateInstanceModal = ({
               </div>
             ))
           )}
+          
+          {placeholders.length === 0 && !isLoading && (
+            <div className="no-placeholders">
+              This class template has no placeholders to fill.
+            </div>
+          )}
         </div>
 
         <div className="modal-footer">
           <button 
             className="btn btn-primary" 
             onClick={handleCreate}
-            disabled={isCreating || categories.length === 0}
+            disabled={isCreating}
           >
             {isCreating ? 'Creating...' : 'Create Instance'}
           </button>
@@ -189,6 +276,13 @@ export const CreateInstanceModal = ({
           text-align: center;
           padding: 20px;
           color: #6b7280;
+        }
+
+        .no-placeholders {
+          text-align: center;
+          padding: 20px;
+          color: #6b7280;
+          font-style: italic;
         }
 
         .input-group {

@@ -3,25 +3,44 @@ import { useClassContext } from "../../context/ClassContext";
 export const useInstanceActions = () => {
   const { createClass, duplicateInstance } = useClassContext();
 
-  const handleCreateClass = (instanceData, onSuccess) => {
+  const handleCreateClass = async (sceneData, onMessage) => {
     try {
-      const newClass = createClass(instanceData);
-      // onSuccess?.(`Class "${newClass.name}" created successfully!`);
-      return newClass;
+      // 데이터 검증
+      if (!sceneData) {
+        throw new Error("Scene data is null or undefined");
+      }
+
+      if (!sceneData.instanceLabel) {
+        throw new Error("Instance label is missing");
+      }
+
+      // ClassContext의 createClass 함수 사용
+      const newClass = await createClass({
+        instanceLabel: sceneData.instanceLabel,
+        sceneGraph: sceneData.sceneGraph || {},
+        textDescription: sceneData.textDescription || "",
+      });
     } catch (error) {
-      console.error('Failed to create class:', error);
-      alert('Failed to create class. Please try again.');
+      console.error("Error in handleCreateClass:", error);
     }
   };
 
-  const handleDuplicateInstance = (instanceData, onAddInstance) => {
+  const handleDuplicateInstance = async (sceneData, onMessage) => {
     try {
-      const duplicatedInstance = duplicateInstance(instanceData);
-      onAddInstance(duplicatedInstance);
-      return duplicatedInstance;
+      if (!sceneData) {
+        throw new Error("Scene data is null or undefined");
+      }
+
+      const duplicated = duplicateInstance({
+        instanceLabel: sceneData.instanceLabel,
+        sceneGraph: sceneData.sceneGraph || {},
+        textDescription: sceneData.textDescription || "",
+        isFromClass: sceneData.isFromClass || false,
+      });
+
+      return duplicated;
     } catch (error) {
-      console.error('Failed to duplicate instance:', error);
-      alert('Failed to duplicate instance. Please try again.');
+      console.error("Error in handleDuplicateInstance:", error);
     }
   };
 

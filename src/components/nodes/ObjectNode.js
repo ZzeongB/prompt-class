@@ -68,40 +68,7 @@ const ObjectNode = ({
           alignItems: "center",
         }}
       >
-        <div
-          className="flex items-center gap-1"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div
-            style={{ fontSize: "11px", fontWeight: "500", color: "#7f1d1d" }}
-          >
-            {isEditing ? (
-              <EditableLabel
-                value={editValue}
-                onSave={handleSaveName}
-                autoFocus
-              />
-            ) : (
-              <div onDoubleClick={() => setIsEditing(true)}>{object.name}</div>
-            )}
-          </div>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#7f1d1d",
-            }}
-            title={expanded ? "Collapse" : "Expand"}
-          >
-            {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-          </button>
-        </div>
+       
 
         {isHovered && (
           <div className="flex items-center gap-1" style={{ display: "flex" }}>
@@ -205,9 +172,45 @@ const ObjectNode = ({
                 }}
               />
             </div>
-          )}
-        </div>
+          )}</div>
+        
       )}
+
+           <div
+          className="flex items-center gap-1"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{ fontSize: "11px", fontWeight: "500", color: "#7f1d1d" }}
+          >
+            {isEditing ? (
+              <EditableLabel
+                value={editValue}
+                onSave={handleSaveName}
+                autoFocus
+              />
+            ) : (
+              <div onDoubleClick={() => setIsEditing(true)}>{object.name}</div>
+            )}
+          </div>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#7f1d1d",
+            }}
+            title={expanded ? "Collapse" : "Expand"}
+          >
+            {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+          </button>
+        </div>
+        
     </div>
   );
 };

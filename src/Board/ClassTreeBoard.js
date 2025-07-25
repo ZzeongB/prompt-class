@@ -5,7 +5,6 @@ import PanelTemplate from '../components/PanelTemplate';
 import HoverButton from '../components/nodeComponents/HoverButton';
 import { CreateInstanceModal } from '../components/modal/CreateInstanceModal';
 
-// 클래스용 NodeToolbar
 const ClassNodeToolbar = ({ isVisible, onCreateInstance, onDelete, style = {} }) => {
   return (
     <div
@@ -43,16 +42,17 @@ const ClassNodeToolbar = ({ isVisible, onCreateInstance, onDelete, style = {} })
 };
 
 const ClassCard = ({ classData, onCreateInstance, onDelete }) => {
-  // PanelTemplate에서 사용할 sceneData 형태로 변환
   const sceneData = {
     instanceLabel: classData.name,
-    tree: classData.template?.tree || {
-      id: "root",
-      data: { label: "Empty", type: "object" },
-      children: [],
-    },
     sceneGraph: classData.template?.sceneGraph || {},
+    textDescription: classData.template?.textDescription || "",
   };
+
+  // 빈 함수들을 제대로 정의
+  const handleDummyFunction = () => {};
+  const handleDummySetState = () => {};
+
+  // console.log("sceneData", sceneData)
 
   return (
     <div style={{ marginBottom: '8px' }}>
@@ -60,20 +60,16 @@ const ClassCard = ({ classData, onCreateInstance, onDelete }) => {
         id={classData.id}
         data={{ label: classData.name }}
         isExpanded={true}
-        setIsExpanded={() => {}} // 클래스는 확장/축소 제어 안 함
+        setIsExpanded={handleDummySetState}
         sceneData={sceneData}
-        setSceneData={() => {}} // 클래스는 편집 안 함
         isUpdating={false}
-        onInstanceLabelChange={() => {}} // 클래스는 라벨 편집 안 함
-        onDescriptionChangeDebounced={() => {}} // 클래스는 설명 편집 안 함
-        onLabelChange={() => {}} // 트리 노드 편집 안 함
+        onInstanceLabelChange={handleDummyFunction}
+        onDescriptionChangeDebounced={handleDummyFunction}
+        onSceneGraphChange={handleDummyFunction}
         onDelete={() => onDelete(classData.id)}
         modal={null}
-        setModal={() => {}}
-        showToolbar={true}
-        // 클래스 전용 스타일링
+        setModal={handleDummySetState}
         isClassMode={true}
-        // 클래스 전용 툴바 추가
         customToolbar={
           <ClassNodeToolbar
             isVisible={true}
@@ -88,8 +84,6 @@ const ClassCard = ({ classData, onCreateInstance, onDelete }) => {
 
 export const ClassTreeBoard = ({ onAddInstance }) => {
   const { classes, deleteClass } = useClassContext();
-  
-  // 모달 상태 관리
   const [selectedClass, setSelectedClass] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -99,11 +93,7 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
   };
 
   const handleInstanceCreated = (newInstance) => {
-    console.log('새 인스턴스가 생성되었습니다:', newInstance);
-    // 생성된 인스턴스를 부모 컴포넌트에 전달
     onAddInstance?.(newInstance);
-    
-    // 모달 닫기
     setIsModalOpen(false);
     setSelectedClass(null);
   };
@@ -114,15 +104,12 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
   };
 
   const handleDeleteClass = (classId) => {
-    // if (confirm('Are you sure you want to delete this class?')) {
-      deleteClass(classId);
-    // }
+    deleteClass(classId);
   };
 
   return (
     <>
       <div style={{
-        // width: '320px',
         height: '100vh',
         backgroundColor: '#f8fafc',
         borderLeft: '1px solid #e2e8f0',
@@ -131,7 +118,6 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
         display: 'flex',
         flexDirection: 'column',
       }}>
-        {/* 헤더 */}
         <div style={{
           fontSize: '18px',
           fontWeight: '700',
@@ -144,7 +130,6 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
           Class Library
         </div>
 
-        {/* 클래스 목록 */}
         <div style={{ flex: 1 }}>
           {classes.length === 0 ? (
             <div style={{
@@ -157,7 +142,7 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
               borderRadius: '8px',
               border: '1px dashed #cbd5e1',
             }}>
-              No classes yet.<br/>
+              No classes yet.<br />
               <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                 Create a class from an instance using the toolbar!
               </span>
@@ -174,7 +159,6 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
           )}
         </div>
 
-        {/* 하단 정보 */}
         <div style={{
           marginTop: '16px',
           padding: '12px',
@@ -193,13 +177,15 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
         </div>
       </div>
 
-      {/* CreateInstanceModal */}
-      <CreateInstanceModal
-        classData={selectedClass}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onCreateInstance={handleInstanceCreated}
-      />
+      {/* CreateInstanceModal에 필요한 props가 모두 전달되는지 확인 */}
+      {isModalOpen && selectedClass && (
+        <CreateInstanceModal
+          classData={selectedClass}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onCreateInstance={handleInstanceCreated}
+        />
+      )}
     </>
   );
 };

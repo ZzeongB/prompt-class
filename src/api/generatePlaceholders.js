@@ -1,16 +1,35 @@
+import { all } from 'axios';
 import { callOpenAI } from './utils'; // 기존 callOpenAI 함수를 import
 
-// 트리에서 모든 텍스트 값들을 추출하는 함수
-const extractValuesFromTree = (node) => {
+// SceneGraph에서 모든 텍스트 값들을 추출하는 함수
+const extractValuesFromSceneGraph = (sceneGraph) => {
   const values = [];
   
-  if (node.data?.label && typeof node.data.label === 'string') {
-    values.push(node.data.label);
+  // Objects에서 이름과 속성들 추출
+  if (sceneGraph.objects && Array.isArray(sceneGraph.objects)) {
+    sceneGraph.objects.forEach(obj => {
+      // Object 이름 추가
+      if (obj.name && typeof obj.name === 'string') {
+        values.push(obj.name);
+      }
+      
+      // Object 속성들 추가
+      if (obj.attributes && Array.isArray(obj.attributes)) {
+        obj.attributes.forEach(attr => {
+          if (typeof attr === 'string') {
+            values.push(attr);
+          }
+        });
+      }
+    });
   }
   
-  if (node.children && Array.isArray(node.children)) {
-    node.children.forEach(child => {
-      values.push(...extractValuesFromTree(child));
+  // Relationships에서 관계 텍스트들 추출
+  if (sceneGraph.relationships && Array.isArray(sceneGraph.relationships)) {
+    sceneGraph.relationships.forEach(rel => {
+      if (rel.relation && typeof rel.relation === 'string') {
+        values.push(rel.relation);
+      }
     });
   }
   
@@ -18,13 +37,13 @@ const extractValuesFromTree = (node) => {
 };
 
 // GPT를 이용해서 값들을 카테고리로 변환
-export const generatePlaceholders = async (treeData) => {
-  if (!treeData) {
+export const generatePlaceholders = async (sceneGraph) => {
+  if (!sceneGraph) {
     throw new Error("Valid tree data is required");
   }
 
   // 트리에서 모든 텍스트 값들을 추출
-  const allValues = extractValuesFromTree(treeData);
+  const allValues = extractValuesFromSceneGraph(sceneGraph);
   const uniqueValues = [...new Set(allValues)].filter(value => value.trim() !== '');
   
   if (uniqueValues.length === 0) {

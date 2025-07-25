@@ -10,6 +10,8 @@ export default function SceneGraphVisualizer({
   const [hoveredObject, setHoveredObject] = useState(null);
   const [editingObject, setEditingObject] = useState(null);
   const [hoveredRelationship, setHoveredRelationship] = useState(null);
+  const [connectingMode, setConnectingMode] = useState(false);
+  const [selectedSourceObject, setSelectedSourceObject] = useState(null);
 
   const handleObjectEdit = (objectId, newName, newAttributes = null) => {
     const updatedGraph = {
@@ -84,6 +86,40 @@ export default function SceneGraphVisualizer({
     onSceneGraphChange(updatedGraph, false);
   };
 
+  const handleObjectClick = (objectId) => {
+    if (connectingMode) {
+      if (!selectedSourceObject) {
+        // First object selected as source
+        setSelectedSourceObject(objectId);
+      } else if (selectedSourceObject !== objectId) {
+        // Second object selected as target - create relationship
+        const relationshipExists = sceneGraph.relationships.some(
+          rel => rel.source === selectedSourceObject && rel.target === objectId
+        );
+        
+        if (!relationshipExists) {
+          const updatedGraph = {
+            ...sceneGraph,
+            relationships: [
+              ...sceneGraph.relationships,
+              { source: selectedSourceObject, target: objectId, relation: "related to" }
+            ]
+          };
+          onSceneGraphChange(updatedGraph);
+        }
+        
+        // Reset connecting mode
+        setConnectingMode(false);
+        setSelectedSourceObject(null);
+      }
+    }
+  };
+
+  const handleToggleConnectMode = () => {
+    setConnectingMode(!connectingMode);
+    setSelectedSourceObject(null);
+  };
+
   const groupedRelationships = sceneGraph.relationships.reduce((acc, rel) => {
     const key = `${rel.source}-${rel.target}`;
     if (!acc[key]) acc[key] = [];
@@ -94,54 +130,121 @@ export default function SceneGraphVisualizer({
   return (
     <div
       style={{
-        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         background: "#f8fafc",
+        padding: "8px",
+        borderRadius: "6px",
+        position: "relative",
       }}
     >
-      <div style={{ marginBottom: "5px" }}>
-        <button
-          onClick={handleAddObject}
-          style={{
-            background: "#3b82f6",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            fontSize: "12px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}
-        >
-          <Plus size={14} />
-          Add Object
-        </button>
-      </div>
+      <button
+        onClick={handleAddObject}
+        style={{
+          position: "absolute",
+          top: "4px",
+          right: "28px",
+          background: "#e2e8f0",
+          color: "#64748b",
+          border: "none",
+          borderRadius: "4px",
+          padding: "2px 4px",
+          fontSize: "9px",
+          fontWeight: "400",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: "2px",
+          opacity: "0.6",
+          transition: "opacity 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.opacity = "1";
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.opacity = "0.6";
+        }}
+      >
+        <Plus size={10} />
+        Add
+      </button>
+
+      <button
+        onClick={handleToggleConnectMode}
+        style={{
+          position: "absolute",
+          top: "4px",
+          right: "4px",
+          background: connectingMode ? "#dcfce7" : "#e2e8f0",
+          color: connectingMode ? "#15803d" : "#64748b",
+          border: connectingMode ? "1px solid #86efac" : "none",
+          borderRadius: "4px",
+          padding: "2px 4px",
+          fontSize: "9px",
+          fontWeight: "400",
+          cursor: "pointer",
+          opacity: connectingMode ? "1" : "0.6",
+          transition: "all 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.opacity = "1";
+        }}
+        onMouseLeave={(e) => {
+          if (!connectingMode) e.target.style.opacity = "0.6";
+        }}
+        title={connectingMode ? "Cancel connecting" : "Connect objects"}
+      >
+        ⟷
+      </button>
 
       <div
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "2px",
-          alignItems: "center",
+          gap: "4px",
+          alignItems: "flex-start",
+          paddingTop: "16px",
         }}
       >
+        {connectingMode && (
+          <div style={{
+            fontSize: "10px",
+            color: "#15803d",
+            backgroundColor: "#dcfce7",
+            padding: "2px 6px",
+            borderRadius: "4px",
+            border: "1px solid #86efac",
+            marginBottom: "4px"
+          }}>
+            {selectedSourceObject ? "Click target object" : "Click source object"}
+          </div>
+        )}
+        
         {sceneGraph.objects.map((obj) => (
           <React.Fragment key={obj.id}>
-            <ObjectNode
-              object={obj}
-              onEdit={handleObjectEdit}
-              onDelete={handleObjectDelete}
-              onAddAttribute={handleAddAttribute}
-              isHovered={hoveredObject === obj.id}
-              setIsHovered={(hovered) =>
-                setHoveredObject(hovered ? obj.id : null)
-              }
-              isEditing={editingObject === obj.id}
-              setIsEditing={(editing) =>
-                setEditingObject(editing ? obj.id : null)
-              }
-            />
+            <div
+              onClick={() => handleObjectClick(obj.id)}
+              style={{
+                cursor: connectingMode ? "pointer" : "default",
+                border: selectedSourceObject === obj.id ? "2px solid #15803d" : "none",
+                borderRadius: "8px",
+                padding: selectedSourceObject === obj.id ? "2px" : "0",
+              }}
+            >
+              <ObjectNode
+                object={obj}
+                onEdit={handleObjectEdit}
+                onDelete={handleObjectDelete}
+                onAddAttribute={handleAddAttribute}
+                isHovered={hoveredObject === obj.id}
+                setIsHovered={(hovered) =>
+                  setHoveredObject(hovered ? obj.id : null)
+                }
+                isEditing={editingObject === obj.id}
+                setIsEditing={(editing) =>
+                  setEditingObject(editing ? obj.id : null)
+                }
+              />
+            </div>
 
             {Object.entries(groupedRelationships)
               .filter(([key]) => key.startsWith(obj.id + "-"))
