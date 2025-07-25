@@ -15,18 +15,11 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   );
   const [modal, setModal] = useState(null);
 
-  // initialSceneData가 있으면 사용, 없으면 기본값 사용
-  const [sceneData, setSceneData] = useState(() => {
-    if (data?.initialSceneData) {
-      console.log("Using initialSceneData:", data.initialSceneData);
-      return data.initialSceneData;
-    }
-
-    return {
-      instanceLabel: data?.label || "New Box",
-      textDescription: "",
-      sceneGraph: {},
-    };
+  // 단순화된 sceneData - data에서 직접 사용
+  const [sceneData, setSceneData] = useState({
+    instanceLabel: data?.instanceLabel || data?.label || "New Box",
+    textDescription: data?.textDescription || "",
+    sceneGraph: data?.sceneGraph || {},
   });
 
   const hasPromptedRef = useRef(false);
@@ -41,15 +34,17 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
     deleteElements({ nodes: toDelete });
   };
 
+  // sceneData가 변경될 때 노드 데이터 업데이트
   useEffect(() => {
     setNodes((nodes) =>
       nodes.map((node) => {
-        if (node.id === id) {
+        if (node.id === id || node.data?.sharedId === data.sharedId) {
           return {
             ...node,
             data: {
               ...node.data,
               label: sceneData.instanceLabel,
+              instanceLabel: sceneData.instanceLabel,
               textDescription: sceneData.textDescription,
               sceneGraph: sceneData.sceneGraph,
             },
@@ -58,7 +53,16 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         return node;
       })
     );
-  }, [sceneData, id, setNodes]);
+  }, [sceneData, id, setNodes, data.sharedId]);
+
+  // data가 변경될 때 sceneData 동기화
+  useEffect(() => {
+    setSceneData({
+      instanceLabel: data?.instanceLabel || data?.label || "New Box",
+      textDescription: data?.textDescription || "",
+      sceneGraph: data?.sceneGraph || {},
+    });
+  }, [data?.instanceLabel, data?.label, data?.textDescription, data?.sceneGraph]);
 
   useEffect(() => {
     if (data?.justCreated && isInitializing && !hasPromptedRef.current) {
@@ -89,11 +93,13 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         newTextDescription: description,
       });
       const instanceLabel = sceneGraph.objects?.[0]?.name || "New Box";
+      
       setSceneData({
         instanceLabel,
         textDescription: description,
         sceneGraph,
       });
+      
       onUpdate?.({
         label: instanceLabel,
         textDescription: description,
@@ -123,6 +129,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
     const prevGraph = sceneData.sceneGraph;
     const currLabel = sceneData.instanceLabel;
 
+    // 먼저 UI 업데이트
     setSceneData((prev) => ({ ...prev, textDescription: newDescription }));
 
     try {
@@ -139,11 +146,13 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         instanceLabel: instanceLabel,
         textDescription: newDescription,
       }));
+      
       onUpdate?.({
         label: instanceLabel,
         textDescription: newDescription,
       });
     } catch (error) {
+      // 에러 발생 시 이전 상태로 복원
       setSceneData((prev) => ({
         ...prev,
         textDescription: prevText,
@@ -156,13 +165,14 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
 
   const handleSceneGraphChange = async (updatedSceneGraph, update = true) => {
     if (!update) {
-      console.log("without");
+      console.log("Scene graph updated without text generation");
       setSceneData((prev) => ({
         ...prev,
         sceneGraph: updatedSceneGraph,
       }));
       return;
     }
+    
     setIsUpdating(true);
 
     try {
@@ -199,8 +209,13 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
 
   const [descriptionTimeout, setDescriptionTimeout] = useState(null);
   const handleDescriptionChangeWithDebounce = (newDescription) => {
+    // 즉시 UI 업데이트
     setSceneData((prev) => ({ ...prev, textDescription: newDescription }));
+    
+    // 이전 타이머 클리어
     if (descriptionTimeout) clearTimeout(descriptionTimeout);
+    
+    // 새 타이머 설정
     const timeoutId = setTimeout(() => {
       handleDescriptionChange(newDescription);
     }, 1000);
