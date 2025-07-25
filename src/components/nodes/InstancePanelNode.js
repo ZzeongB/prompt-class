@@ -4,8 +4,6 @@ import {
   generateSceneGraphToText,
   generateTextToGraph,
 } from "../../api/generateTextToGraph";
-import { transformTreeToSceneGraph } from "../../utils/tree/transformTreeToSceneGraph";
-import { transformSceneGraphToTree } from "../../utils/tree/transformSceneGraphToTree";
 import PanelTemplate from "../PanelTemplate";
 
 export default function InstancePanelNode({ id, data, onUpdate }) {
@@ -23,15 +21,10 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
       console.log("Using initialSceneData:", data.initialSceneData);
       return data.initialSceneData;
     }
-    
+
     return {
       instanceLabel: data?.label || "New Box",
       textDescription: "",
-      tree: {
-        id: "root",
-        data: { label: data?.label || "New Box", type: "object" },
-        children: [],
-      },
       sceneGraph: {},
     };
   });
@@ -58,7 +51,6 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
               ...node.data,
               label: sceneData.instanceLabel,
               textDescription: sceneData.textDescription,
-              tree: sceneData.tree,
               sceneGraph: sceneData.sceneGraph,
             },
           };
@@ -96,15 +88,10 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
       const sceneGraph = await generateTextToGraph({
         newTextDescription: description,
       });
-      const newTree = transformSceneGraphToTree(
-        sceneGraph,
-        sceneData.instanceLabel
-      );
       const instanceLabel = sceneGraph.objects?.[0]?.name || "New Box";
       setSceneData({
         instanceLabel,
         textDescription: description,
-        tree: newTree,
         sceneGraph,
       });
       onUpdate?.({
@@ -120,52 +107,10 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
     }
   };
 
-  const handleLabelChange = async (nodeId, newLabel) => {
-    const updateNodeLabel = (node, targetId, newLabel) => {
-      if (node.id === targetId) {
-        return { ...node, data: { ...node.data, label: newLabel } };
-      }
-      if (node.children) {
-        return {
-          ...node,
-          children: node.children.map((child) =>
-            updateNodeLabel(child, targetId, newLabel)
-          ),
-        };
-      }
-      return node;
-    };
-
-    const updatedTree = updateNodeLabel(sceneData.tree, nodeId, newLabel);
-    const updatedSceneGraph = transformTreeToSceneGraph(updatedTree);
-    const newDescription = await generateSceneGraphToText(
-      updatedSceneGraph,
-      sceneData.sceneGraph,
-      sceneData.textDescription
-    );
-
-    setIsUpdating(true);
-    setSceneData((prev) => ({
-      ...prev,
-      tree: updatedTree,
-      textDescription: newDescription,
-      sceneGraph: updatedSceneGraph,
-    }));
-    onUpdate?.({
-      label: sceneData.instanceLabel,
-      textDescription: newDescription,
-    });
-    setIsUpdating(false);
-  };
-
   const handleInstanceLabelChange = async (newLabel) => {
     setSceneData((prev) => ({
       ...prev,
       instanceLabel: newLabel,
-      tree: {
-        ...prev.tree,
-        data: { ...prev.tree.data, label: newLabel },
-      },
     }));
     onUpdate?.({ label: newLabel });
   };
@@ -186,12 +131,10 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         previousSceneGraph: prevGraph,
         previousTextDescription: prevText,
       });
-      const newTree = transformSceneGraphToTree(sceneGraph, currLabel);
       const instanceLabel = sceneGraph.objects?.[0]?.name || currLabel;
 
       setSceneData((prev) => ({
         ...prev,
-        tree: newTree,
         sceneGraph: sceneGraph,
         instanceLabel: instanceLabel,
         textDescription: newDescription,
@@ -201,12 +144,54 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         textDescription: newDescription,
       });
     } catch (error) {
-      console.error("Failed to update tree:", error);
       setSceneData((prev) => ({
         ...prev,
         textDescription: prevText,
       }));
       alert("Failed to update the scene. Please try again.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSceneGraphChange = async (updatedSceneGraph, update = true) => {
+    if (!update) {
+      console.log("without");
+      setSceneData((prev) => ({
+        ...prev,
+        sceneGraph: updatedSceneGraph,
+      }));
+      return;
+    }
+    setIsUpdating(true);
+
+    try {
+      const newText = await generateSceneGraphToText({
+        newSceneGraph: updatedSceneGraph,
+        previousSceneGraph: sceneData.sceneGraph,
+        previousTextDescription: sceneData.textDescription,
+      });
+      const newLabel =
+        updatedSceneGraph.objects?.[0]?.name || sceneData.instanceLabel;
+
+      setSceneData((prev) => ({
+        ...prev,
+        sceneGraph: updatedSceneGraph,
+        textDescription: newText,
+        instanceLabel: newLabel,
+      }));
+
+      onUpdate?.({
+        label: newLabel,
+        textDescription: newText,
+      });
+    } catch (error) {
+      console.error(
+        "Failed to update from sceneGraph:",
+        updatedSceneGraph,
+        error
+      );
+      alert("Scene update failed. Try again.");
     } finally {
       setIsUpdating(false);
     }
@@ -237,11 +222,10 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
       isExpanded={isExpanded}
       setIsExpanded={setIsExpanded}
       sceneData={sceneData}
-      setSceneData={setSceneData}
       isUpdating={isUpdating}
       onInstanceLabelChange={handleInstanceLabelChange}
       onDescriptionChangeDebounced={handleDescriptionChangeWithDebounce}
-      onLabelChange={handleLabelChange}
+      onSceneGraphChange={handleSceneGraphChange}
       onDelete={handleDelete}
       modal={modal}
       setModal={setModal}

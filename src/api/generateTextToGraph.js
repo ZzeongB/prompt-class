@@ -5,19 +5,24 @@ const parseJSONResponse = (content, fallback = null) => {
   try {
     // 코드 블록 제거
     let cleanContent = content;
-    if (cleanContent.includes('```')) {
-      cleanContent = cleanContent.replace(/```(?:json)?\n?/g, "").replace(/```$/g, "").trim();
+    if (cleanContent.includes("```")) {
+      cleanContent = cleanContent
+        .replace(/```(?:json)?\n?/g, "")
+        .replace(/```$/g, "")
+        .trim();
     }
 
     const parsed = JSON.parse(cleanContent);
-    
+
     // 기본 구조 검증
     if (!parsed.objects || !Array.isArray(parsed.objects)) {
       throw new Error("Invalid scene graph structure: missing objects array");
     }
-    
+
     if (!parsed.relationships || !Array.isArray(parsed.relationships)) {
-      throw new Error("Invalid scene graph structure: missing relationships array");
+      throw new Error(
+        "Invalid scene graph structure: missing relationships array"
+      );
     }
 
     // root 검증
@@ -30,12 +35,12 @@ const parseJSONResponse = (content, fallback = null) => {
   } catch (error) {
     console.error("JSON parsing error:", error.message);
     console.error("Raw content:", content);
-    
+
     if (fallback) {
       console.warn("Using fallback scene graph");
       return fallback;
     }
-    
+
     throw new Error(`Failed to parse scene graph: ${error.message}`);
   }
 };
@@ -45,14 +50,16 @@ export const generateTextToGraph = async ({
   previousSceneGraph = null,
   previousTextDescription = null,
 }) => {
-  if (!newTextDescription || typeof newTextDescription !== 'string') {
+  if (!newTextDescription || typeof newTextDescription !== "string") {
     throw new Error("Valid text description is required");
   }
 
   const hasPrevious = previousSceneGraph && previousTextDescription;
 
   const basePrompt = `
-Given a new text prompt${hasPrevious ? " and the previous Scene Graph + its description" : ""}, generate an updated Scene Graph in strict JSON format.
+Given a new text prompt${
+    hasPrevious ? " and the previous Scene Graph + its description" : ""
+  }, generate an updated Scene Graph in strict JSON format.
 
 Include:
 1. objects (each with id, name, attributes[])
@@ -107,15 +114,18 @@ New description: "${newTextDescription}"
 Respond with JSON only:`;
 
   try {
-    const content = await callOpenAI([{ role: "user", content: fullPrompt }], 1024);
-    
+    const content = await callOpenAI(
+      [{ role: "user", content: fullPrompt }],
+      1024
+    );
+
     // fallback 생성
     const fallback = {
       objects: [{ id: "object1", name: "scene", attributes: [] }],
       relationships: [],
-      root: "object1"
+      root: "object1",
     };
-    
+
     return parseJSONResponse(content, fallback);
   } catch (error) {
     console.error("generateTextToGraph Error:", error);
@@ -123,11 +133,12 @@ Respond with JSON only:`;
   }
 };
 
-export const generateSceneGraphToText = async (
+export const generateSceneGraphToText = async ({
   newSceneGraph,
   previousSceneGraph = null,
-  previousTextDescription = null
-) => {
+  previousTextDescription = null,
+}) => {
+  console.log(newSceneGraph, previousSceneGraph);
   if (!newSceneGraph || !newSceneGraph.objects) {
     throw new Error("Valid scene graph is required");
   }
@@ -136,20 +147,28 @@ export const generateSceneGraphToText = async (
 
   const systemPrompt = `
 You are given:
-1. ${hasPrevious ? "A previous Scene Graph and its description" : "A Scene Graph"}
+1. ${
+    hasPrevious ? "A previous Scene Graph and its description" : "A Scene Graph"
+  }
 2. ${hasPrevious ? "A new Scene Graph after edits" : ""}
 
 Task:
-- Generate a ${hasPrevious ? "revised" : "natural language"} description of the scene
+- Generate a ${
+    hasPrevious ? "revised" : "natural language"
+  } description of the scene
 ${hasPrevious ? "- Reuse the previous description as much as possible" : ""}
 ${hasPrevious ? "- Only modify parts that changed in the new Scene Graph" : ""}
 - Keep it short and natural, describing the main object, its attributes, and relationships
 - Use simple, clear language
 
-${hasPrevious ? `Previous description: "${previousTextDescription}"
+${
+  hasPrevious
+    ? `Previous description: "${previousTextDescription}"
 
 Previous Scene Graph:
-${JSON.stringify(previousSceneGraph, null, 2)}` : ""}
+${JSON.stringify(previousSceneGraph, null, 2)}`
+    : ""
+}
 
 ${hasPrevious ? "New" : ""} Scene Graph:
 ${JSON.stringify(newSceneGraph, null, 2)}
@@ -157,7 +176,10 @@ ${JSON.stringify(newSceneGraph, null, 2)}
 Generate a natural description:`;
 
   try {
-    const content = await callOpenAI([{ role: "user", content: systemPrompt }], 512);
+    const content = await callOpenAI(
+      [{ role: "user", content: systemPrompt }],
+      512
+    );
     return content.trim();
   } catch (error) {
     console.error("generateSceneGraphToText Error:", error);
@@ -166,7 +188,7 @@ Generate a natural description:`;
 };
 
 export const generateInstanceLabelFromDescription = async (textDescription) => {
-  if (!textDescription || typeof textDescription !== 'string') {
+  if (!textDescription || typeof textDescription !== "string") {
     throw new Error("Valid text description is required");
   }
 
@@ -183,12 +205,15 @@ Description: "${textDescription}"
 Main object:`;
 
   try {
-    const content = await callOpenAI([{ role: "user", content: systemPrompt }], 50);
-    return content.trim().replace(/['"]/g, ''); // 따옴표 제거
+    const content = await callOpenAI(
+      [{ role: "user", content: systemPrompt }],
+      50
+    );
+    return content.trim().replace(/['"]/g, ""); // 따옴표 제거
   } catch (error) {
     console.error("generateInstanceLabelFromDescription Error:", error);
     // fallback으로 description의 첫 번째 단어 사용
-    const firstWord = textDescription.split(' ')[0];
+    const firstWord = textDescription.split(" ")[0];
     return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
   }
 };
