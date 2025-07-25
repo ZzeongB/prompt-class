@@ -1,9 +1,9 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useClassContext } from '../context/ClassContext';
 import PanelTemplate from '../components/PanelTemplate';
 import HoverButton from '../components/nodeComponents/HoverButton';
+import { CreateInstanceModal } from '../components/CreateInstanceModal';
 
 // 클래스용 NodeToolbar
 const ClassNodeToolbar = ({ isVisible, onCreateInstance, onDelete, style = {} }) => {
@@ -73,17 +73,44 @@ const ClassCard = ({ classData, onCreateInstance, onDelete }) => {
         showToolbar={true}
         // 클래스 전용 스타일링
         isClassMode={true}
+        // 클래스 전용 툴바 추가
+        customToolbar={
+          <ClassNodeToolbar
+            isVisible={true}
+            onCreateInstance={() => onCreateInstance(classData)}
+            onDelete={() => onDelete(classData.id)}
+          />
+        }
       />
     </div>
   );
 };
 
 export const ClassTreeBoard = ({ onAddInstance }) => {
-  const { classes, deleteClass, createInstanceFromClass } = useClassContext();
+  const { classes, deleteClass } = useClassContext();
+  
+  // 모달 상태 관리
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleCreateInstance = (classData) => {
-    const newInstance = createInstanceFromClass(classData);
-    onAddInstance(newInstance);
+    setSelectedClass(classData);
+    setIsModalOpen(true);
+  };
+
+  const handleInstanceCreated = (newInstance) => {
+    console.log('새 인스턴스가 생성되었습니다:', newInstance);
+    // 생성된 인스턴스를 부모 컴포넌트에 전달
+    onAddInstance?.(newInstance);
+    
+    // 모달 닫기
+    setIsModalOpen(false);
+    setSelectedClass(null);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedClass(null);
   };
 
   const handleDeleteClass = (classId) => {
@@ -93,108 +120,86 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
   };
 
   return (
-    <div style={{
-      // width: '320px',
-      height: '100vh',
-      backgroundColor: '#f8fafc',
-      borderLeft: '1px solid #e2e8f0',
-      padding: '16px',
-      overflow: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      {/* 헤더 */}
+    <>
       <div style={{
-        fontSize: '18px',
-        fontWeight: '700',
-        color: '#1e293b',
-        marginBottom: '20px',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        paddingBottom: '12px',
-        borderBottom: '2px solid #e2e8f0',
+        // width: '320px',
+        height: '100vh',
+        backgroundColor: '#f8fafc',
+        borderLeft: '1px solid #e2e8f0',
+        padding: '16px',
+        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
-        Class Library
-      </div>
-
-      {/* 클래스 목록 */}
-      <div style={{ flex: 1 }}>
-        {classes.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            color: '#64748b',
-            fontSize: '12px',
-            padding: '40px 20px',
-            fontStyle: 'italic',
-            backgroundColor: '#ffffff',
-            borderRadius: '8px',
-            border: '1px dashed #cbd5e1',
-          }}>
-            No classes yet.<br/>
-            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-              Create a class from an instance using the toolbar!
-            </span>
-          </div>
-        ) : (
-          classes.map(classData => (
-            <ClassCard
-              key={classData.id}
-              classData={classData}
-              onCreateInstance={handleCreateInstance}
-              onDelete={handleDeleteClass}
-            />
-          ))
-        )}
-      </div>
-
-      {/* 하단 정보 */}
-      <div style={{
-        marginTop: '16px',
-        padding: '12px',
-        backgroundColor: '#ffffff',
-        borderRadius: '6px',
-        border: '1px solid #e5e7eb',
-      }}>
+        {/* 헤더 */}
         <div style={{
-          fontSize: '10px',
-          color: '#6b7280',
-          textAlign: 'center',
-          lineHeight: '1.4',
+          fontSize: '18px',
+          fontWeight: '700',
+          color: '#1e293b',
+          marginBottom: '20px',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+          paddingBottom: '12px',
+          borderBottom: '2px solid #e2e8f0',
         }}>
-          {classes.length} class{classes.length !== 1 ? 'es' : ''} available
+          Class Library
+        </div>
+
+        {/* 클래스 목록 */}
+        <div style={{ flex: 1 }}>
+          {classes.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              color: '#64748b',
+              fontSize: '12px',
+              padding: '40px 20px',
+              fontStyle: 'italic',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              border: '1px dashed #cbd5e1',
+            }}>
+              No classes yet.<br/>
+              <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                Create a class from an instance using the toolbar!
+              </span>
+            </div>
+          ) : (
+            classes.map(classData => (
+              <ClassCard
+                key={classData.id}
+                classData={classData}
+                onCreateInstance={handleCreateInstance}
+                onDelete={handleDeleteClass}
+              />
+            ))
+          )}
+        </div>
+
+        {/* 하단 정보 */}
+        <div style={{
+          marginTop: '16px',
+          padding: '12px',
+          backgroundColor: '#ffffff',
+          borderRadius: '6px',
+          border: '1px solid #e5e7eb',
+        }}>
+          <div style={{
+            fontSize: '10px',
+            color: '#6b7280',
+            textAlign: 'center',
+            lineHeight: '1.4',
+          }}>
+            {classes.length} class{classes.length !== 1 ? 'es' : ''} available
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* CreateInstanceModal */}
+      <CreateInstanceModal
+        classData={selectedClass}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onCreateInstance={handleInstanceCreated}
+      />
+    </>
   );
-};
-
-
-export const useInstanceActions = () => {
-  const { createClass, duplicateInstance } = useClassContext();
-
-  const handleCreateClass = (instanceData, onSuccess) => {
-    try {
-      const newClass = createClass(instanceData);
-      onSuccess?.(`Class "${newClass.name}" created successfully!`);
-      return newClass;
-    } catch (error) {
-      console.error('Failed to create class:', error);
-      alert('Failed to create class. Please try again.');
-    }
-  };
-
-  const handleDuplicateInstance = (instanceData, onAddInstance) => {
-    try {
-      const duplicatedInstance = duplicateInstance(instanceData);
-      onAddInstance(duplicatedInstance);
-      return duplicatedInstance;
-    } catch (error) {
-      console.error('Failed to duplicate instance:', error);
-      alert('Failed to duplicate instance. Please try again.');
-    }
-  };
-
-  return {
-    handleCreateClass,
-    handleDuplicateInstance,
-  };
 };

@@ -9,7 +9,6 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
-// import LayoutTreeNode from "../components/nodes/LayoutTreeNode";
 import InstancePanelNode from "../components/nodes/InstancePanelNode";
 import ResizableNode from "../components/nodes/ResizableNode";
 import { useClassGraph } from "../context/ClassGraphContext";
@@ -49,17 +48,14 @@ const baseGhostStyle = {
 const ghostNodeStyles = {
   "instance-group": {
     ...baseGhostStyle,
-    borderColor: OBJ_COLOR, // 예: object용 붉은 계열
+    borderColor: OBJ_COLOR,
   },
-  // "instance-group": {
-  //   ...baseGhostStyle,
-  //   borderColor: OBJ_COLOR_TRANS, // 기존 색상 유지
-  // },
 };
 
 const edgeTypes = {
   main: DefaultEdge,
 };
+
 const nodeTypes = {
   class: InstancePanelNode,
   instance: InstancePanelNode,
@@ -67,21 +63,135 @@ const nodeTypes = {
   "instance-group": InstancePanelNode,
 };
 
-function LayoutBoard({ onImageGenerated }) {
+// 트리에서 텍스트 설명 생성
+const generateTextDescriptionFromTree = (tree) => {
+  if (!tree || !tree.data) return "New instance";
+  
+  const extractLabels = (node) => {
+    const labels = [];
+    if (node.data?.label) {
+      labels.push(node.data.label);
+    }
+    if (node.children) {
+      node.children.forEach(child => {
+        labels.push(...extractLabels(child));
+      });
+    }
+    return labels;
+  };
+  
+  const labels = extractLabels(tree);
+  return labels.join(" ");
+};
+
+// 트리에서 간단한 scene graph 생성
+const generateSceneGraphFromTree = (tree) => {
+  if (!tree) return { objects: [], relationships: [], root: "object1" };
+  
+  return {
+    objects: [{ id: "object1", name: tree.data?.label || "object", attributes: [] }],
+    relationships: [],
+    root: "object1"
+  };
+};
+
+function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
-  // const { setInstanceNodes } = useInstanceGraph();
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
   const [progress, setProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isSelectingRegion, setIsSelectingRegion] = useState(false);
-  const [ghostNode, setGhostNode] = useState(null); // ghostNode for Node Addition
+  const [ghostNode, setGhostNode] = useState(null);
   const [showImageOnly, setShowImageOnly] = useState(false);
 
   const { image, setImage } = useImage();
+
+  // 새 인스턴스가 추가될 때 처리
+  useEffect(() => {
+    if (newInstanceToAdd) {
+      addInstanceToBoard(newInstanceToAdd);
+      onInstanceAdded?.();
+    }
+  }, [newInstanceToAdd, onInstanceAdded]);
+
+  const addInstanceToBoard = (instanceData) => {
+    // 현재 resizable이 아닌 노드 개수 확인
+    const nonResizableCount = nodes.filter(n => n.type !== "resizable").length;
+    if (nonResizableCount >= 10) {
+      alert("최대 10개의 노드까지만 생성할 수 있습니다.");
+      return;
+    }
+
+    // 새 노드들이 겹치지 않는 위치 찾기
+    const findEmptyPosition = () => {
+      const gridSize = 80;
+      const maxCols = Math.floor(512 / gridSize);
+      
+      for (let row = 0; row < 10; row++) {
+        for (let col = 0; col < maxCols; col++) {
+          const x = col * gridSize + 20;
+          const y = row * gridSize + 20;
+          
+          const hasConflict = nodes.some(node => {
+            const distance = Math.sqrt(
+              Math.pow(node.position.x - x, 2) + Math.pow(node.position.y - y, 2)
+            );
+            return distance < 60;
+          });
+          
+          if (!hasConflict) {
+            return { x, y };
+          }
+        }
+      }
+      
+      return {
+        x: Math.random() * 400 + 50,
+        y: Math.random() * 400 + 50
+      };
+    };
+
+    const position = findEmptyPosition();
+    const uniqueId = uuidv4();
+    const sharedId = `instance-${uniqueId}`;
+
+    const objNode = {
+      id: sharedId,
+      type: "instance-group",
+      position,
+      data: {
+        baseline: false,
+        label: instanceData.instanceLabel || "New Instance",
+        type: "object",
+        sharedId,
+        classId: instanceData.isFromClass ? instanceData.createdFrom : "__baseline__",
+        instanceId: sharedId,
+        justCreated: false,
+        initialSceneData: {
+          instanceLabel: instanceData.instanceLabel || "New Instance",
+          textDescription: generateTextDescriptionFromTree(instanceData.tree),
+          tree: instanceData.tree,
+          sceneGraph: generateSceneGraphFromTree(instanceData.tree),
+        },
+      },
+      updatedAt: new Date().toISOString(),
+      style: { height: 20 },
+    };
+
+    const resizableNode = {
+      id: `${sharedId}-resizable`,
+      type: "resizable",
+      position: { x: position.x, y: position.y },
+      data: objNode.data,
+      style: { height: 50, width: 50 },
+    };
+
+    setNodes(prevNodes => [...prevNodes, resizableNode, objNode]);
+  };
 
   useEffect(() => {
     if (!isGenerating) {
@@ -96,7 +206,7 @@ function LayoutBoard({ onImageGenerated }) {
 
       if (data.progress >= 100) {
         clearInterval(interval);
-        setIsGenerating(false); // ✅ 100% 완료 시 자동 종료
+        setIsGenerating(false);
       }
     }, 1000);
 
@@ -126,7 +236,6 @@ function LayoutBoard({ onImageGenerated }) {
           edges,
         })
       );
-
       onNodesChange(changes);
     },
     [onNodesChange, edges, setNodes]
@@ -135,13 +244,12 @@ function LayoutBoard({ onImageGenerated }) {
   const handleMouseMove = useCallback(
     (e) => {
       if (!ghostNode) return;
-
       setGhostNode((prev) => ({
         ...prev,
         position: { x: e.clientX - LEFT_OFFSET, y: e.clientY - TOP_OFFSET },
       }));
     },
-    [ghostNode, screenToFlowPosition]
+    [ghostNode]
   );
 
   const handleGhostClick = async (e) => {
@@ -149,10 +257,7 @@ function LayoutBoard({ onImageGenerated }) {
     e.preventDefault();
     e.stopPropagation();
 
-    // 현재 resizable이 아닌 노드 개수 확인
-    const nonResizableCount = nodes.filter(
-      (n) => n.type !== "resizable"
-    ).length;
+    const nonResizableCount = nodes.filter(n => n.type !== "resizable").length;
     if (nonResizableCount >= 10) {
       alert("최대 10개의 노드까지만 생성할 수 있습니다.");
       setGhostNode(null);
@@ -162,7 +267,6 @@ function LayoutBoard({ onImageGenerated }) {
     const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     const uniqueId = uuidv4();
     const sharedId = `instance-${uniqueId}`;
-    const updatedAt = new Date().toISOString();
 
     const objNode = {
       id: sharedId,
@@ -176,10 +280,8 @@ function LayoutBoard({ onImageGenerated }) {
         classId: "__baseline__",
         instanceId: sharedId,
         justCreated: true,
-        initialDescription: "initialDescription",
-        sceneGraph: "sceneGraph",
       },
-      updatedAt,
+      updatedAt: new Date().toISOString(),
       style: { height: 20 },
     };
 
@@ -191,17 +293,7 @@ function LayoutBoard({ onImageGenerated }) {
       style: { height: 50, width: 50 },
     };
 
-    const newNodes = [resizableNode, objNode];
-
-    logEvent("baselineboard.node.add.instance", {
-      classId: sharedId,
-      instanceLabel: "instanceLabel",
-      initialDescription: "initialDescription",
-      createdNodeIds: newNodes.map((n) => n.id),
-    });
-
-    setNodes((prevNodes) => [...prevNodes, ...newNodes]);
-    // setInstanceNodes((prevNodes) => [...prevNodes, ...newNodes]);
+    setNodes((prevNodes) => [...prevNodes, resizableNode, objNode]);
     setGhostNode(null);
   };
 
@@ -211,18 +303,6 @@ function LayoutBoard({ onImageGenerated }) {
     setErrorMessage();
 
     const startTime = performance.now();
-
-    // ✅ 입력 정보 저장
-    const inputSnapshot = {
-      nodes,
-      edges,
-    };
-
-    logEvent("baselineboard.imagegen.started", {
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-      inputs: inputSnapshot,
-    });
 
     setTimeout(async () => {
       const sentences = nodes
@@ -240,43 +320,22 @@ function LayoutBoard({ onImageGenerated }) {
           );
         });
 
-      logEvent("baselineboard.imagegen.extracted", {
-        sentences: sentences,
-        boxes: boxes,
-      });
-
       try {
         const response = await generateImageFromInstanceData(
           sentences,
           boxes,
-          globalCaption // global caption placeholder
+          globalCaption
         );
-
-        const durationMs = performance.now() - startTime;
-
-        logEvent("baselineboard.imagegen.succeeded", {
-          durationMs,
-          image_size: response.image.length,
-          global_caption: response.globalCaption,
-          refined_caption: response.refinedCaptions,
-        });
 
         onImageGenerated(response.image);
         setImage(response.image);
         setImageBoard(response.image);
         setGlobalCaption(response.globalCaption || "");
       } catch (err) {
-        const durationMs = performance.now() - startTime;
         const message =
           err?.response?.data?.message ||
           err?.message ||
           "알 수 없는 오류가 발생했습니다.";
-
-        logEvent("baselineboard.imagegen.failed", {
-          durationMs,
-          errorMessage: message,
-        });
-
         console.error("Image generation failed", err);
         setErrorMessage(message);
       } finally {
@@ -310,7 +369,7 @@ function LayoutBoard({ onImageGenerated }) {
         <CustomButton
           color={isSelectingRegion ? "neutral" : "grey"}
           size="sm"
-          onClick={(e) => handleAddNewNode(e)}
+          onClick={handleAddNewNode}
         >
           <span
             style={{
@@ -364,6 +423,7 @@ function LayoutBoard({ onImageGenerated }) {
           </CustomButton>
         </div>
       </div>
+
       {ghostNode && (
         <div
           style={{
@@ -387,7 +447,7 @@ function LayoutBoard({ onImageGenerated }) {
           defaultEdgeOptions={defaultEdgeOptions}
           panOnDrag={false}
           panOnScroll={false}
-          selectNodesOnDrag={false} // ✅ 선택 드래그 방지
+          selectNodesOnDrag={false}
           zoomOnScroll={false}
           zoomOnDoubleClick={false}
           zoomOnPinch={false}
@@ -405,11 +465,12 @@ function LayoutBoard({ onImageGenerated }) {
           nodeExtent={[
             [0, 0],
             [512, 512],
-          ]} // 노드 배치 가능한 범위 제한
+          ]}
           proOptions={{ hideAttribution: true }}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         />
       )}
+
       {showImageOnly && imageBoard && (
         <div
           style={{
@@ -429,7 +490,7 @@ function LayoutBoard({ onImageGenerated }) {
               width: "100%",
               height: "100%",
               zIndex: 0,
-              objectFit: "contain", // ✅ 비율 유지 + 잘리지 않음 (빈 여백 생길 수 있음)
+              objectFit: "contain",
             }}
           />
         </div>
@@ -438,10 +499,14 @@ function LayoutBoard({ onImageGenerated }) {
   );
 }
 
-function LayoutBoardWithProvider({ onImageGenerated }) {
+function LayoutBoardWithProvider({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
   return (
     <ReactFlowProvider debounce={200}>
-      <LayoutBoard onImageGenerated={onImageGenerated} />
+      <LayoutBoard 
+        onImageGenerated={onImageGenerated} 
+        newInstanceToAdd={newInstanceToAdd}
+        onInstanceAdded={onInstanceAdded}
+      />
     </ReactFlowProvider>
   );
 }

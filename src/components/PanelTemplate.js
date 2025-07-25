@@ -4,7 +4,7 @@ import TreeNode from "./TreeNode";
 import PromptModal from "./PromptModal";
 import NodeToolbarMenu from "./nodeComponents/NodeToolbarMenu";
 import { WHITE } from "../utils/constants";
-import { useInstanceActions } from "../Board/ClassTreeBoard";
+import { useInstanceActions } from "../utils/actions/useInstanceActions";
 
 export default function PanelTemplate({
   id,
@@ -21,6 +21,7 @@ export default function PanelTemplate({
   modal,
   setModal,
   isClassMode = false,
+  customToolbar = null, // 추가된 prop
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
@@ -140,12 +141,14 @@ export default function PanelTemplate({
               padding: "2px 4px",
               borderRadius: "4px",
               transition: "all 0.15s ease",
-              cursor: "text",
+              cursor: isClassMode ? "default" : "text", // 클래스 모드에서는 편집 불가
               backgroundColor: "transparent",
             }}
-            onDoubleClick={handleInstanceLabelEdit}
+            onDoubleClick={!isClassMode ? handleInstanceLabelEdit : undefined} // 클래스 모드에서는 편집 불가
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#f3f4f6";
+              if (!isClassMode) {
+                e.target.style.backgroundColor = "#f3f4f6";
+              }
             }}
             onMouseLeave={(e) => {
               e.target.style.backgroundColor = "transparent";
@@ -216,8 +219,8 @@ export default function PanelTemplate({
         )}
       </div>
 
-      {/* 확장된 콘텐츠 */}
-      {isExpanded && (
+      {/* 확장된 콘텐츠 (클래스 모드에서는 항상 표시) */}
+      {(isExpanded || isClassMode) && (
         <div style={{ marginTop: "0px" }}>
           {/* Text Description Section */}
           {isEditingDescription ? (
@@ -302,6 +305,7 @@ export default function PanelTemplate({
             node={sceneData.tree}
             onLabelChange={onLabelChange}
             depth={0}
+            isBaseline={isClassMode} // 클래스 모드에서는 트리 편집 불가
           />
         </div>
       )}
@@ -317,8 +321,10 @@ export default function PanelTemplate({
         />
       )}
 
-      {/* 툴바 */}
-      {!isClassMode && isExpanded && (
+      {/* 툴바 - 클래스 모드에서는 customToolbar 사용, 아니면 기본 툴바 */}
+      {isClassMode && customToolbar ? (
+        customToolbar
+      ) : !isClassMode && isExpanded ? (
         <NodeToolbarMenu
           isVisible={isExpanded}
           onDelete={onDelete}
@@ -327,7 +333,7 @@ export default function PanelTemplate({
           }}
           onDuplicate={() => handleCreateClass(sceneData, (msg) => alert(msg))}
         />
-      )}
+      ) : null}
 
       {/* CSS 애니메이션 */}
       <style jsx>{`

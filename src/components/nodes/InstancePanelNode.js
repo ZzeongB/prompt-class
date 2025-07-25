@@ -17,15 +17,23 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   );
   const [modal, setModal] = useState(null);
 
-  const [sceneData, setSceneData] = useState({
-    instanceLabel: data?.label || "New Box",
-    textDescription: "",
-    tree: {
-      id: "root",
-      data: { label: data?.label || "New Box", type: "object" },
-      children: [],
-    },
-    sceneGraph: {},
+  // initialSceneData가 있으면 사용, 없으면 기본값 사용
+  const [sceneData, setSceneData] = useState(() => {
+    if (data?.initialSceneData) {
+      console.log("Using initialSceneData:", data.initialSceneData);
+      return data.initialSceneData;
+    }
+    
+    return {
+      instanceLabel: data?.label || "New Box",
+      textDescription: "",
+      tree: {
+        id: "root",
+        data: { label: data?.label || "New Box", type: "object" },
+        children: [],
+      },
+      sceneGraph: {},
+    };
   });
 
   const hasPromptedRef = useRef(false);

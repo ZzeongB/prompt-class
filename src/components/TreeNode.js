@@ -8,7 +8,7 @@ import {
   REL_COLOR_TRANS_DARK,
 } from "../utils/constants";
 
-// TreeNode 컴포넌트 (모던 버전)
+// TreeNode 컴포넌트 (플레이스홀더 지원 버전)
 export default function TreeNode({
   node,
   depth = 0,
@@ -46,9 +46,11 @@ export default function TreeNode({
   const LINE_WIDTH = 1;
 
   const type = node.data?.type ?? node.type;
+  const isPlaceholder = node.data?.isPlaceholder || false;
+  const defaultValue = node.data?.defaultValue;
 
-  // 타입별 스타일 정의
-  const getTypeStyle = (nodeType) => {
+  // 타입별 스타일 정의 (플레이스홀더 지원)
+  const getTypeStyle = (nodeType, isPlaceholder) => {
     const baseStyle = {
       borderRadius: "4px",
       padding: "2px 6px",
@@ -68,11 +70,49 @@ export default function TreeNode({
       cursor: isBaseline ? "default" : "text",
       fontFamily: "system-ui, -apple-system, sans-serif",
       fontWeight: "500",
-      border: "1px solid transparent",
       position: "relative",
-      zIndex: 100, // 연결선보다 위에!
+      zIndex: 100,
     };
 
+    if (isPlaceholder) {
+      // 플레이스홀더는 투명 배경에 점선 테두리
+      switch (nodeType) {
+        case "object":
+          return {
+            ...baseStyle,
+            backgroundColor: "transparent",
+            color: "#7f1d1d",
+            border: "2px dashed #fca5a5",
+            fontStyle: "italic",
+          };
+        case "attribute":
+          return {
+            ...baseStyle,
+            backgroundColor: "transparent",
+            color: "#1e40af",
+            border: "2px dashed #93c5fd",
+            fontStyle: "italic",
+          };
+        case "relationship":
+          return {
+            ...baseStyle,
+            backgroundColor: "transparent",
+            color: "#15803d",
+            border: "2px dashed #86efac",
+            fontStyle: "italic",
+          };
+        default:
+          return {
+            ...baseStyle,
+            backgroundColor: "transparent",
+            color: "#6b7280",
+            border: "2px dashed #d1d5db",
+            fontStyle: "italic",
+          };
+      }
+    }
+
+    // 일반 노드 스타일
     switch (nodeType) {
       case "object":
         return {
@@ -105,7 +145,10 @@ export default function TreeNode({
     }
   };
 
-  const boxStyle = getTypeStyle(type);
+  const boxStyle = getTypeStyle(type, isPlaceholder);
+
+  // 표시할 텍스트 결정
+  const displayText = isPlaceholder && defaultValue ? `${label} : ${defaultValue}` : label;
 
   return (
     <div style={{ position: "relative", marginTop: 3, marginLeft: depth === 0 ? 0 : INDENT }}>
@@ -114,6 +157,7 @@ export default function TreeNode({
         onDoubleClick={handleLabelEdit}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        title={isPlaceholder ? `Placeholder for: ${defaultValue}` : undefined}
       >
         {isEditing ? (
           <input
@@ -146,7 +190,12 @@ export default function TreeNode({
             }}
           />
         ) : (
-          label
+          <span style={{ 
+            fontSize: isPlaceholder ? "9px" : "10px",
+            opacity: isPlaceholder ? 0.8 : 1 
+          }}>
+            {displayText}
+          </span>
         )}
       </div>
 
