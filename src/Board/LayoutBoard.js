@@ -30,11 +30,11 @@ import {
 import { v4 as uuidv4 } from "uuid";
 
 const baseGhostStyle = {
-  padding: 4,
-  border: "2px solid",
-  borderRadius: 3,
-  backgroundColor: BACKGROUND_COLOR,
-  opacity: 0.6,
+  padding: "8px 12px",
+  border: "1px solid #d1d5db",
+  borderRadius: "6px",
+  backgroundColor: "#ffffff",
+  opacity: 0.9,
   pointerEvents: "none",
   userSelect: "none",
   position: "absolute",
@@ -42,13 +42,18 @@ const baseGhostStyle = {
   alignItems: "center",
   justifyContent: "center",
   zIndex: 999,
-  fontSize: "8px",
+  fontSize: "12px",
+  fontWeight: "500",
+  color: "#374151",
+  fontFamily: "system-ui, -apple-system, sans-serif",
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+  minWidth: "60px",
+  minHeight: "24px",
 };
 
 const ghostNodeStyles = {
   "instance-group": {
     ...baseGhostStyle,
-    borderColor: OBJ_COLOR,
   },
 };
 
@@ -218,7 +223,7 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
       id: `ghost-${Date.now()}`,
       type: "instance-group",
       data: {
-        label: "",
+        label: "New Box",
         expandedHeight: 70,
         type: "object",
         justCreated: true,
@@ -246,7 +251,7 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
       if (!ghostNode) return;
       setGhostNode((prev) => ({
         ...prev,
-        position: { x: e.clientX - LEFT_OFFSET, y: e.clientY - TOP_OFFSET },
+        position: { x: e.clientX - LEFT_OFFSET - 30, y: e.clientY - TOP_OFFSET - 12 },
       }));
     },
     [ghostNode]
