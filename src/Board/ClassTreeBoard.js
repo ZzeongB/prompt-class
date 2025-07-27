@@ -5,146 +5,6 @@ import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
 import { CreateInstanceModal } from "../components/modal/CreateInstanceModal";
 import SceneGraphVisualizer from "../components/SceneGraphVisualizer";
 
-const ClassCardToolbar = ({
-  isVisible,
-  onCreateInstance,
-  onDelete,
-  onEdit,
-  onResetInstances,
-  isEditing,
-  onSaveEdit,
-  onCancelEdit,
-}) => {
-  if (!isVisible) return null;
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: "4px",
-        alignItems: "center",
-        // position: "absolute",
-        // top: "-30px",
-        right: "0px",
-        zIndex: 1000, // z-index 증가
-        backgroundColor: "rgba(255, 255, 255, 0.9)", // 배경 추가
-        padding: "4px",
-        borderRadius: "6px",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)", // 그림자 추가
-      }}
-    >
-      {isEditing ? (
-        <>
-          <ToolbarButton
-            onClick={onSaveEdit}
-            title="Save Changes"
-            icon={<Check size={12} />}
-            style={{
-              backgroundColor: "#10b981",
-              color: "white",
-              width: "24px",
-              height: "24px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "12px",
-            }}
-          />
-
-          <ToolbarButton
-            onClick={onCancelEdit}
-            title="Cancel Edit"
-            icon={<X size={12} />}
-            style={{
-              backgroundColor: "#6b7280",
-              color: "white",
-              width: "24px",
-              height: "24px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "12px",
-            }}
-          />
-        </>
-      ) : (
-        <>
-          <ToolbarButton
-            onClick={onCreateInstance}
-            title="Create Instance"
-            icon={<Plus size={12} />}
-            style={{
-              backgroundColor: "#3b82f6",
-              color: "white",
-              width: "24px",
-              height: "24px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "12px",
-            }}
-          />
-
-          <ToolbarButton
-            onClick={onEdit}
-            title="Edit Class"
-            icon={<Edit size={12} />}
-            style={{
-              backgroundColor: "#10b981",
-              color: "white",
-              width: "24px",
-              height: "24px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "12px",
-            }}
-          />
-
-          <ToolbarButton
-            onClick={onResetInstances}
-            title="Reset All Instances"
-            icon={<RotateCcw size={12} />}
-            style={{
-              backgroundColor: "#f59e0b",
-              color: "white",
-              width: "24px",
-              height: "24px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "12px",
-            }}
-          />
-
-          <ToolbarButton
-            onClick={onDelete}
-            title="Delete Class"
-            icon={<Trash2 size={12} />}
-            style={{
-              backgroundColor: "#ef4444",
-              color: "white",
-              width: "24px",
-              height: "24px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "12px",
-            }}
-            danger
-          />
-        </>
-      )}
-    </div>
-  );
-};
-
 const ClassCard = ({
   classData,
   onCreateInstance,
@@ -249,7 +109,7 @@ const ClassCard = ({
       <div
         style={{
           padding: "8px 12px",
-          backgroundColor: isEditing ? "#eff6ff" : "#f1f5f9",
+          backgroundColor: isEditing ? "#eff6ff" : "rgba(241, 245, 249, 0.6)",
           borderRadius: "6px 6px 0 0",
           borderBottom: "1px solid #e2e8f0",
           display: "flex",
@@ -336,18 +196,18 @@ const ClassCard = ({
       </div>
 
       {/* Toolbar - 우하단 배치 */}
-      <div style={{ position: "absolute", bottom: "8px", right: "8px" }}>
+      <div style={{ position: "absolute", top: "5px", right: "8px" }}>
         <div
           style={{
             display: "flex",
             gap: "4px",
             alignItems: "center",
             zIndex: 1000,
-            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            // backgroundColor: "rgba(255, 255, 255, 0.95)",
             padding: "4px",
             borderRadius: "6px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-            border: "1px solid rgba(0, 0, 0, 0.05)",
+            // boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+            // border: "1px solid rgba(0, 0, 0, 0.05)",
           }}
         >
           {isEditing ? (
@@ -356,16 +216,16 @@ const ClassCard = ({
                 onClick={handleSaveEdit}
                 title="Save Changes"
                 icon={<Check size={12} />}
-                backgroundColor="rgba(16, 185, 129, 0.1)"
-                hoverColor="rgba(16, 185, 129, 0.2)"
+                // backgroundColor="rgba(16, 185, 129, 0.1)"
+                // hoverColor="rgba(16, 185, 129, 0.2)"
               />
 
               <ToolbarButton
                 onClick={handleCancelEdit}
                 title="Cancel Edit"
                 icon={<X size={12} />}
-                backgroundColor="rgba(107, 114, 128, 0.1)"
-                hoverColor="rgba(107, 114, 128, 0.2)"
+                // backgroundColor="rgba(107, 114, 128, 0.1)"
+                // hoverColor="rgba(107, 114, 128, 0.2)"
               />
             </>
           ) : (
@@ -374,24 +234,24 @@ const ClassCard = ({
                 onClick={() => onCreateInstance(classData)}
                 title="Create Instance"
                 icon={<Plus size={12} />}
-                backgroundColor="rgba(59, 130, 246, 0.1)"
-                hoverColor="rgba(59, 130, 246, 0.2)"
+                // backgroundColor="rgba(59, 130, 246, 0.1)"
+                // hoverColor="rgba(59, 130, 246, 0.2)"
               />
 
               <ToolbarButton
                 onClick={handleEdit}
                 title="Edit Class"
                 icon={<Edit size={12} />}
-                backgroundColor="rgba(16, 185, 129, 0.1)"
-                hoverColor="rgba(16, 185, 129, 0.2)"
+                // backgroundColor="rgba(16, 185, 129, 0.1)"
+                // hoverColor="rgba(16, 185, 129, 0.2)"
               />
 
               <ToolbarButton
                 onClick={handleResetInstances}
                 title="Reset All Instances"
                 icon={<RotateCcw size={12} />}
-                backgroundColor="rgba(245, 158, 11, 0.1)"
-                hoverColor="rgba(245, 158, 11, 0.2)"
+                // backgroundColor="rgba(245, 158, 11, 0.1)"
+                // hoverColor="rgba(245, 158, 11, 0.2)"
               />
 
               <ToolbarButton

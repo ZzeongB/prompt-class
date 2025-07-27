@@ -1,6 +1,14 @@
 import React, { forwardRef } from "react";
 import { NodeToolbar, Position } from "@xyflow/react";
-import { Edit2, Check, Copy, Trash2, Repeat, Network } from "lucide-react";
+import {
+  Edit2,
+  Check,
+  Copy,
+  Trash2,
+  Repeat,
+  Network,
+  Layers,
+} from "lucide-react";
 
 import { useState } from "react";
 
@@ -175,7 +183,7 @@ const NodeToolbarMenu = forwardRef((props, ref) => {
       {onDuplicate && (
         <ToolbarButton
           title="Duplicate node"
-          icon={<Copy size={12} />}
+          icon={<Layers size={12} />}
           onClick={onDuplicate}
           backgroundColor="rgba(59, 130, 246, 0.1)"
           hoverColor="rgba(59, 130, 246, 0.15)"
