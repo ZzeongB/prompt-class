@@ -167,12 +167,10 @@ export const ClassProvider = ({ children }) => {
       };
 
       setClasses((prev) => [...prev, newClass]);
-      console.log("instance", instances)
 
       // 원본 인스턴스를 클래스의 인스턴스로 변환
       setInstances((prev) => 
         prev.map(instance => {
-          console.log("inst", instance, instanceData)
           if (instance.id === instanceData.id) {
             return {
               ...instance,
@@ -230,7 +228,7 @@ export const ClassProvider = ({ children }) => {
     }
   };
 
-  const createInstanceFromClass = (classData, newValues = {}) => {
+  const createInstanceFromClass = async (classData, newValues = {}) => {
     const sceneGraph = deepCloneSceneGraph(classData.template.sceneGraph);
 
     sceneGraph.objects.forEach((obj) => {
@@ -258,11 +256,24 @@ export const ClassProvider = ({ children }) => {
       }
     });
 
+    // sceneGraph에서 textDescription 생성
+    let textDescription = classData.template.textDescription || "";
+    try {
+      const { generateSceneGraphToText } = await import("../api/generateTextToGraph");
+      textDescription = await generateSceneGraphToText({
+        newSceneGraph: sceneGraph,
+      });
+    } catch (error) {
+      console.error("Failed to generate text description from sceneGraph:", error);
+      // 폴백: 클래스 템플릿의 textDescription 사용
+      textDescription = classData.template.textDescription || generateInstanceLabel(newValues);
+    }
+
     const newInstance = {
       id: `instance-${uuidv4()}`,
       instanceLabel: generateInstanceLabel(newValues),
       sceneGraph, // 업데이트된 sceneGraph
-      textDescription: classData.template.textDescription || "",
+      textDescription, // 생성된 textDescription
       createdAt: new Date().toISOString(),
       createdFrom: classData.name,
       classId: classData.id,
@@ -300,27 +311,47 @@ export const ClassProvider = ({ children }) => {
   };
 
   // 클래스 변경에 따른 인스턴스 업데이트
-  const updateInstancesFromClass = (updatedClass) => {
+  const updateInstancesFromClass = async (updatedClass) => {
+    const updatePromises = instances
+      .filter(instance => instance.classId === updatedClass.id)
+      .map(async (instance) => {
+        // override되지 않은 부분만 클래스에서 업데이트
+        const newSceneGraph = applyClassUpdatesToInstance(
+          updatedClass.template.sceneGraph,
+          instance.overrides,
+          instance.originalSceneGraph
+        );
+        
+        // sceneGraph가 변경되었다면 textDescription도 업데이트
+        let newTextDescription = instance.textDescription;
+        if (!instance.overrides.textDescription) {
+          try {
+            const { generateSceneGraphToText } = await import("../api/generateTextToGraph");
+            newTextDescription = await generateSceneGraphToText({
+              newSceneGraph: newSceneGraph,
+              previousSceneGraph: instance.sceneGraph,
+              previousTextDescription: instance.textDescription,
+            });
+          } catch (error) {
+            console.error("Failed to update text description for instance:", instance.id, error);
+            // 폴백: 클래스 템플릿의 textDescription 사용
+            newTextDescription = updatedClass.template.textDescription || instance.textDescription;
+          }
+        }
+        
+        return {
+          ...instance,
+          sceneGraph: newSceneGraph,
+          textDescription: newTextDescription,
+        };
+      });
+
+    const updatedInstances = await Promise.all(updatePromises);
+    
     setInstances((prev) => 
       prev.map(instance => {
-        if (instance.classId === updatedClass.id) {
-          // override되지 않은 부분만 클래스에서 업데이트
-          const newSceneGraph = applyClassUpdatesToInstance(
-            updatedClass.template.sceneGraph,
-            instance.overrides,
-            instance.originalSceneGraph
-          );
-          
-          return {
-            ...instance,
-            sceneGraph: newSceneGraph,
-            // textDescription은 override되지 않았다면 클래스에서 가져옴
-            textDescription: instance.overrides.textDescription 
-              ? instance.textDescription 
-              : updatedClass.template.textDescription,
-          };
-        }
-        return instance;
+        const updated = updatedInstances.find(u => u.id === instance.id);
+        return updated || instance;
       })
     );
   };

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Edit, RotateCcw, Check, X } from "lucide-react";
 import { useClassContext } from "../context/ClassContext";
-import PanelTemplate from "../components/PanelTemplate";
 import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
 import { CreateInstanceModal } from "../components/modal/CreateInstanceModal";
 import SceneGraphVisualizer from "../components/SceneGraphVisualizer";
@@ -25,8 +24,8 @@ const ClassCardToolbar = ({
         gap: "4px",
         alignItems: "center",
         // position: "absolute",
-        top: "-30px",
-        // right: "0px",
+        // top: "-30px",
+        right: "0px",
         zIndex: 1000, // z-index 증가
         backgroundColor: "rgba(255, 255, 255, 0.9)", // 배경 추가
         padding: "4px",
@@ -155,25 +154,18 @@ const ClassCard = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [editingData, setEditingData] = useState(null);
-  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
-
   const { updateClass, instances } = useClassContext();
 
   // 편집용 임시 상태
   const [tempSceneData, setTempSceneData] = useState({
-    instanceLabel: classData.template?.instanceLabel || classData.name,
     sceneGraph: classData.template?.sceneGraph || {},
-    textDescription: classData.template?.textDescription || "",
   });
 
   // 실제 표시용 데이터
   const sceneData = isEditing
     ? tempSceneData
     : {
-        instanceLabel: classData.template?.instanceLabel || classData.name,
         sceneGraph: classData.template?.sceneGraph || {},
-        textDescription: classData.template?.textDescription || "",
       };
 
   // 이 클래스의 인스턴스 개수 계산
@@ -181,33 +173,18 @@ const ClassCard = ({
     (instance) => instance.classId === classData.id
   ).length;
 
-  // 클래스 데이터가 변경될 때 tempSceneData 업데이트
-  useEffect(() => {
-    if (!isEditing) {
-      setTempSceneData({
-        instanceLabel: classData.template?.instanceLabel || classData.name,
-        sceneGraph: classData.template?.sceneGraph || {},
-        textDescription: classData.template?.textDescription || "",
-      });
-    }
-  }, [classData, isEditing]);
-
-  // 인스턴스 변경 감지를 위한 실시간 업데이트
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLastUpdateTime(Date.now());
-    }, 1000); // 1초마다 업데이트 시간 갱신
-
-    return () => clearInterval(interval);
-  }, []);
+  // 연결된 인스턴스들의 override 상태 계산
+  const connectedInstances = instances.filter(
+    (inst) => inst.classId === classData.id
+  );
+  const instancesWithOverrides = connectedInstances.filter(
+    (inst) => inst.overrides && Object.keys(inst.overrides).length > 0
+  ).length;
 
   const handleEdit = () => {
     setIsEditing(true);
-    setEditingData({ ...classData });
     setTempSceneData({
-      instanceLabel: classData.template?.instanceLabel || classData.name,
       sceneGraph: classData.template?.sceneGraph || {},
-      textDescription: classData.template?.textDescription || "",
     });
     onEdit?.(classData);
   };
@@ -218,14 +195,10 @@ const ClassCard = ({
       await updateClass(classData.id, {
         template: {
           ...classData.template,
-          instanceLabel: tempSceneData.instanceLabel,
-          textDescription: tempSceneData.textDescription,
           sceneGraph: tempSceneData.sceneGraph,
         },
-        name: tempSceneData.instanceLabel + " Class",
       });
       setIsEditing(false);
-      setEditingData(null);
     } catch (error) {
       console.error("Failed to update class:", error);
       alert("Failed to save changes. Please try again.");
@@ -236,34 +209,15 @@ const ClassCard = ({
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditingData(null);
-    // 원본 데이터로 되돌리기
     setTempSceneData({
-      instanceLabel: classData.template?.instanceLabel || classData.name,
       sceneGraph: classData.template?.sceneGraph || {},
-      textDescription: classData.template?.textDescription || "",
     });
   };
 
-  const handleInstanceLabelChange = (newLabel) => {
-    setTempSceneData((prev) => ({
-      ...prev,
-      instanceLabel: newLabel,
-    }));
-  };
-
-  const handleDescriptionChange = (newDescription) => {
-    setTempSceneData((prev) => ({
-      ...prev,
-      textDescription: newDescription,
-    }));
-  };
-
   const handleSceneGraphChange = (newSceneGraph) => {
-    setTempSceneData((prev) => ({
-      ...prev,
+    setTempSceneData({
       sceneGraph: newSceneGraph,
-    }));
+    });
   };
 
   const handleResetInstances = () => {
@@ -276,17 +230,7 @@ const ClassCard = ({
     }
   };
 
-  // 편집 모드가 아닐 때는 빈 함수들을 사용
   const handleDummyFunction = () => {};
-  const handleDummySetState = () => {};
-
-  // 연결된 인스턴스들의 override 상태 계산
-  const connectedInstances = instances.filter(
-    (inst) => inst.classId === classData.id
-  );
-  const instancesWithOverrides = connectedInstances.filter(
-    (inst) => inst.overrides && Object.keys(inst.overrides).length > 0
-  ).length;
 
   return (
     <div
@@ -298,6 +242,7 @@ const ClassCard = ({
         backgroundColor: isEditing ? "#f8fafc" : "white",
         boxShadow: isEditing ? "0 4px 12px rgba(59, 130, 246, 0.15)" : "none",
         transition: "all 0.2s ease",
+        minHeight: "200px",
       }}
     >
       {/* 클래스 정보 헤더 */}
@@ -367,26 +312,98 @@ const ClassCard = ({
           </div>
         )}
       </div>
-      <div style={{ display: "flex", alignContent: "center" }}>
+
+      {/* SceneGraphVisualizer - 가운데 배치 */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: "12px",
+          minHeight: "120px",
+        }}
+      >
         <SceneGraphVisualizer
           sceneGraph={sceneData.sceneGraph}
           onSceneGraphChange={
             isEditing ? handleSceneGraphChange : handleDummyFunction
           }
           isEditable={isEditing}
+          isClassMode={!isEditing}
+          placeholders={classData.placeholders}
+          originalData={classData.originalData}
         />
       </div>
 
-      <ClassCardToolbar
-        isVisible={true}
-        onCreateInstance={() => onCreateInstance(classData)}
-        onDelete={() => onDelete(classData.id)}
-        onEdit={handleEdit}
-        onResetInstances={() => handleResetInstances()}
-        isEditing={isEditing}
-        onSaveEdit={handleSaveEdit}
-        onCancelEdit={handleCancelEdit}
-      />
+      {/* Toolbar - 우하단 배치 */}
+      <div style={{ position: "absolute", bottom: "8px", right: "8px" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "4px",
+            alignItems: "center",
+            zIndex: 1000,
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            padding: "4px",
+            borderRadius: "6px",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+            border: "1px solid rgba(0, 0, 0, 0.05)",
+          }}
+        >
+          {isEditing ? (
+            <>
+              <ToolbarButton
+                onClick={handleSaveEdit}
+                title="Save Changes"
+                icon={<Check size={12} />}
+                backgroundColor="rgba(16, 185, 129, 0.1)"
+                hoverColor="rgba(16, 185, 129, 0.2)"
+              />
+
+              <ToolbarButton
+                onClick={handleCancelEdit}
+                title="Cancel Edit"
+                icon={<X size={12} />}
+                backgroundColor="rgba(107, 114, 128, 0.1)"
+                hoverColor="rgba(107, 114, 128, 0.2)"
+              />
+            </>
+          ) : (
+            <>
+              <ToolbarButton
+                onClick={() => onCreateInstance(classData)}
+                title="Create Instance"
+                icon={<Plus size={12} />}
+                backgroundColor="rgba(59, 130, 246, 0.1)"
+                hoverColor="rgba(59, 130, 246, 0.2)"
+              />
+
+              <ToolbarButton
+                onClick={handleEdit}
+                title="Edit Class"
+                icon={<Edit size={12} />}
+                backgroundColor="rgba(16, 185, 129, 0.1)"
+                hoverColor="rgba(16, 185, 129, 0.2)"
+              />
+
+              <ToolbarButton
+                onClick={handleResetInstances}
+                title="Reset All Instances"
+                icon={<RotateCcw size={12} />}
+                backgroundColor="rgba(245, 158, 11, 0.1)"
+                hoverColor="rgba(245, 158, 11, 0.2)"
+              />
+
+              <ToolbarButton
+                onClick={() => onDelete(classData.id)}
+                title="Delete Class"
+                icon={<Trash2 size={12} />}
+                danger={true}
+              />
+            </>
+          )}
+        </div>
+      </div>
 
       {/* 편집 모드 표시 */}
       {isEditing && (
@@ -416,22 +433,6 @@ const ClassCard = ({
           {instanceCount !== 1 ? "s" : ""}
         </div>
       )}
-
-      {/* 실시간 인스턴스 업데이트 표시 */}
-      {/* {connectedInstances.length > 0 && !isEditing && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "8px",
-            right: "12px",
-            fontSize: "9px",
-            color: "#9ca3af",
-            fontStyle: "italic",
-          }}
-        >
-          Last sync: {new Date(lastUpdateTime).toLocaleTimeString()}
-        </div>
-      )} */}
     </div>
   );
 };

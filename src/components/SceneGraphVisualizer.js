@@ -7,12 +7,58 @@ export default function SceneGraphVisualizer({
   sceneGraph,
   onSceneGraphChange,
   isEditable = true,
+  isClassMode = false,
+  placeholders = null,
+  originalData = null,
 }) {
   const [hoveredObject, setHoveredObject] = useState(null);
   const [editingObject, setEditingObject] = useState(null);
   const [hoveredRelationship, setHoveredRelationship] = useState(null);
   const [connectingMode, setConnectingMode] = useState(false);
   const [selectedSourceObject, setSelectedSourceObject] = useState(null);
+
+  // 클래스 모드에서 표시용 데이터 생성
+  const getDisplayData = () => {
+    if (!isClassMode || !placeholders || !originalData) {
+      return sceneGraph;
+    }
+
+    // 이름 → 키 매핑 생성 (역방향)
+    const nameToKeyMap = Object.entries(placeholders).reduce(
+      (acc, [key, value]) => {
+        acc[value] = key;
+        return acc;
+      },
+      {}
+    );
+
+    const displayGraph = {
+      ...sceneGraph,
+      objects: sceneGraph.objects.map((obj) => {
+        const key = nameToKeyMap[obj.name.replace(/[{}]/g, "")]; // 괄호 제거 후 매핑 검색
+        const displayName = key ? `${obj.name}: ${key}` : obj.name;
+
+        const displayAttributes =
+          obj.attributes?.map((attr, index) => {
+            if (typeof attr === "string") {
+              const attrKey = nameToKeyMap[attr.replace(/[{}]/g, "")];
+              return attrKey ? `${attr}: ${attrKey}` : attr;
+            }
+            return attr;
+          }) || [];
+
+        return {
+          ...obj,
+          displayName,
+          displayAttributes,
+        };
+      }),
+    };
+
+    return displayGraph;
+  };
+
+  const displayData = getDisplayData();
 
   const handleObjectEdit = (objectId, newName, newAttributes = null) => {
     const updatedGraph = {
@@ -142,6 +188,11 @@ export default function SceneGraphVisualizer({
         padding: "8px",
         borderRadius: "6px",
         position: "relative",
+        minHeight: "100px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
       }}
     >
       {isEditable && (
@@ -212,8 +263,8 @@ export default function SceneGraphVisualizer({
           display: "flex",
           flexDirection: "column",
           gap: "4px",
-          alignItems: "flex-start",
-          paddingTop: "16px",
+          alignItems: "center",
+          width: "100%",
         }}
       >
         {connectingMode && (
@@ -234,7 +285,7 @@ export default function SceneGraphVisualizer({
           </div>
         )}
 
-        {sceneGraph.objects.map((obj) => (
+        {displayData.objects.map((obj) => (
           <React.Fragment key={obj.id}>
             <div
               onClick={() => handleObjectClick(obj.id)}
@@ -249,7 +300,14 @@ export default function SceneGraphVisualizer({
               }}
             >
               <ObjectNode
-                object={obj}
+                object={{
+                  ...obj,
+                  // 클래스 모드에서는 표시용 이름과 속성 사용
+                  name: isClassMode ? obj.displayName || obj.name : obj.name,
+                  attributes: isClassMode
+                    ? obj.displayAttributes || obj.attributes
+                    : obj.attributes,
+                }}
                 onEdit={handleObjectEdit}
                 onDelete={handleObjectDelete}
                 onAddAttribute={handleAddAttribute}
@@ -262,6 +320,7 @@ export default function SceneGraphVisualizer({
                   setEditingObject(editing ? obj.id : null)
                 }
                 isEditable={isEditable}
+                isClassMode={isClassMode}
               />
             </div>
 
@@ -291,6 +350,26 @@ export default function SceneGraphVisualizer({
               )}
           </React.Fragment>
         ))}
+
+        {/* 빈 상태 표시 */}
+        {(!sceneGraph.objects || sceneGraph.objects.length === 0) && (
+          <div
+            style={{
+              color: "#9ca3af",
+              fontSize: "10px",
+              fontStyle: "italic",
+              textAlign: "center",
+              padding: "20px",
+            }}
+          >
+            {isClassMode ? "Class template will appear here" : "No objects yet"}
+            {isEditable && !isClassMode && (
+              <div style={{ marginTop: "4px", fontSize: "9px" }}>
+                Click "Add" to create objects
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
