@@ -8,6 +8,7 @@ const EditableLabel = ({
   textStyle = {},
   inputStyle = {},
   autoFocus = false,
+  isEditable = true,
 }) => {
   const [editing, setEditing] = useState(false);
   const [temp, setTemp] = useState(value);
@@ -51,7 +52,9 @@ const EditableLabel = ({
     />
   ) : (
     <div
-      onDoubleClick={() => setEditing(true)}
+      onDoubleClick={() => {
+        if (isEditable) setEditing(true);
+      }}
       style={{
         cursor: "text",
         textAlign: "center",

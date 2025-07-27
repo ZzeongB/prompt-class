@@ -19,6 +19,7 @@ export const useInstanceActions = () => {
         instanceLabel: sceneData.instanceLabel,
         sceneGraph: sceneData.sceneGraph || {},
         textDescription: sceneData.textDescription || "",
+        id: sceneData.id
       });
     } catch (error) {
       console.error("Error in handleCreateClass:", error);

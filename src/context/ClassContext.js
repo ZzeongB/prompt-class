@@ -167,10 +167,12 @@ export const ClassProvider = ({ children }) => {
       };
 
       setClasses((prev) => [...prev, newClass]);
+      console.log("instance", instances)
 
       // 원본 인스턴스를 클래스의 인스턴스로 변환
       setInstances((prev) => 
         prev.map(instance => {
+          console.log("inst", instance, instanceData)
           if (instance.id === instanceData.id) {
             return {
               ...instance,

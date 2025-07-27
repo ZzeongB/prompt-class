@@ -4,6 +4,7 @@ import { useClassContext } from "../context/ClassContext";
 import PanelTemplate from "../components/PanelTemplate";
 import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
 import { CreateInstanceModal } from "../components/modal/CreateInstanceModal";
+import SceneGraphVisualizer from "../components/SceneGraphVisualizer";
 
 const ClassCardToolbar = ({
   isVisible,
@@ -23,9 +24,9 @@ const ClassCardToolbar = ({
         display: "flex",
         gap: "4px",
         alignItems: "center",
-        position: "absolute",
-        top: "8px",
-        right: "8px",
+        // position: "absolute",
+        top: "-30px",
+        // right: "0px",
         zIndex: 1000, // z-index 증가
         backgroundColor: "rgba(255, 255, 255, 0.9)", // 배경 추가
         padding: "4px",
@@ -51,7 +52,7 @@ const ClassCardToolbar = ({
               fontSize: "12px",
             }}
           />
-          
+
           <ToolbarButton
             onClick={onCancelEdit}
             title="Cancel Edit"
@@ -144,7 +145,6 @@ const ClassCardToolbar = ({
     </div>
   );
 };
-
 
 const ClassCard = ({
   classData,
@@ -367,45 +367,25 @@ const ClassCard = ({
           </div>
         )}
       </div>
+      <div style={{ display: "flex", alignContent: "center" }}>
+        <SceneGraphVisualizer
+          sceneGraph={sceneData.sceneGraph}
+          onSceneGraphChange={
+            isEditing ? handleSceneGraphChange : handleDummyFunction
+          }
+          isEditable={isEditing}
+        />
+      </div>
 
-      <PanelTemplate
-        id={classData.id}
-        data={{
-          label: classData.name,
-          isFromClass: false,
-          parentClassName: null,
-          hasOverrides: false,
-        }}
-        isExpanded={true}
-        setIsExpanded={handleDummySetState}
-        sceneData={sceneData}
-        isUpdating={isUpdating}
-        onInstanceLabelChange={
-          isEditing ? handleInstanceLabelChange : handleDummyFunction
-        }
-        onDescriptionChangeDebounced={
-          isEditing ? handleDescriptionChange : handleDummyFunction
-        }
-        onSceneGraphChange={
-          isEditing ? handleSceneGraphChange : handleDummyFunction
-        }
+      <ClassCardToolbar
+        isVisible={true}
+        onCreateInstance={() => onCreateInstance(classData)}
         onDelete={() => onDelete(classData.id)}
-        modal={null}
-        setModal={handleDummySetState}
-        isClassMode={true}
-        isReadOnly={!isEditing}
-        customToolbar={
-          <ClassCardToolbar
-            isVisible={true}
-            onCreateInstance={() => onCreateInstance(classData)}
-            onDelete={() => onDelete(classData.id)}
-            onEdit={handleEdit}
-            onResetInstances={() => handleResetInstances()}
-            isEditing={isEditing}
-            onSaveEdit={handleSaveEdit}
-            onCancelEdit={handleCancelEdit}
-          />
-        }
+        onEdit={handleEdit}
+        onResetInstances={() => handleResetInstances()}
+        isEditing={isEditing}
+        onSaveEdit={handleSaveEdit}
+        onCancelEdit={handleCancelEdit}
       />
 
       {/* 편집 모드 표시 */}
@@ -438,7 +418,7 @@ const ClassCard = ({
       )}
 
       {/* 실시간 인스턴스 업데이트 표시 */}
-      {connectedInstances.length > 0 && !isEditing && (
+      {/* {connectedInstances.length > 0 && !isEditing && (
         <div
           style={{
             position: "absolute",
@@ -451,7 +431,7 @@ const ClassCard = ({
         >
           Last sync: {new Date(lastUpdateTime).toLocaleTimeString()}
         </div>
-      )}
+      )} */}
     </div>
   );
 };

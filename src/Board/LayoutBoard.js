@@ -287,6 +287,7 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
         overrides: {},
         parentClassName: null,
         hasOverrides: false,
+        id: sharedId,
       },
       updatedAt: new Date().toISOString(),
       style: { height: 20 },

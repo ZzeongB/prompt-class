@@ -10,14 +10,18 @@ import { useClassContext } from "../../context/ClassContext";
 export default function InstancePanelNode({ id, data, onUpdate }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(data?.justCreated === true);
+  const [isInitializing, setIsInitializing] = useState(
+    data?.justCreated === true
+  );
   const [modal, setModal] = useState(null);
 
-  const { updateInstance, deleteInstance, classes, instances } = useClassContext();
+  const { updateInstance, deleteInstance, classes, instances } =
+    useClassContext();
   const { getNodes, setNodes, deleteElements } = useReactFlow();
 
   // 로컬 sceneData 상태 (빠른 UI 반응용)
   const [sceneData, setSceneData] = useState({
+    id: id,
     instanceLabel: data?.instanceLabel || data?.label || "New Box",
     textDescription: data?.textDescription || "",
     sceneGraph: data?.sceneGraph || {},
@@ -29,10 +33,12 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   // ClassContext 데이터와 동기화
   useEffect(() => {
     if (syncingRef.current) return; // 자신이 업데이트한 경우 스킵
-    
-    const instanceData = instances.find(inst => inst.id === id);
+
+    const instanceData = instances.find((inst) => inst.id === id);
     if (instanceData) {
       setSceneData({
+        id: id,
+
         instanceLabel: instanceData.instanceLabel || "New Box",
         textDescription: instanceData.textDescription || "",
         sceneGraph: instanceData.sceneGraph || {},
@@ -41,9 +47,11 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   }, [instances, id]);
 
   // 현재 인스턴스가 클래스에서 파생되었는지 확인
-  const instanceData = instances.find(inst => inst.id === id) || {};
+  const instanceData = instances.find((inst) => inst.id === id) || {};
   const isFromClass = instanceData.isFromClass || data?.isFromClass;
-  const parentClass = isFromClass ? classes.find(cls => cls.id === (instanceData.classId || data?.classId)) : null;
+  const parentClass = isFromClass
+    ? classes.find((cls) => cls.id === (instanceData.classId || data?.classId))
+    : null;
 
   const handleDelete = () => {
     deleteInstance(id);
@@ -52,26 +60,26 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   // 양방향 동기화 헬퍼 함수
   const syncUpdate = (updates) => {
     syncingRef.current = true;
-    
+
     // 1. 로컬 상태 즉시 업데이트 (빠른 UI 반응)
-    setSceneData(prev => ({ ...prev, ...updates }));
-    
+    setSceneData((prev) => ({ ...prev, ...updates }));
+
     // 2. ReactFlow 노드 업데이트
-    setNodes(nodes => 
-      nodes.map(node => {
+    setNodes((nodes) =>
+      nodes.map((node) => {
         if (node.id === id || node.data?.sharedId === data.sharedId) {
           return {
             ...node,
-            data: { ...node.data, ...updates }
+            data: { ...node.data, ...updates },
           };
         }
         return node;
       })
     );
-    
+
     // 3. ClassContext 업데이트
     updateInstance(id, updates);
-    
+
     setTimeout(() => {
       syncingRef.current = false;
     }, 100);
@@ -108,14 +116,14 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         newTextDescription: description,
       });
       const instanceLabel = sceneGraph.objects?.[0]?.name || "New Box";
-      
+
       syncUpdate({
         instanceLabel,
         textDescription: description,
         sceneGraph,
         justCreated: false,
       });
-      
+
       onUpdate?.({
         label: instanceLabel,
         textDescription: description,
@@ -155,7 +163,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         textDescription: newDescription,
         sceneGraph,
       });
-      
+
       onUpdate?.({
         label: instanceLabel,
         textDescription: newDescription,
@@ -164,7 +172,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
       console.error("Failed to update the scene:", error);
       alert("Failed to update the scene. Please try again.");
       // 에러 시 이전 상태로 복원
-      setSceneData(prev => ({ ...prev, textDescription: prevText }));
+      setSceneData((prev) => ({ ...prev, textDescription: prevText }));
     } finally {
       setIsUpdating(false);
     }
@@ -175,7 +183,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
       syncUpdate({ sceneGraph: updatedSceneGraph });
       return;
     }
-    
+
     setIsUpdating(true);
 
     try {
@@ -184,7 +192,8 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         previousSceneGraph: sceneData.sceneGraph,
         previousTextDescription: sceneData.textDescription,
       });
-      const newLabel = updatedSceneGraph.objects?.[0]?.name || sceneData.instanceLabel;
+      const newLabel =
+        updatedSceneGraph.objects?.[0]?.name || sceneData.instanceLabel;
 
       syncUpdate({
         instanceLabel: newLabel,
@@ -197,7 +206,11 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         textDescription: newText,
       });
     } catch (error) {
-      console.error("Failed to update from sceneGraph:", updatedSceneGraph, error);
+      console.error(
+        "Failed to update from sceneGraph:",
+        updatedSceneGraph,
+        error
+      );
       alert("Scene update failed. Try again.");
     } finally {
       setIsUpdating(false);
@@ -207,10 +220,10 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   const [descriptionTimeout, setDescriptionTimeout] = useState(null);
   const handleDescriptionChangeWithDebounce = (newDescription) => {
     // 즉시 로컬 상태 업데이트
-    setSceneData(prev => ({ ...prev, textDescription: newDescription }));
-    
+    setSceneData((prev) => ({ ...prev, textDescription: newDescription }));
+
     if (descriptionTimeout) clearTimeout(descriptionTimeout);
-    
+
     const timeoutId = setTimeout(() => {
       handleDescriptionChange(newDescription);
     }, 1000);
@@ -231,7 +244,8 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
     sceneGraph: sceneData.sceneGraph,
     isFromClass,
     parentClassName: parentClass?.name,
-    hasOverrides: instanceData.overrides && Object.keys(instanceData.overrides).length > 0,
+    hasOverrides:
+      instanceData.overrides && Object.keys(instanceData.overrides).length > 0,
   };
 
   return (

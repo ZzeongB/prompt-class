@@ -12,6 +12,7 @@ const ObjectNode = ({
   setIsHovered,
   isEditing,
   setIsEditing,
+  isEditable,
 }) => {
   const [editValue, setEditValue] = useState(object.name);
   const [newAttributeValue, setNewAttributeValue] = useState("");
@@ -36,6 +37,7 @@ const ObjectNode = ({
   };
 
   const handleEditAttribute = (index, val) => {
+    if (!isEditable) return;
     const updated = [...object.attributes];
     updated[index] = val;
     onEdit?.(object.id, object.name, updated);
@@ -68,9 +70,7 @@ const ObjectNode = ({
           alignItems: "center",
         }}
       >
-       
-
-        {isHovered && (
+        {isHovered && isEditable && (
           <div className="flex items-center gap-1" style={{ display: "flex" }}>
             <button
               onClick={() => setAddingAttribute(true)}
@@ -125,8 +125,9 @@ const ObjectNode = ({
                   fontWeight: 500,
                   width: "60px",
                 }}
+                isEditable={isEditable}
               />
-              {isHovered && (
+              {isHovered && isEditable &&  (
                 <DeleteButton
                   onClick={() => handleDeleteAttribute(index)}
                   size={10}
@@ -172,45 +173,48 @@ const ObjectNode = ({
                 }}
               />
             </div>
-          )}</div>
-        
+          )}
+        </div>
       )}
 
-           <div
-          className="flex items-center gap-1"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div
-            style={{ fontSize: "11px", fontWeight: "500", color: "#7f1d1d" }}
-          >
-            {isEditing ? (
-              <EditableLabel
-                value={editValue}
-                onSave={handleSaveName}
-                autoFocus
-              />
-            ) : (
-              <div onDoubleClick={() => setIsEditing(true)}>{object.name}</div>
-            )}
-          </div>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#7f1d1d",
-            }}
-            title={expanded ? "Collapse" : "Expand"}
-          >
-            {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-          </button>
+      <div
+        className="flex items-center gap-1"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ fontSize: "11px", fontWeight: "500", color: "#7f1d1d" }}>
+          {isEditing ? (
+            <EditableLabel
+              value={editValue}
+              onSave={handleSaveName}
+              autoFocus
+            />
+          ) : (
+            <div
+              onDoubleClick={() => {
+                if (isEditable) setIsEditing(true);
+              }}
+            >
+              {object.name}
+            </div>
+          )}
         </div>
-        
+        <button
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "#7f1d1d",
+          }}
+          title={expanded ? "Collapse" : "Expand"}
+        >
+          {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+        </button>
+      </div>
     </div>
   );
 };
