@@ -85,7 +85,7 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
             style={{
               display: "flex",
               height: "600px",
-              width: "800px",
+              width: "850px",
               boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
               position: "relative",
               marginRight: "20px",

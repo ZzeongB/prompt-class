@@ -189,9 +189,8 @@ const ClassCard = ({
             isEditing ? handleSceneGraphChange : handleDummyFunction
           }
           isEditable={isEditing}
-          isClassMode={!isEditing}
+          isClassMode={true}
           placeholders={classData.placeholders}
-          originalData={classData.originalData}
         />
       </div>
 

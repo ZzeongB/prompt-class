@@ -57,6 +57,7 @@ const ObjectNode = ({
         padding: "5px",
         backgroundColor: isHovered ? "#fecaca" : "#fed7d7",
         marginBottom: "0px",
+        maxWidth: "80px",
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -100,7 +101,7 @@ const ObjectNode = ({
 
       {/* Attributes */}
       {expanded && (
-        <div style={{ marginTop: "8px" }}>
+        <div style={{ marginTop: "2px" }}>
           {object.attributes?.map((attr, index) => (
             <div
               key={index}
@@ -109,7 +110,7 @@ const ObjectNode = ({
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 6,
-                marginLeft: 5,
+                // marginLeft: 3,
               }}
             >
               <EditableLabel
@@ -138,7 +139,7 @@ const ObjectNode = ({
           ))}
 
           {addingAttribute && (
-            <div style={{ marginTop: 3, marginLeft: 5 }}>
+            <div style={{ marginTop: 3,}}>
               <input
                 value={newAttributeValue}
                 onChange={(e) => setNewAttributeValue(e.target.value)}

@@ -14,7 +14,9 @@ import { useInstanceActions } from "../../utils/actions/useInstanceActions";
 export default function InstancePanelNode({ id, data, onUpdate }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(data?.justCreated === true);
+  const [isInitializing, setIsInitializing] = useState(
+    data?.justCreated === true
+  );
   const [modal, setModal] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
@@ -22,7 +24,8 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   const [tempLabelValue, setTempLabelValue] = useState("");
   const [tempDescriptionValue, setTempDescriptionValue] = useState("");
 
-  const { updateInstance, deleteInstance, classes, instances } = useClassContext();
+  const { updateInstance, deleteInstance, classes, instances } =
+    useClassContext();
   const { handleCreateClass, handleDuplicateInstance } = useInstanceActions();
   const { getNodes, setNodes, deleteElements } = useReactFlow();
 
@@ -39,19 +42,24 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   // ClassContext 데이터와 동기화 (sceneGraph 변경 시 textDescription도 업데이트)
   useEffect(() => {
     if (syncingRef.current) return; // 자신이 업데이트한 경우 스킵
-    
-    const instanceData = instances.find(inst => inst.id === id);
+
+    const instanceData = instances.find((inst) => inst.id === id);
     if (instanceData) {
       const newSceneData = {
         instanceLabel: instanceData.instanceLabel || "New Box",
         textDescription: instanceData.textDescription || "",
         sceneGraph: instanceData.sceneGraph || {},
       };
-      
+
       // sceneGraph가 변경되었는지 확인
-      const sceneGraphChanged = JSON.stringify(newSceneData.sceneGraph) !== JSON.stringify(sceneData.sceneGraph);
-      
-      if (sceneGraphChanged && Object.keys(newSceneData.sceneGraph).length > 0) {
+      const sceneGraphChanged =
+        JSON.stringify(newSceneData.sceneGraph) !==
+        JSON.stringify(sceneData.sceneGraph);
+
+      if (
+        sceneGraphChanged &&
+        Object.keys(newSceneData.sceneGraph).length > 0
+      ) {
         // sceneGraph가 변경되었다면 textDescription 자동 생성
         const updateTextDescription = async () => {
           try {
@@ -60,12 +68,12 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
               previousSceneGraph: sceneData.sceneGraph,
               previousTextDescription: sceneData.textDescription,
             });
-            
+
             setSceneData({
               ...newSceneData,
               textDescription: newText,
             });
-            
+
             // ClassContext도 업데이트
             syncingRef.current = true;
             updateInstance(id, { textDescription: newText });
@@ -78,7 +86,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
             setSceneData(newSceneData);
           }
         };
-        
+
         updateTextDescription();
       } else {
         // sceneGraph 변경이 없으면 일반 동기화
@@ -88,9 +96,11 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   }, [instances, id]);
 
   // 현재 인스턴스가 클래스에서 파생되었는지 확인
-  const instanceData = instances.find(inst => inst.id === id) || {};
+  const instanceData = instances.find((inst) => inst.id === id) || {};
   const isFromClass = instanceData.isFromClass || data?.isFromClass;
-  const parentClass = isFromClass ? classes.find(cls => cls.id === (instanceData.classId || data?.classId)) : null;
+  const parentClass = isFromClass
+    ? classes.find((cls) => cls.id === (instanceData.classId || data?.classId))
+    : null;
 
   const handleDelete = () => {
     deleteInstance(id);
@@ -99,26 +109,26 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   // 양방향 동기화 헬퍼 함수
   const syncUpdate = (updates) => {
     syncingRef.current = true;
-    
+
     // 1. 로컬 상태 즉시 업데이트 (빠른 UI 반응)
-    setSceneData(prev => ({ ...prev, ...updates }));
-    
+    setSceneData((prev) => ({ ...prev, ...updates }));
+
     // 2. ReactFlow 노드 업데이트
-    setNodes(nodes => 
-      nodes.map(node => {
+    setNodes((nodes) =>
+      nodes.map((node) => {
         if (node.id === id || node.data?.sharedId === data.sharedId) {
           return {
             ...node,
-            data: { ...node.data, ...updates }
+            data: { ...node.data, ...updates },
           };
         }
         return node;
       })
     );
-    
+
     // 3. ClassContext 업데이트
     updateInstance(id, updates);
-    
+
     setTimeout(() => {
       syncingRef.current = false;
     }, 100);
@@ -155,14 +165,14 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         newTextDescription: description,
       });
       const instanceLabel = sceneGraph.objects?.[0]?.name || "New Box";
-      
+
       syncUpdate({
         instanceLabel,
         textDescription: description,
         sceneGraph,
         justCreated: false,
       });
-      
+
       onUpdate?.({
         label: instanceLabel,
         textDescription: description,
@@ -202,7 +212,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         textDescription: newDescription,
         sceneGraph,
       });
-      
+
       onUpdate?.({
         label: instanceLabel,
         textDescription: newDescription,
@@ -211,7 +221,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
       console.error("Failed to update the scene:", error);
       alert("Failed to update the scene. Please try again.");
       // 에러 시 이전 상태로 복원
-      setSceneData(prev => ({ ...prev, textDescription: prevText }));
+      setSceneData((prev) => ({ ...prev, textDescription: prevText }));
     } finally {
       setIsUpdating(false);
     }
@@ -222,7 +232,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
       syncUpdate({ sceneGraph: updatedSceneGraph });
       return;
     }
-    
+
     setIsUpdating(true);
 
     try {
@@ -231,7 +241,8 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         previousSceneGraph: sceneData.sceneGraph,
         previousTextDescription: sceneData.textDescription,
       });
-      const newLabel = updatedSceneGraph.objects?.[0]?.name || sceneData.instanceLabel;
+      const newLabel =
+        updatedSceneGraph.objects?.[0]?.name || sceneData.instanceLabel;
 
       syncUpdate({
         instanceLabel: newLabel,
@@ -244,7 +255,11 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         textDescription: newText,
       });
     } catch (error) {
-      console.error("Failed to update from sceneGraph:", updatedSceneGraph, error);
+      console.error(
+        "Failed to update from sceneGraph:",
+        updatedSceneGraph,
+        error
+      );
       alert("Scene update failed. Try again.");
     } finally {
       setIsUpdating(false);
@@ -254,10 +269,10 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   const [descriptionTimeout, setDescriptionTimeout] = useState(null);
   const handleDescriptionChangeWithDebounce = (newDescription) => {
     // 즉시 로컬 상태 업데이트
-    setSceneData(prev => ({ ...prev, textDescription: newDescription }));
-    
+    setSceneData((prev) => ({ ...prev, textDescription: newDescription }));
+
     if (descriptionTimeout) clearTimeout(descriptionTimeout);
-    
+
     const timeoutId = setTimeout(() => {
       handleDescriptionChange(newDescription);
     }, 1000);
@@ -311,7 +326,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   return (
     <div
       style={{
-        maxWidth: "150px",
+        // maxWidth: "150px",
         margin: "0 auto",
         padding: "4px",
         background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
@@ -397,13 +412,18 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
             {sceneData.instanceLabel}
             {/* 클래스 연결 표시 */}
             {isFromClass && (
-              <span style={{
-                marginLeft: "4px",
-                fontSize: "9px",
-                color: "#3b82f6",
-                fontWeight: "500"
-              }}>
-                <Link size={8} style={{ display: "inline", verticalAlign: "middle" }} />
+              <span
+                style={{
+                  marginLeft: "4px",
+                  fontSize: "9px",
+                  color: "#3b82f6",
+                  fontWeight: "500",
+                }}
+              >
+                <Link
+                  size={8}
+                  style={{ display: "inline", verticalAlign: "middle" }}
+                />
                 {parentClass?.name}
               </span>
             )}
@@ -463,11 +483,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
             e.target.style.color = "#6b7280";
           }}
         >
-          {isExpanded ? (
-            <ChevronDown size={16} />
-          ) : (
-            <ChevronRight size={16} />
-          )}
+          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
       </div>
 
@@ -510,6 +526,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
                 wordWrap: "break-word",
                 wordBreak: "break-word",
                 marginBottom: "4px",
+                maxWidth: "200px",
               }}
               onInput={(e) => {
                 e.target.style.height = "auto";
@@ -534,6 +551,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
                 padding: "2px 4px",
                 borderRadius: "4px",
                 transition: "all 0.15s ease",
+                maxWidth: "200px",
               }}
               onDoubleClick={handleDescriptionEdit}
               onMouseEnter={(e) => {
@@ -545,10 +563,11 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
                 e.target.style.color = "#6b7280";
               }}
             >
-              {sceneData.textDescription || "Double-click to add description..."}
+              {sceneData.textDescription ||
+                "Double-click to add description..."}
             </div>
           )}
-          
+
           {/* SceneGraph Visualizer */}
           <SceneGraphVisualizer
             sceneGraph={sceneData.sceneGraph}
@@ -574,9 +593,12 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
           isVisible={isExpanded}
           onDelete={handleDelete}
           style={{
-            top: "10px", left: "50px"
+            top: "10px",
+            left: "50px",
           }}
-          onDuplicate={() => handleCreateClass({...sceneData, id: id}, (msg) => alert(msg))}
+          onDuplicate={() =>
+            handleCreateClass({ ...sceneData, id: id }, (msg) => alert(msg))
+          }
         />
       )}
 
