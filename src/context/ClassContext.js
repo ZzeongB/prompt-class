@@ -380,22 +380,19 @@ export const ClassProvider = ({ children }) => {
               // 업데이트된 sceneGraph
               const updatedSceneGraph =
                 updates.sceneGraph || instance.sceneGraph;
-
               // 클래스 템플릿을 현재 인스턴스의 originalSceneGraph 값으로 복원한 "기본" sceneGraph 생성
-              // placeholders 전달 추가
               const baseSceneGraph = createResolvedBaseSceneGraph(
                 classData.template.sceneGraph,
                 instance.originalSceneGraph,
-                classData.placeholders // placeholders 전달
+                classData.placeholders
               );
-
               // 기본값과 현재값 비교하여 override 계산
               const newOverrides = findSceneGraphDifferences(
                 baseSceneGraph,
                 updatedSceneGraph
               );
 
-              return {
+              const updatedInstance = {
                 ...instance,
                 ...updates,
                 overrides: {
@@ -407,6 +404,7 @@ export const ClassProvider = ({ children }) => {
                     : {}),
                 },
               };
+              return updatedInstance;
             }
           }
 
@@ -555,7 +553,7 @@ export const ClassProvider = ({ children }) => {
 
     return resolved;
   };
-  // 차이점 찾기 함수 개선
+  // 1. findSceneGraphDifferences 함수 개선 (더 정확한 비교)
   const findSceneGraphDifferences = (original, current) => {
     const differences = {};
 
@@ -565,8 +563,8 @@ export const ClassProvider = ({ children }) => {
     }
 
     if (original.objects.length !== current.objects.length) {
-      // 객체 개수가 다르면 전체를 override로 처리할 수도 있지만,
-      // 여기서는 기존 로직을 유지
+      // 객체 개수가 다르면 전체적인 변경으로 처리
+      differences["structure"] = "modified";
     }
 
     // 각 객체 비교
@@ -576,16 +574,22 @@ export const ClassProvider = ({ children }) => {
       if (!currentObj) {
         return;
       }
-
-      // 이름 비교
+      // 이름 비교 (정확한 문자열 비교)
       if (originalObj.name !== currentObj.name) {
         differences[`objects.${index}.name`] = currentObj.name;
       }
 
-      // attributes 비교
-      if (originalObj.attributes && currentObj.attributes) {
-        originalObj.attributes.forEach((originalAttr, attrIndex) => {
-          const currentAttr = currentObj.attributes[attrIndex];
+      // attributes 비교 (배열 길이 및 각 요소 비교)
+      const originalAttrs = originalObj.attributes || [];
+      const currentAttrs = currentObj.attributes || [];
+
+      // 배열 길이가 다른 경우
+      if (originalAttrs.length !== currentAttrs.length) {
+        differences[`objects.${index}.attributes`] = currentAttrs;
+      } else {
+        // 각 attribute 비교
+        originalAttrs.forEach((originalAttr, attrIndex) => {
+          const currentAttr = currentAttrs[attrIndex];
 
           if (currentAttr !== undefined && originalAttr !== currentAttr) {
             differences[`objects.${index}.attributes.${attrIndex}`] =
@@ -597,17 +601,74 @@ export const ClassProvider = ({ children }) => {
 
     return differences;
   };
-  // override 계산
-  const calculateOverrides = (
-    originalSceneGraph,
-    currentSceneGraph,
-    existingOverrides
-  ) => {
-    const differences = findSceneGraphDifferences(
-      originalSceneGraph,
-      currentSceneGraph
-    );
-    return { ...existingOverrides, ...differences };
+
+  // 3. applySceneGraphDifferences 함수 개선 (override 적용)
+  const applySceneGraphDifferences = (baseSceneGraph, differences) => {
+    const result = deepCloneSceneGraph(baseSceneGraph);
+
+    Object.keys(differences).forEach((path) => {
+      const value = differences[path];
+      const pathParts = path.split(".");
+
+      if (pathParts[0] === "objects") {
+        const objectIndex = parseInt(pathParts[1]);
+        const property = pathParts[2];
+
+        if (result.objects && result.objects[objectIndex]) {
+          if (property === "name") {
+            result.objects[objectIndex].name = value;
+          } else if (property === "attributes") {
+            if (pathParts[3] !== undefined) {
+              // 개별 attribute 수정
+              const attrIndex = parseInt(pathParts[3]);
+              if (result.objects[objectIndex].attributes) {
+                result.objects[objectIndex].attributes[attrIndex] = value;
+              }
+            } else {
+              result.objects[objectIndex].attributes = [...value];
+            }
+          }
+        }
+      } else if (path === "structure") {
+        // 구조적 변경인 경우 - 특별한 처리가 필요할 수 있음
+        console.log("Structural change detected");
+      }
+    });
+
+    return result;
+  };
+
+  // 4. deepCloneSceneGraph 함수에 ID 보존 로직 추가
+  const deepCloneSceneGraph = (sceneGraph) => {
+    if (!sceneGraph || !sceneGraph.objects) {
+      return { objects: [], relationships: [] };
+    }
+
+    const newObjects = sceneGraph.objects.map((obj) => ({
+      id: obj.id, // ID 보존 (새로 생성하지 않음)
+      name: obj.name,
+      attributes: [...(obj.attributes || [])],
+      // 기타 속성들도 보존
+      ...(obj.defaultName && { defaultName: obj.defaultName }),
+      ...(obj.isPlaceholder && { isPlaceholder: obj.isPlaceholder }),
+      ...(obj.defaultAttributes && {
+        defaultAttributes: [...obj.defaultAttributes],
+      }),
+    }));
+
+    const newRelationships = (sceneGraph.relationships || []).map((rel) => ({
+      source: rel.source,
+      target: rel.target,
+      relation: rel.relation,
+    }));
+
+    const cloned = {
+      objects: newObjects,
+      relationships: newRelationships,
+    };
+
+    console.log("Cloned result:", cloned);
+    return cloned;
   };
 
   const duplicateInstance = (instanceData) => {

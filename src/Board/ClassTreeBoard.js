@@ -39,9 +39,16 @@ const ClassCard = ({
   const connectedInstances = instances.filter(
     (inst) => inst.classId === classData.id
   );
-  const instancesWithOverrides = connectedInstances.filter(
-    (inst) => inst.overrides && Object.keys(inst.overrides).length > 0
-  ).length;
+  // const instancesWithOverrides = connectedInstances.filter(
+  //   (inst) => inst.overrides && Object.keys(inst.overrides).length > 0
+  // ).length;
+
+  
+  const instancesWithOverrides = connectedInstances.filter((inst) => {
+    const hasOverrides = inst.overrides && Object.keys(inst.overrides).length > 0;
+    return hasOverrides;
+  });
+
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -296,8 +303,6 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
     useClassContext();
   const [selectedClass, setSelectedClass] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  console.log("classes", classes, "instances", instances)
 
   const handleCreateInstance = (classData) => {
     setSelectedClass(classData);
