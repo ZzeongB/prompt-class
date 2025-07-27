@@ -1,11 +1,9 @@
 import { useReactFlow } from "@xyflow/react";
 import { duplicateNodesWithMapping } from "../../utils/node/duplicateUtils";
-import { useInstanceGraph } from "../../context/InstanceGraphContext";
 import BaseNode from "./BaseNode";
 
 export default function LayoutNode({ id, data }) {
   const { getNodes, setNodes, deleteElements } = useReactFlow();
-  const { setInstanceNodes, setHighlight } = useInstanceGraph();
 
   const handleDelete = () => {
     const nodes = getNodes();
@@ -18,7 +16,6 @@ export default function LayoutNode({ id, data }) {
 
     // ✅ InstanceGraphContext에도 반영
     const remaining = nodes.filter((n) => !toDelete.includes(n));
-    setInstanceNodes(remaining);
   };
 
   const handleDuplicate = () => {
@@ -49,8 +46,6 @@ export default function LayoutNode({ id, data }) {
         alert("최대 10개의 노드까지만 생성할 수 있습니다.");
         return prev;
       }
-
-      setInstanceNodes(updated);
       return updated;
     });
   };
@@ -70,14 +65,9 @@ export default function LayoutNode({ id, data }) {
             }
           : node
       );
-
-      setInstanceNodes(updated); // ✅ InstanceGraphContext에도 반영
       return updated;
     });
   };
-
-  const handleClick = () => setHighlight(id);
-  const handleClickCancel = () => setHighlight(null);
 
   return (
     <BaseNode
@@ -87,8 +77,6 @@ export default function LayoutNode({ id, data }) {
       onDelete={handleDelete}
       onDuplicate={handleDuplicate}
       onLableUpdate={handleLabelUpdate}
-      onClickProp={handleClick}
-      onClickCancelProp={handleClickCancel}
       fontSize={10}
     />
   );

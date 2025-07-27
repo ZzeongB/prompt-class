@@ -11,8 +11,6 @@ import "@xyflow/react/dist/style.css";
 import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
 import LayoutNode from "../components/nodes/LayoutNode";
 import ResizableNode from "../components/nodes/ResizableNode";
-import { useClassGraph } from "../context/ClassGraphContext";
-import { useInstanceGraph } from "../context/InstanceGraphContext";
 import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
 import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 import { generateImageFromInstanceData } from "../api/generateImage";
