@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import ObjectNode from "./nodes/ObjectNode";
 import RelationshipNode from "./nodes/RelationshipNode";
-import { isEditable } from "@testing-library/user-event/dist/utils";
 
 export default function SceneGraphVisualizer({
   sceneGraph,
@@ -74,7 +73,7 @@ export default function SceneGraphVisualizer({
     return positions;
   }, [sceneGraph]);
 
-  const nodeWidth = 75;
+  const nodeWidth = isClassMode ? 90 : 75; // Class mode에서는 조금 더 넓게
   const nodeHeight = 60;
 
   const boundingSize = useMemo(() => {
@@ -92,7 +91,7 @@ export default function SceneGraphVisualizer({
       width: maxX, // 여유 padding
       height: maxY,
     };
-  }, [objectPositions]);
+  }, [objectPositions, nodeWidth]);
 
   return (
     <div
@@ -172,6 +171,8 @@ export default function SceneGraphVisualizer({
                 setHoveredObject(hovered ? obj.id : null)
               }
               isEditable={isEditable}
+              isClassMode={isClassMode}
+              placeHolders={placeHolders}
             />
           </div>
         );

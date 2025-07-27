@@ -13,12 +13,15 @@ const ObjectNode = ({
   isEditing,
   setIsEditing,
   isEditable,
+  isClassMode = false,
+  placeHolders = null,
 }) => {
   const [editValue, setEditValue] = useState(object.name);
   const [newAttributeValue, setNewAttributeValue] = useState("");
   const [addingAttribute, setAddingAttribute] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [editingAttributeIndex, setEditingAttributeIndex] = useState(null);
+  
   useEffect(() => {
     setEditValue(object.name);
   }, [object.name]);
@@ -49,16 +52,137 @@ const ObjectNode = ({
     onEdit?.(object.id, object.name, updated);
   };
 
+  // Class mode에서 attribute를 {label} : default value 형태로 렌더링
+  const renderClassAttribute = (attr, index) => {
+    // placeHolders에서 attr에서 {}를 제거한 string을 value로 갖는 Key를 찾기
+    const cleanAttr = attr.replace(/[{}]/g, ''); // {gender} → gender
+    const defaultValue = Object.keys(placeHolders || {}).find(key => placeHolders[key] === cleanAttr) || "?";
+    const label = cleanAttr;
+    
+    return (
+      <div
+        key={index}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 4,
+          marginBottom: 2,
+        }}
+      >
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 3,
+          flex: 1,
+        }}>
+          {/* Label part - instance와 같은 색상, 다른 테두리 */}
+          <div style={{
+            border: "2px dashed #93c5fd", // 점선 테두리로 구분
+            backgroundColor: "#dbeafe",
+            color: "#1e40af",
+            borderRadius: "4px",
+            padding: "2px 4px",
+            fontSize: "11px",
+            fontWeight: "600",
+            minWidth: "20px",
+            textAlign: "center",
+          }}>
+            {label}
+          </div>
+          
+          {/* Colon separator */}
+          <span style={{
+            fontSize: "10px",
+            color: "#6b7280",
+            fontWeight: "bold",
+          }}>:</span>
+          
+          {/* Default value part - instance와 같은 색상, 다른 테두리 */}
+          <div style={{
+            border: "2px dotted #93c5fd", // 점점선 테두리로 구분
+            backgroundColor: "#dbeafe",
+            color: "#1e40af",
+            borderRadius: "4px",
+            padding: "2px 4px",
+            fontSize: "11px",
+            fontWeight: "500",
+            minWidth: "15px",
+            textAlign: "center",
+          }}>
+            {defaultValue}
+          </div>
+        </div>
+        
+        {isHovered && isEditable && (
+          <DeleteButton
+            onClick={() => handleDeleteAttribute(index)}
+            size={10}
+            title="Delete Attribute"
+          />
+        )}
+      </div>
+    );
+  };
+
+  // Instance mode에서 기존대로 attribute 렌더링
+  const renderInstanceAttribute = (attr, index) => (
+    <div
+      key={index}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 6,
+      }}
+    >
+      <EditableLabel
+        value={attr}
+        onSave={(val) => handleEditAttribute(index, val)}
+        textStyle={{
+          border: "1px solid #93c5fd",
+          backgroundColor: "#dbeafe",
+          color: "#1e40af",
+          borderRadius: "4px",
+          padding: "2px 6px",
+          fontSize: "11px",
+          fontWeight: 500,
+          width: "60px",
+        }}
+        isEditable={isEditable}
+      />
+      {isHovered && isEditable && (
+        <DeleteButton
+          onClick={() => handleDeleteAttribute(index)}
+          size={10}
+          title="Delete Attribute"
+        />
+      )}
+    </div>
+  );
+
+  // Class mode에서는 다른 색상 스키마 사용
+  const nodeStyle = isClassMode ? {
+    border: "2px dashed #fca5a5", // 점선 테두리로 구분
+    borderRadius: "6px",
+    padding: "5px",
+    backgroundColor: isHovered ? "#fecaca" : "#fed7d7",
+    marginBottom: "0px",
+    maxWidth: "90px", // Class mode에서는 조금 더 넓게
+  } : {
+    border: "1px solid #fca5a5",
+    borderRadius: "6px",
+    padding: "5px",
+    backgroundColor: isHovered ? "#fecaca" : "#fed7d7",
+    marginBottom: "0px",
+    maxWidth: "80px",
+  };
+
+  const headerColor = "#7f1d1d"; // instance와 동일한 색상
+
   return (
     <div
-      style={{
-        border: "1px solid #fca5a5",
-        borderRadius: "6px",
-        padding: "5px",
-        backgroundColor: isHovered ? "#fecaca" : "#fed7d7",
-        marginBottom: "0px",
-        maxWidth: "80px",
-      }}
+      style={nodeStyle}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -77,7 +201,7 @@ const ObjectNode = ({
               onClick={() => setAddingAttribute(true)}
               style={{
                 background: "#dbeafe",
-                border: "1px solid #93c5fd",
+                border: isClassMode ? "2px dashed #93c5fd" : "1px solid #93c5fd",
                 borderRadius: "3px",
                 width: "18px",
                 height: "18px",
@@ -102,44 +226,14 @@ const ObjectNode = ({
       {/* Attributes */}
       {expanded && (
         <div style={{ marginTop: "2px" }}>
-          {object.attributes?.map((attr, index) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 6,
-                // marginLeft: 3,
-              }}
-            >
-              <EditableLabel
-                value={attr}
-                onSave={(val) => handleEditAttribute(index, val)}
-                textStyle={{
-                  border: "1px solid #93c5fd",
-                  backgroundColor: "#dbeafe",
-                  color: "#1e40af",
-                  borderRadius: "4px",
-                  padding: "2px 6px",
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  width: "60px",
-                }}
-                isEditable={isEditable}
-              />
-              {isHovered && isEditable &&  (
-                <DeleteButton
-                  onClick={() => handleDeleteAttribute(index)}
-                  size={10}
-                  title="Delete Attribute"
-                />
-              )}
-            </div>
-          ))}
+          {object.attributes?.map((attr, index) => 
+            isClassMode 
+              ? renderClassAttribute(attr, index)
+              : renderInstanceAttribute(attr, index)
+          )}
 
           {addingAttribute && (
-            <div style={{ marginTop: 3,}}>
+            <div style={{ marginTop: 3 }}>
               <input
                 value={newAttributeValue}
                 onChange={(e) => setNewAttributeValue(e.target.value)}
@@ -158,11 +252,11 @@ const ObjectNode = ({
                   }
                 }}
                 autoFocus
-                placeholder="new attribute"
+                placeholder={isClassMode ? "new label" : "new attribute"}
                 style={{
                   fontSize: "11px",
                   padding: "1px 3px",
-                  border: "1px solid #3b82f6",
+                  border: isClassMode ? "2px dashed #3b82f6" : "1px solid #3b82f6",
                   borderRadius: "4px",
                   backgroundColor: "#ffffff",
                   color: "#1f2937",
@@ -186,7 +280,7 @@ const ObjectNode = ({
           alignItems: "center",
         }}
       >
-        <div style={{ fontSize: "11px", fontWeight: "500", color: "#7f1d1d" }}>
+        <div style={{ fontSize: "11px", fontWeight: "500", color: headerColor }}>
           {isEditing ? (
             <EditableLabel
               value={editValue}
@@ -199,7 +293,47 @@ const ObjectNode = ({
                 if (isEditable) setIsEditing(true);
               }}
             >
-              {object.name}
+              {isClassMode ? (
+                // Class mode에서는 {label} : default value 형태로 렌더링
+                (() => {
+                  const cleanName = object.name.replace(/[{}]/g, ''); // {person} → person
+                  const defaultValue = Object.keys(placeHolders || {}).find(key => placeHolders[key] === cleanName) || "?";
+                  return (
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 3,
+                      justifyContent: "center",
+                    }}>
+                      <span style={{
+                        border: "2px dashed #fca5a5",
+                        backgroundColor: "#fed7d7",
+                        color: "#7f1d1d",
+                        borderRadius: "3px",
+                        padding: "1px 3px",
+                        fontSize: "10px",
+                        fontWeight: "600",
+                      }}>
+                        {cleanName}
+                      </span>
+                      <span style={{ fontSize: "9px", fontWeight: "bold" }}>:</span>
+                      <span style={{
+                        border: "2px dotted #fca5a5",
+                        backgroundColor: "#fed7d7",
+                        color: "#7f1d1d",
+                        borderRadius: "3px",
+                        padding: "1px 3px",
+                        fontSize: "10px",
+                        fontWeight: "500",
+                      }}>
+                        {defaultValue}
+                      </span>
+                    </div>
+                  );
+                })()
+              ) : (
+                object.name
+              )}
             </div>
           )}
         </div>
@@ -209,7 +343,7 @@ const ObjectNode = ({
             background: "none",
             border: "none",
             cursor: "pointer",
-            color: "#7f1d1d",
+            color: headerColor,
           }}
           title={expanded ? "Collapse" : "Expand"}
         >

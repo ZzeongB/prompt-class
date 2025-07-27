@@ -190,7 +190,7 @@ const ClassCard = ({
           }
           isEditable={isEditing}
           isClassMode={true}
-          placeholders={classData.placeholders}
+          placeHolders={classData.placeholders}
         />
       </div>
 
