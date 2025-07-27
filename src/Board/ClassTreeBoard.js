@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Edit, RotateCcw, Check, X } from "lucide-react";
 import { useClassContext } from "../context/ClassContext";
 import PanelTemplate from "../components/PanelTemplate";
-import HoverButton from "../components/nodeComponents/HoverButton";
+import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
 import { CreateInstanceModal } from "../components/modal/CreateInstanceModal";
 
 const ClassCardToolbar = ({
@@ -26,13 +26,19 @@ const ClassCardToolbar = ({
         position: "absolute",
         top: "8px",
         right: "8px",
-        zIndex: 10,
+        zIndex: 1000, // z-index 증가
+        backgroundColor: "rgba(255, 255, 255, 0.9)", // 배경 추가
+        padding: "4px",
+        borderRadius: "6px",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)", // 그림자 추가
       }}
     >
       {isEditing ? (
         <>
-          <HoverButton
+          <ToolbarButton
             onClick={onSaveEdit}
+            title="Save Changes"
+            icon={<Check size={12} />}
             style={{
               backgroundColor: "#10b981",
               color: "white",
@@ -44,13 +50,12 @@ const ClassCardToolbar = ({
               justifyContent: "center",
               fontSize: "12px",
             }}
-            title="Save Changes"
-          >
-            <Check size={12} />
-          </HoverButton>
+          />
           
-          <HoverButton
+          <ToolbarButton
             onClick={onCancelEdit}
+            title="Cancel Edit"
+            icon={<X size={12} />}
             style={{
               backgroundColor: "#6b7280",
               color: "white",
@@ -62,15 +67,14 @@ const ClassCardToolbar = ({
               justifyContent: "center",
               fontSize: "12px",
             }}
-            title="Cancel Edit"
-          >
-            <X size={12} />
-          </HoverButton>
+          />
         </>
       ) : (
         <>
-          <HoverButton
+          <ToolbarButton
             onClick={onCreateInstance}
+            title="Create Instance"
+            icon={<Plus size={12} />}
             style={{
               backgroundColor: "#3b82f6",
               color: "white",
@@ -82,69 +86,65 @@ const ClassCardToolbar = ({
               justifyContent: "center",
               fontSize: "12px",
             }}
-            title="Create Instance"
-          >
-            <Plus size={12} />
-          </HoverButton>
+          />
 
-          <HoverButton
+          <ToolbarButton
             onClick={onEdit}
-            // style={{
-            //   backgroundColor: "#10b981",
-            //   color: "white",
-            //   width: "24px",
-            //   height: "24px",
-            //   borderRadius: "4px",
-            //   display: "flex",
-            //   alignItems: "center",
-            //   justifyContent: "center",
-            //   fontSize: "12px",
-            // }}
             title="Edit Class"
-          >
-            <Edit size={12} />
-          </HoverButton>
+            icon={<Edit size={12} />}
+            style={{
+              backgroundColor: "#10b981",
+              color: "white",
+              width: "24px",
+              height: "24px",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "12px",
+            }}
+          />
 
-          <HoverButton
+          <ToolbarButton
             onClick={onResetInstances}
-            // style={{
-            //   backgroundColor: "#f59e0b",
-            //   color: "white",
-            //   width: "24px",
-            //   height: "24px",
-            //   borderRadius: "4px",
-            //   display: "flex",
-            //   alignItems: "center",
-            //   justifyContent: "center",
-            //   fontSize: "12px",
-            // }}
             title="Reset All Instances"
-          >
-            <RotateCcw size={12} />
-          </HoverButton>
+            icon={<RotateCcw size={12} />}
+            style={{
+              backgroundColor: "#f59e0b",
+              color: "white",
+              width: "24px",
+              height: "24px",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "12px",
+            }}
+          />
 
-          <HoverButton
+          <ToolbarButton
             onClick={onDelete}
-            // style={{
-            //   backgroundColor: "#ef4444",
-            //   color: "white",
-            //   width: "24px",
-            //   height: "24px",
-            //   borderRadius: "4px",
-            //   display: "flex",
-            //   alignItems: "center",
-            //   justifyContent: "center",
-            //   fontSize: "12px",
-            // }}
             title="Delete Class"
-          >
-            <Trash2 size={12} />
-          </HoverButton>
+            icon={<Trash2 size={12} />}
+            style={{
+              backgroundColor: "#ef4444",
+              color: "white",
+              width: "24px",
+              height: "24px",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "12px",
+            }}
+            danger
+          />
         </>
       )}
     </div>
   );
 };
+
 
 const ClassCard = ({
   classData,
@@ -157,7 +157,7 @@ const ClassCard = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
-  
+
   const { updateClass, instances } = useClassContext();
 
   // 편집용 임시 상태
@@ -168,11 +168,13 @@ const ClassCard = ({
   });
 
   // 실제 표시용 데이터
-  const sceneData = isEditing ? tempSceneData : {
-    instanceLabel: classData.template?.instanceLabel || classData.name,
-    sceneGraph: classData.template?.sceneGraph || {},
-    textDescription: classData.template?.textDescription || "",
-  };
+  const sceneData = isEditing
+    ? tempSceneData
+    : {
+        instanceLabel: classData.template?.instanceLabel || classData.name,
+        sceneGraph: classData.template?.sceneGraph || {},
+        textDescription: classData.template?.textDescription || "",
+      };
 
   // 이 클래스의 인스턴스 개수 계산
   const instanceCount = instances.filter(
@@ -244,21 +246,21 @@ const ClassCard = ({
   };
 
   const handleInstanceLabelChange = (newLabel) => {
-    setTempSceneData(prev => ({
+    setTempSceneData((prev) => ({
       ...prev,
       instanceLabel: newLabel,
     }));
   };
 
   const handleDescriptionChange = (newDescription) => {
-    setTempSceneData(prev => ({
+    setTempSceneData((prev) => ({
       ...prev,
       textDescription: newDescription,
     }));
   };
 
   const handleSceneGraphChange = (newSceneGraph) => {
-    setTempSceneData(prev => ({
+    setTempSceneData((prev) => ({
       ...prev,
       sceneGraph: newSceneGraph,
     }));
@@ -279,9 +281,11 @@ const ClassCard = ({
   const handleDummySetState = () => {};
 
   // 연결된 인스턴스들의 override 상태 계산
-  const connectedInstances = instances.filter(inst => inst.classId === classData.id);
-  const instancesWithOverrides = connectedInstances.filter(inst => 
-    inst.overrides && Object.keys(inst.overrides).length > 0
+  const connectedInstances = instances.filter(
+    (inst) => inst.classId === classData.id
+  );
+  const instancesWithOverrides = connectedInstances.filter(
+    (inst) => inst.overrides && Object.keys(inst.overrides).length > 0
   ).length;
 
   return (
@@ -310,9 +314,9 @@ const ClassCard = ({
       >
         <div>
           <div
-            style={{ 
-              fontSize: "12px", 
-              fontWeight: "600", 
+            style={{
+              fontSize: "12px",
+              fontWeight: "600",
               color: isEditing ? "#1d4ed8" : "#1e293b",
               display: "flex",
               alignItems: "center",
@@ -322,13 +326,15 @@ const ClassCard = ({
             {isEditing && <Edit size={12} />}
             {classData.name}
             {isEditing && (
-              <span style={{ 
-                fontSize: "10px", 
-                backgroundColor: "#3b82f6", 
-                color: "white", 
-                padding: "2px 6px", 
-                borderRadius: "10px" 
-              }}>
+              <span
+                style={{
+                  fontSize: "10px",
+                  backgroundColor: "#3b82f6",
+                  color: "white",
+                  padding: "2px 6px",
+                  borderRadius: "10px",
+                }}
+              >
                 Editing
               </span>
             )}
@@ -336,11 +342,13 @@ const ClassCard = ({
           <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px" }}>
             {instanceCount} instance{instanceCount !== 1 ? "s" : ""}
             {instancesWithOverrides > 0 && (
-              <span style={{ 
-                marginLeft: "8px", 
-                color: "#f59e0b",
-                fontWeight: "500"
-              }}>
+              <span
+                style={{
+                  marginLeft: "8px",
+                  color: "#f59e0b",
+                  fontWeight: "500",
+                }}
+              >
                 • {instancesWithOverrides} with overrides
               </span>
             )}
@@ -348,11 +356,13 @@ const ClassCard = ({
         </div>
 
         {isUpdating && (
-          <div style={{
-            fontSize: "10px",
-            color: "#6b7280",
-            fontStyle: "italic"
-          }}>
+          <div
+            style={{
+              fontSize: "10px",
+              color: "#6b7280",
+              fontStyle: "italic",
+            }}
+          >
             Updating instances...
           </div>
         )}
@@ -400,38 +410,45 @@ const ClassCard = ({
 
       {/* 편집 모드 표시 */}
       {isEditing && (
-        <div style={{
-          position: "absolute",
-          bottom: "8px",
-          left: "12px",
-          fontSize: "10px",
-          color: "#3b82f6",
-          fontWeight: "500",
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-        }}>
-          <div style={{
-            width: "6px",
-            height: "6px",
-            backgroundColor: "#3b82f6",
-            borderRadius: "50%",
-            animation: "pulse 2s infinite",
-          }} />
-          Changes will apply to {instanceCount} instance{instanceCount !== 1 ? 's' : ''}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "8px",
+            left: "12px",
+            fontSize: "10px",
+            color: "#3b82f6",
+            fontWeight: "500",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+          }}
+        >
+          <div
+            style={{
+              width: "6px",
+              height: "6px",
+              backgroundColor: "#3b82f6",
+              borderRadius: "50%",
+              animation: "pulse 2s infinite",
+            }}
+          />
+          Changes will apply to {instanceCount} instance
+          {instanceCount !== 1 ? "s" : ""}
         </div>
       )}
 
       {/* 실시간 인스턴스 업데이트 표시 */}
       {connectedInstances.length > 0 && !isEditing && (
-        <div style={{
-          position: "absolute",
-          bottom: "8px",
-          right: "12px",
-          fontSize: "9px",
-          color: "#9ca3af",
-          fontStyle: "italic",
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: "8px",
+            right: "12px",
+            fontSize: "9px",
+            color: "#9ca3af",
+            fontStyle: "italic",
+          }}
+        >
           Last sync: {new Date(lastUpdateTime).toLocaleTimeString()}
         </div>
       )}
@@ -495,9 +512,9 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
   };
 
   // 전체 통계 계산
-  const totalInstances = instances.filter(i => i.isFromClass).length;
-  const totalOverrides = instances.filter(i => 
-    i.isFromClass && i.overrides && Object.keys(i.overrides).length > 0
+  const totalInstances = instances.filter((i) => i.isFromClass).length;
+  const totalOverrides = instances.filter(
+    (i) => i.isFromClass && i.overrides && Object.keys(i.overrides).length > 0
   ).length;
 
   return (
@@ -605,7 +622,8 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
 
       <style jsx>{`
         @keyframes pulse {
-          0%, 100% {
+          0%,
+          100% {
             opacity: 1;
           }
           50% {
