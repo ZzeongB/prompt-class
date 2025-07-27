@@ -1,3 +1,4 @@
+// 2. SceneGraphVisualizer.js에 드래그 처리 추가
 import React, { useMemo, useState } from "react";
 import ObjectNode from "./nodes/ObjectNode";
 import RelationshipNode from "./nodes/RelationshipNode";
@@ -8,12 +9,17 @@ export default function SceneGraphVisualizer({
   isEditable = true,
   isClassMode = false,
   placeHolders = null,
+  // 새로운 드래그 관련 props
+  onObjectDragStart,
+  onObjectDragEnd,
+  instanceId, // 현재 인스턴스 ID
 }) {
   const [hoveredObject, setHoveredObject] = useState(null);
   const [hoveredRelationship, setHoveredRelationship] = useState(null);
   const [editingObject, setEditingObject] = useState(null);
+  const [draggingObject, setDraggingObject] = useState(null);
 
-  // 편집 함수들 추가
+  // 편집 함수들
   const handleObjectEdit = (objectId, newName, newAttributes = null, newPlaceHolders = null) => {    
     const updatedGraph = {
       ...sceneGraph,
@@ -28,8 +34,6 @@ export default function SceneGraphVisualizer({
       ),
     };
         
-    // placeHolders 업데이트가 필요한 경우 부모 컴포넌트에서 처리해야 할 수도 있음
-    // 일단 기본 함수 호출 (부모에서 placeHolders 처리하도록)
     if (newPlaceHolders) {
       onSceneGraphChange(updatedGraph, newPlaceHolders);
     } else {
@@ -58,6 +62,21 @@ export default function SceneGraphVisualizer({
       ),
     };
     onSceneGraphChange(updatedGraph);
+  };
+
+  // 드래그 이벤트 핸들러
+  const handleObjectDragStart = (object, sourceInstanceId) => {
+    console.log("Object drag started:", object, "from instance:", sourceInstanceId);
+    setDraggingObject(object);
+    onObjectDragStart?.(object, sourceInstanceId);
+  };
+
+  const handleObjectDragEnd = (object, sourceInstanceId, dropPosition) => {
+    console.log("Object drag ended:", object, "at position:", dropPosition);
+    setDraggingObject(null);
+    
+    // 부모 컴포넌트(InstancePanelNode)에 드래그 완료 알림
+    onObjectDragEnd?.(object, sourceInstanceId, dropPosition);
   };
  
   // DAG 기반 레벨 계산
@@ -121,14 +140,13 @@ export default function SceneGraphVisualizer({
     return positions;
   }, [sceneGraph]);
 
-  const nodeWidth = isClassMode ? 90 : 75; // Class mode에서는 조금 더 넓게
+  const nodeWidth = isClassMode ? 90 : 75;
   const nodeHeight = 60;
 
   const boundingSize = useMemo(() => {
     let maxX = 0,
       maxY = 0;
 
-    // ObjectNode 기준
     for (const pos of Object.values(objectPositions)) {
       if (!pos) continue;
       maxX = Math.max(maxX, pos.x + nodeWidth);
@@ -136,8 +154,8 @@ export default function SceneGraphVisualizer({
     }
 
     return {
-      width: maxX, // 여유 padding
-      height: maxY,
+      width: Math.max(maxX, 200), // 최소 너비 보장
+      height: Math.max(maxY, 100), // 최소 높이 보장
     };
   }, [objectPositions, nodeWidth]);
 
@@ -148,8 +166,37 @@ export default function SceneGraphVisualizer({
         width: boundingSize.width,
         height: boundingSize.height,
         background: "#f8fafc",
+        borderRadius: "6px",
+        border: draggingObject ? "2px dashed #3b82f6" : "1px solid transparent",
+        transition: "border 0.2s ease",
       }}
     >
+      {/* 드래그 중일 때 드롭 존 표시 */}
+      {draggingObject && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(59, 130, 246, 0.05)",
+            border: "2px dashed #3b82f6",
+            borderRadius: "6px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "12px",
+            color: "#3b82f6",
+            fontWeight: "500",
+            pointerEvents: "none",
+            zIndex: 100,
+          }}
+        >
+          Drop here to extract object
+        </div>
+      )}
+
       {/* 선 그리기 */}
       <svg
         style={{
@@ -201,6 +248,10 @@ export default function SceneGraphVisualizer({
       {sceneGraph.objects.map((obj) => {
         const pos = objectPositions[obj.id];
         if (!pos) return null;
+        
+        // 드래그 중인 객체는 반투명하게 표시
+        const isDraggingThis = draggingObject?.id === obj.id;
+        
         return (
           <div
             key={obj.id}
@@ -210,6 +261,8 @@ export default function SceneGraphVisualizer({
               left: pos.x,
               width: nodeWidth,
               height: nodeHeight,
+              opacity: isDraggingThis ? 0.3 : 1,
+              transition: "opacity 0.2s ease",
             }}
           >
             <ObjectNode
@@ -228,6 +281,11 @@ export default function SceneGraphVisualizer({
               isEditable={isEditable}
               isClassMode={isClassMode}
               placeHolders={placeHolders}
+              // 드래그 관련 props 전달
+              onDragStart={handleObjectDragStart}
+              onDragEnd={handleObjectDragEnd}
+              isDraggable={!isClassMode} // 클래스 모드에서는 드래그 비활성화
+              parentInstanceId={instanceId}
             />
           </div>
         );

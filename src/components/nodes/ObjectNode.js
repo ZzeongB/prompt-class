@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// 1. ObjectNode.js에 드래그 기능 추가
+import React, { useState, useEffect, useRef } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import EditableLabel from "../nodeComponents/EditableLabel";
 import DeleteButton from "../nodeComponents/DeleteButton";
@@ -15,56 +16,111 @@ const ObjectNode = ({
   isEditable,
   isClassMode = false,
   placeHolders = null,
+  // 새로운 드래그 관련 props
+  onDragStart,
+  onDragEnd,
+  isDraggable = true,
+  parentInstanceId, // 어떤 instance에서 왔는지 추적
 }) => {
+  // 기존 상태들...
   const [editValue, setEditValue] = useState(object.name);
   const [newAttributeValue, setNewAttributeValue] = useState("");
   const [addingAttribute, setAddingAttribute] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [editingAttributeIndex, setEditingAttributeIndex] = useState(null);
-
-  // 편집 중인 값들을 위한 상태
   const [editingObjectValue, setEditingObjectValue] = useState("");
   const [editingAttributeValue, setEditingAttributeValue] = useState("");
+  
+  // 드래그 관련 상태
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const dragRef = useRef(null);
+  const ghostRef = useRef(null);
 
+  // 드래그 시작
+  const handleMouseDown = (e) => {
+    if (!isDraggable || isEditing || editingAttributeIndex !== null || addingAttribute) {
+      return; // 편집 중일 때는 드래그 비활성화
+    }
+
+    // ReactFlow 노드 드래그 방지를 위해 이벤트 전파 차단
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = dragRef.current.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    
+    setDragOffset({ x: offsetX, y: offsetY });
+    setDragPosition({ x: e.clientX - offsetX, y: e.clientY - offsetY });
+    setIsDragging(true);
+    
+    onDragStart?.(object, parentInstanceId);
+    
+    // 전역 마우스 이벤트 리스너 추가
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    // ReactFlow 드래그 방지
+    document.body.style.userSelect = 'none';
+    document.body.style.pointerEvents = 'none';
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const newX = e.clientX - dragOffset.x;
+    const newY = e.clientY - dragOffset.y;
+    
+    setDragPosition({ x: newX, y: newY });
+  };
+
+  const handleMouseUp = (e) => {
+    if (!isDragging) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setIsDragging(false);
+    
+    // 드롭 위치 계산
+    const dropX = e.clientX;
+    const dropY = e.clientY;
+    
+    onDragEnd?.(object, parentInstanceId, { x: dropX, y: dropY });
+    
+    // 이벤트 리스너 제거 및 스타일 복원
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    document.body.style.userSelect = '';
+    document.body.style.pointerEvents = '';
+  };
+
+  // 컴포넌트 언마운트 시 이벤트 리스너 정리
   useEffect(() => {
-    setEditValue(object.name);
-  }, [object.name]);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
-  const handleSaveObjectName = () => {
-    handleSaveName(editingObjectValue);
+  // 기존 함수들은 그대로 유지...
+  const parseClassInput = (input) => {
+    const trimmed = input.trim();
+    const spaceIndex = trimmed.indexOf(" ");
+    if (spaceIndex !== -1) {
+      const placeholderLabel = trimmed.substring(0, spaceIndex).trim();
+      const defaultValue = trimmed.substring(spaceIndex + 1).trim();
+      return { placeholderLabel, defaultValue };
+    }
+    return { placeholderLabel: trimmed, defaultValue: "?" };
   };
 
-  const handleSaveAttribute = (index) => {
-    handleEditAttribute(index, editingAttributeValue);
-  };
-
-  const handleDeleteAttribute = (index) => {
-    const updated = object.attributes.filter((_, i) => i !== index);
-    onEdit?.(object.id, object.name, updated);
-  };
-  // // ObjectNode 컴포넌트에서 스타일 수정
-  // // 파싱 함수들을 엔터로 구분하도록 수정
-  // const parseClassInput = (input) => {
-  //   const trimmed = input.trim();
-
-  //   // 첫 번째 공백을 기준으로 분리
-  //   const spaceIndex = trimmed.indexOf(" ");
-
-  //   if (spaceIndex !== -1) {
-  //     const placeholderLabel = trimmed.substring(0, spaceIndex).trim();
-  //     const defaultValue = trimmed.substring(spaceIndex + 1).trim();
-
-  //     return { placeholderLabel, defaultValue };
-  //   }
-
-  //   // 공백이 없으면 기본값으로 처리
-  //   return { placeholderLabel: trimmed, defaultValue: "?" };
-  // };
-
-  // handleSaveName 수정
   const handleSaveName = (val) => {
-    console.log("handleSaveName called with:", val);
-
     if (!val || !val.trim()) {
       setIsEditing(false);
       setEditingObjectValue("");
@@ -73,7 +129,6 @@ const ObjectNode = ({
 
     if (isClassMode) {
       const { placeholderLabel, defaultValue } = parseClassInput(val);
-      console.log("Parsed:", { placeholderLabel, defaultValue });
       onEdit?.(object.id, `{${placeholderLabel}}`, object.attributes, {
         [defaultValue]: placeholderLabel,
       });
@@ -84,7 +139,6 @@ const ObjectNode = ({
     setEditingObjectValue("");
   };
 
-  // handleEditAttribute 수정
   const handleEditAttribute = (index, val) => {
     if (!isEditable) return;
 
@@ -104,7 +158,6 @@ const ObjectNode = ({
     setEditingAttributeValue("");
   };
 
-  // handleAddAttribute 수정
   const handleAddAttribute = () => {
     if (newAttributeValue.trim()) {
       if (isClassMode) {
@@ -127,34 +180,25 @@ const ObjectNode = ({
     }
   };
 
-  // 수정된 parseClassInput 함수
-  const parseClassInput = (input) => {
-    const trimmed = input.trim();
-
-    // 공백을 기준으로 분리 (기존 동작 유지)
-    const spaceIndex = trimmed.indexOf(" ");
-
-    if (spaceIndex !== -1) {
-      const placeholderLabel = trimmed.substring(0, spaceIndex).trim();
-      const defaultValue = trimmed.substring(spaceIndex + 1).trim();
-
-      return { placeholderLabel, defaultValue };
-    }
-
-    // 공백이 없으면 기본값으로 처리
-    return { placeholderLabel: trimmed, defaultValue: "?" };
+  const handleDeleteAttribute = (index) => {
+    const updated = object.attributes.filter((_, i) => i !== index);
+    onEdit?.(object.id, object.name, updated);
   };
 
-  // ObjectNode.js의 renderClassAttribute 함수 수정
+  const handleSaveObjectName = () => {
+    handleSaveName(editingObjectValue);
+  };
+
+  const handleSaveAttribute = (index) => {
+    handleEditAttribute(index, editingAttributeValue);
+  };
+
+  // 렌더링 함수들은 기존과 동일...
   const renderClassAttribute = (attr, index) => {
     const cleanAttr = attr.replace(/[{}]/g, "");
-
-    // placeHolders에서 올바른 defaultValue 찾기
-    // placeHolders는 { "defaultValue": "label" } 형태로 저장됨
-    const defaultValue =
-      Object.keys(placeHolders || {}).find(
-        (key) => placeHolders[key] === cleanAttr
-      ) || "?";
+    const defaultValue = Object.keys(placeHolders || {}).find(
+      (key) => placeHolders[key] === cleanAttr
+    ) || "?";
 
     if (editingAttributeIndex === index) {
       return (
@@ -221,13 +265,11 @@ const ObjectNode = ({
           onDoubleClick={() => {
             if (isEditable) {
               setEditingAttributeIndex(index);
-              // 편집할 때는 "label value" 형태로
               setEditingAttributeValue(`${cleanAttr} ${defaultValue}`);
             }
           }}
           title={`${cleanAttr}: ${defaultValue}`}
         >
-          {/* 라벨 */}
           <div
             style={{
               fontWeight: "600",
@@ -239,7 +281,6 @@ const ObjectNode = ({
           >
             {cleanAttr}
           </div>
-          {/* 값 (개행 문자 처리) */}
           <div
             style={{
               fontWeight: "400",
@@ -262,7 +303,7 @@ const ObjectNode = ({
       </div>
     );
   };
-  // renderInstanceAttribute 함수도 수정
+
   const renderInstanceAttribute = (attr, index) => (
     <div
       key={index}
@@ -272,12 +313,10 @@ const ObjectNode = ({
         justifyContent: "space-between",
         gap: 6,
         marginBottom: "2px",
-        width: "100%", // 추가
+        width: "100%",
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        {" "}
-        {/* 추가: wrapper div */}
         <EditableLabel
           value={attr}
           onSave={(val) => handleEditAttribute(index, val)}
@@ -289,12 +328,12 @@ const ObjectNode = ({
             padding: "2px 6px",
             fontSize: "11px",
             fontWeight: 500,
-            width: "100%", // 수정
-            maxWidth: "85px", // 추가
-            overflow: "hidden", // 추가
-            textOverflow: "ellipsis", // 추가
-            whiteSpace: "nowrap", // 추가
-            boxSizing: "border-box", // 추가
+            width: "100%",
+            maxWidth: "85px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            boxSizing: "border-box",
           }}
           isEditable={isEditable}
         />
@@ -309,7 +348,6 @@ const ObjectNode = ({
     </div>
   );
 
-  // renderObjectName 함수의 클래스 모드 부분 최종 수정
   const renderObjectName = () => {
     if (isEditing) {
       if (isClassMode) {
@@ -330,7 +368,7 @@ const ObjectNode = ({
               border: "2px solid #dc2626",
               backgroundColor: "#fed7d7",
               borderRadius: "4px",
-              padding: "3px 6px", // 패딩 증가
+              padding: "3px 6px",
               fontSize: "11px",
               textAlign: "center",
               color: "#7f1d1d",
@@ -349,7 +387,6 @@ const ObjectNode = ({
       }
     }
 
-    // 편집 모드가 아닐 때
     if (isClassMode) {
       const cleanName = object.name.replace(/[{}]/g, "");
       const defaultValue =
@@ -363,7 +400,7 @@ const ObjectNode = ({
             border: "2px dashed #fca5a5",
             backgroundColor: "#fed7d7",
             borderRadius: "4px",
-            padding: "3px 6px", // 패딩 증가
+            padding: "3px 6px",
             fontSize: "11px",
             textAlign: "center",
             cursor: isEditable ? "pointer" : "default",
@@ -371,14 +408,12 @@ const ObjectNode = ({
           }}
           onDoubleClick={() => {
             if (isEditable) {
-              // 수정: 공백으로 구분된 형태로 편집값 설정
               setEditingObjectValue(`${cleanName} ${defaultValue}`);
               setIsEditing(true);
             }
           }}
           title={`${cleanName}: ${defaultValue}`}
         >
-          {/* 두 줄로 깔끔하게 표시 */}
           <div
             style={{
               fontWeight: "600",
@@ -423,127 +458,165 @@ const ObjectNode = ({
     }
   };
 
-  // 노드 전체 스타일도 수정
   const nodeStyle = {
     border: isClassMode ? "2px dashed #fca5a5" : "1px solid #fca5a5",
     borderRadius: "6px",
     padding: "5px",
     backgroundColor: isHovered ? "#fecaca" : "#fed7d7",
     marginBottom: "0px",
-    maxWidth: isClassMode ? "100px" : "90px", // 수정: 약간 늘림
-    minWidth: "80px", // 추가: 최소 너비
-    boxSizing: "border-box", // 추가
-    overflow: "hidden", // 추가
+    maxWidth: isClassMode ? "100px" : "90px",
+    minWidth: "80px",
+    boxSizing: "border-box",
+    overflow: "hidden",
+    cursor: isDraggable && !isEditing && !addingAttribute && editingAttributeIndex === null 
+      ? (isDragging ? "grabbing" : "grab") 
+      : "default",
+    userSelect: "none",
+    transform: isDragging ? "scale(1.05)" : "scale(1)",
+    transition: isDragging ? "none" : "transform 0.2s ease",
+    opacity: isDragging ? 0.8 : 1,
+    zIndex: isDragging ? 1000 : 1,
+    // 드래그 중일 때 강조 표시
+    boxShadow: isDragging 
+      ? "0 8px 25px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(59, 130, 246, 0.3)" 
+      : "none",
   };
 
   return (
-    <div
-      style={nodeStyle}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Attributes */}
-      {expanded && (
-        <div style={{ marginBottom: "3px" }}>
-          {object.attributes?.map((attr, index) =>
-            isClassMode
-              ? renderClassAttribute(attr, index)
-              : renderInstanceAttribute(attr, index)
-          )}
-
-          {addingAttribute && (
-            <input
-              value={newAttributeValue}
-              onChange={(e) => setNewAttributeValue(e.target.value)}
-              onBlur={() => {
-                if (newAttributeValue.trim()) {
-                  handleAddAttribute();
-                } else {
-                  setAddingAttribute(false);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddAttribute();
-                if (e.key === "Escape") {
-                  setAddingAttribute(false);
-                  setNewAttributeValue("");
-                }
-              }}
-              autoFocus
-              placeholder={isClassMode ? "new label" : "new attribute"}
-              style={{
-                fontSize: "11px",
-                padding: "1px 3px",
-                border: isClassMode
-                  ? "2px dashed #3b82f6"
-                  : "1px solid #3b82f6",
-                borderRadius: "4px",
-                backgroundColor: "#ffffff",
-                color: "#1f2937",
-                fontFamily: "system-ui, -apple-system, sans-serif",
-                fontWeight: "500",
-                // width: "70px",
-                boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.1)",
-                textAlign: "center",
-                marginBottom: "2px",
-              }}
-            />
-          )}
-        </div>
-      )}
-      {/* Header */}
-      {isHovered && isEditable && (
-        <div style={{ display: "flex", gap: "2px", marginBottom: "3px" }}>
-          <button
-            onClick={() => setAddingAttribute(true)}
-            style={{
-              background: "#dbeafe",
-              border: isClassMode ? "2px dashed #93c5fd" : "1px solid #93c5fd",
-              borderRadius: "3px",
-              width: "18px",
-              height: "18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "11px",
-              color: "#1e40af",
-            }}
-            title="Add Attribute"
-          >
-            A+
-          </button>
-          <DeleteButton
-            onClick={() => onDelete?.(object.id)}
-            title="Delete Object"
-          />
-        </div>
-      )}
-
-      {/* Object Name */}
+    <>
+      {/* 메인 노드 */}
       <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
+        ref={dragRef}
+        style={nodeStyle}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onMouseDown={handleMouseDown}
       >
-        <div style={{ fontSize: "11px", fontWeight: "500", color: "#7f1d1d" }}>
-          {renderObjectName()}
-        </div>
-        <button
-          onClick={() => setExpanded(!expanded)}
+        {/* Attributes */}
+        {expanded && (
+          <div style={{ marginBottom: "3px" }}>
+            {object.attributes?.map((attr, index) =>
+              isClassMode
+                ? renderClassAttribute(attr, index)
+                : renderInstanceAttribute(attr, index)
+            )}
+
+            {addingAttribute && (
+              <input
+                value={newAttributeValue}
+                onChange={(e) => setNewAttributeValue(e.target.value)}
+                onBlur={() => {
+                  if (newAttributeValue.trim()) {
+                    handleAddAttribute();
+                  } else {
+                    setAddingAttribute(false);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddAttribute();
+                  if (e.key === "Escape") {
+                    setAddingAttribute(false);
+                    setNewAttributeValue("");
+                  }
+                }}
+                autoFocus
+                placeholder={isClassMode ? "new label" : "new attribute"}
+                style={{
+                  fontSize: "11px",
+                  padding: "1px 3px",
+                  border: isClassMode
+                    ? "2px dashed #3b82f6"
+                    : "1px solid #3b82f6",
+                  borderRadius: "4px",
+                  backgroundColor: "#ffffff",
+                  color: "#1f2937",
+                  fontFamily: "system-ui, -apple-system, sans-serif",
+                  fontWeight: "500",
+                  boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.1)",
+                  textAlign: "center",
+                  marginBottom: "2px",
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Header */}
+        {isHovered && isEditable && (
+          <div style={{ display: "flex", gap: "2px", marginBottom: "3px" }}>
+            <button
+              onClick={() => setAddingAttribute(true)}
+              style={{
+                background: "#dbeafe",
+                border: isClassMode ? "2px dashed #93c5fd" : "1px solid #93c5fd",
+                borderRadius: "3px",
+                width: "18px",
+                height: "18px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "11px",
+                color: "#1e40af",
+              }}
+              title="Add Attribute"
+            >
+              A+
+            </button>
+            <DeleteButton
+              onClick={() => onDelete?.(object.id)}
+              title="Delete Object"
+            />
+          </div>
+        )}
+
+        {/* Object Name */}
+        <div
           style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#7f1d1d",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
-          title={expanded ? "Collapse" : "Expand"}
         >
-          {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-        </button>
+          <div style={{ fontSize: "11px", fontWeight: "500", color: "#7f1d1d" }}>
+            {renderObjectName()}
+          </div>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#7f1d1d",
+            }}
+            title={expanded ? "Collapse" : "Expand"}
+          >
+            {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+          </button>
+        </div>
       </div>
-    </div>
+
+      {/* 드래그 중일 때 보여줄 고스트 이미지 */}
+      {isDragging && (
+        <div
+          ref={ghostRef}
+          style={{
+            position: "fixed",
+            top: dragPosition.y,
+            left: dragPosition.x,
+            ...nodeStyle,
+            opacity: 0.7,
+            pointerEvents: "none",
+            zIndex: 9999,
+            transform: "scale(0.9)",
+            boxShadow: "0 8px 25px rgba(0, 0, 0, 0.3)",
+          }}
+        >
+          <div style={{ fontSize: "11px", fontWeight: "500", color: "#7f1d1d" }}>
+            {object.name}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

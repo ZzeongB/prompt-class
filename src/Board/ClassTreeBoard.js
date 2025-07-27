@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Edit, RotateCcw, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit2, RotateCcw, Check, X } from "lucide-react";
 import { useClassContext } from "../context/ClassContext";
 import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
 import { CreateInstanceModal } from "../components/modal/CreateInstanceModal";
@@ -143,7 +143,7 @@ const ClassCard = ({
               gap: "6px",
             }}
           >
-            {isEditing && <Edit size={12} />}
+            {isEditing && <Edit2 size={12} />}
             {classData.name}
             {isEditing && (
               <span
@@ -246,7 +246,7 @@ const ClassCard = ({
               <ToolbarButton
                 onClick={handleEdit}
                 title="Edit Class"
-                icon={<Edit size={12} />}
+                icon={<Edit2 size={12} />}
               />
 
               <ToolbarButton

@@ -175,18 +175,18 @@ const NodeToolbarMenu = forwardRef((props, ref) => {
           title="Convert to blank attribute"
           icon={<Repeat size={12} />}
           onClick={onConvertBlank}
-          backgroundColor="rgba(245, 158, 11, 0.1)"
-          hoverColor="rgba(245, 158, 11, 0.15)"
+          // backgroundColor="rgba(245, 158, 11, 0.1)"
+          // hoverColor="rgba(245, 158, 11, 0.15)"
         />
       )}
 
       {onDuplicate && (
         <ToolbarButton
-          title="Duplicate node"
+          title="Create Class"
           icon={<Layers size={12} />}
           onClick={onDuplicate}
-          backgroundColor="rgba(59, 130, 246, 0.1)"
-          hoverColor="rgba(59, 130, 246, 0.15)"
+          backgroundColor={"rgba(107, 114, 128, 0.1)"}
+          hoverColor={"rgba(107, 114, 128, 0.2)"}
         />
       )}
 
@@ -201,7 +201,7 @@ const NodeToolbarMenu = forwardRef((props, ref) => {
       )}
 
       <ToolbarButton
-        title="Delete node"
+        title="Delete Instance"
         icon={<Trash2 size={12} />}
         onClick={onDelete}
         danger={true}

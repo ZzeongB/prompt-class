@@ -397,6 +397,84 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
     [onNodesChange]
   );
 
+  // edge 생성 함수
+  const createRelationshipEdge = useCallback(
+    (sourceInstanceId, targetInstanceId, relationshipData) => {
+      const edgeId = `edge-${uuidv4()}`;
+      const edge = {
+        id: edgeId,
+        source: sourceInstanceId,
+        target: targetInstanceId,
+        type: "main",
+        data: {
+          relation: relationshipData.relation || "related_to",
+          originalRelationship: relationshipData,
+          isFromObjectExtraction: true,
+        },
+        style: {
+          stroke: "#cbd5e1",
+          strokeWidth: 1.5,
+        },
+        label: relationshipData.relation || "related",
+        labelStyle: {
+          fontSize: "10px",
+          fontWeight: "500",
+        },
+      };
+
+      setEdges((prev) => [...prev, edge]);
+      return edge;
+    },
+    [setEdges]
+  );
+
+  // 객체 추출 시 edge 생성을 위한 이벤트 리스너
+  useEffect(() => {
+    const handleObjectExtracted = (event) => {
+      const { draggedObject, sourceInstanceId, newInstanceId, relationships } =
+        event.detail;
+
+      console.log("Object extracted event received:", event.detail);
+
+      if (relationships && relationships.length > 0) {
+        relationships.forEach((rel) => {
+          createRelationshipEdge(sourceInstanceId, newInstanceId, rel);
+        });
+      }
+    };
+
+    window.addEventListener("objectExtracted", handleObjectExtracted);
+
+    return () => {
+      window.removeEventListener("objectExtracted", handleObjectExtracted);
+    };
+  }, [createRelationshipEdge]);
+
+  // ReactFlow 노드 드래그 처리 - ObjectNode 드래그와 충돌 방지
+  const handleNodeDrag = useCallback((event, node) => {
+    // ObjectNode가 드래그 중이면 전체 노드 드래그 방지
+    if (document.body.style.pointerEvents === "none") {
+      return false;
+    }
+    return true;
+  }, []);
+
+  const onNodeDragStart = useCallback((event, node) => {
+    // ObjectNode 드래그가 활성화되어 있으면 노드 드래그 방지
+    if (document.body.style.pointerEvents === "none") {
+      event.preventDefault();
+      event.stopPropagation();
+      return false;
+    }
+
+    logEvent("baselineboard.node.moved", {
+      nodeId: node.id,
+      newPos: node.position,
+    });
+  }, []);
+
+  // console.log("Edges", edges, "Nodes", nodes)
+
   return (
     <div
       className="reactflow-wrapper"
@@ -489,9 +567,9 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
       {!showImageOnly && (
         <ReactFlow
           nodes={nodes}
-          edges={edges}
+          edges={edges} // edges 상태 전달
           onNodesChange={handleNodesChange}
-          onEdgesChange={onEdgesChange}
+          onEdgesChange={onEdgesChange} // edge 변경 핸들러
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
@@ -503,6 +581,8 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
           zoomOnPinch={false}
           nodeDragBounds={{ left: 0, top: 0, right: 512, bottom: 512 }}
           onNodeDragStop={onNodeDragStop}
+          onNodeDragStart={onNodeDragStart} // 추가
+          nodesDraggable={true} // 명시적으로 설정
           translateExtent={[
             [0, 0],
             [512, 512],
@@ -515,7 +595,6 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         />
       )}
-
       {showImageOnly && imageBoard && (
         <div
           style={{
