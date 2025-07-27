@@ -53,12 +53,10 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
   };
 
   const handleAddInstance = (instanceData) => {
-    console.log("Adding new instance to layout board:", instanceData);
     setNewInstanceToAdd(instanceData);
   };
 
   const handleInstanceAdded = () => {
-    console.log("Instance added successfully, clearing state");
     setNewInstanceToAdd(null); // 처리 완료 후 초기화
   };
 

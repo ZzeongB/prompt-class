@@ -138,7 +138,6 @@ export const generateSceneGraphToText = async ({
   previousSceneGraph = null,
   previousTextDescription = null,
 }) => {
-  console.log(newSceneGraph, previousSceneGraph);
   if (!newSceneGraph || !newSceneGraph.objects) {
     throw new Error("Valid scene graph is required");
   }
@@ -159,7 +158,7 @@ Task:
 ${hasPrevious ? "- Reuse the previous description as much as possible" : ""}
 ${hasPrevious ? "- Only modify parts that changed in the new Scene Graph" : ""}
 - Keep it short and natural, describing the main object, its attributes, and relationships
-- Use simple, clear language
+- Use simple, clear language. Avoid redundant like "A scene describing apple tree", or "The scene features an apple tree". Answer like "Apple Tree".
 
 ${
   hasPrevious

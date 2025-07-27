@@ -16,9 +16,10 @@ const ClassCard = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const { updateClass, instances } = useClassContext();
 
-  // 편집용 임시 상태
+  // 편집용 임시 상태 - placeholders 포함
   const [tempSceneData, setTempSceneData] = useState({
     sceneGraph: classData.template?.sceneGraph || {},
+    placeholders: classData.placeholders || {},
   });
 
   // 실제 표시용 데이터
@@ -26,6 +27,7 @@ const ClassCard = ({
     ? tempSceneData
     : {
         sceneGraph: classData.template?.sceneGraph || {},
+        placeholders: classData.placeholders || {},
       };
 
   // 이 클래스의 인스턴스 개수 계산
@@ -45,6 +47,7 @@ const ClassCard = ({
     setIsEditing(true);
     setTempSceneData({
       sceneGraph: classData.template?.sceneGraph || {},
+      placeholders: classData.placeholders || {},
     });
     onEdit?.(classData);
   };
@@ -57,6 +60,7 @@ const ClassCard = ({
           ...classData.template,
           sceneGraph: tempSceneData.sceneGraph,
         },
+        placeholders: tempSceneData.placeholders, // placeholders도 저장
       });
       setIsEditing(false);
     } catch (error) {
@@ -71,13 +75,17 @@ const ClassCard = ({
     setIsEditing(false);
     setTempSceneData({
       sceneGraph: classData.template?.sceneGraph || {},
+      placeholders: classData.placeholders || {},
     });
   };
 
-  const handleSceneGraphChange = (newSceneGraph) => {
-    setTempSceneData({
+  // handleSceneGraphChange 수정 - placeholders 처리 추가
+  const handleSceneGraphChange = (newSceneGraph, newPlaceHolders) => {
+    
+    setTempSceneData(prev => ({
       sceneGraph: newSceneGraph,
-    });
+      placeholders: newPlaceHolders ? { ...prev.placeholders, ...newPlaceHolders } : prev.placeholders,
+    }));
   };
 
   const handleResetInstances = () => {
@@ -177,8 +185,8 @@ const ClassCard = ({
       <div
         style={{
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+          // justifyContent: "center",
+          // alignItems: "center",
           padding: "12px",
           minHeight: "120px",
         }}
@@ -190,7 +198,7 @@ const ClassCard = ({
           }
           isEditable={isEditing}
           isClassMode={true}
-          placeHolders={classData.placeholders}
+          placeHolders={isEditing ? tempSceneData.placeholders : classData.placeholders}
         />
       </div>
 
@@ -202,11 +210,8 @@ const ClassCard = ({
             gap: "4px",
             alignItems: "center",
             zIndex: 1000,
-            // backgroundColor: "rgba(255, 255, 255, 0.95)",
             padding: "4px",
             borderRadius: "6px",
-            // boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-            // border: "1px solid rgba(0, 0, 0, 0.05)",
           }}
         >
           {isEditing ? (
@@ -215,16 +220,12 @@ const ClassCard = ({
                 onClick={handleSaveEdit}
                 title="Save Changes"
                 icon={<Check size={12} />}
-                // backgroundColor="rgba(16, 185, 129, 0.1)"
-                // hoverColor="rgba(16, 185, 129, 0.2)"
               />
 
               <ToolbarButton
                 onClick={handleCancelEdit}
                 title="Cancel Edit"
                 icon={<X size={12} />}
-                // backgroundColor="rgba(107, 114, 128, 0.1)"
-                // hoverColor="rgba(107, 114, 128, 0.2)"
               />
             </>
           ) : (
@@ -233,24 +234,18 @@ const ClassCard = ({
                 onClick={() => onCreateInstance(classData)}
                 title="Create Instance"
                 icon={<Plus size={12} />}
-                // backgroundColor="rgba(59, 130, 246, 0.1)"
-                // hoverColor="rgba(59, 130, 246, 0.2)"
               />
 
               <ToolbarButton
                 onClick={handleEdit}
                 title="Edit Class"
                 icon={<Edit size={12} />}
-                // backgroundColor="rgba(16, 185, 129, 0.1)"
-                // hoverColor="rgba(16, 185, 129, 0.2)"
               />
 
               <ToolbarButton
                 onClick={handleResetInstances}
                 title="Reset All Instances"
                 icon={<RotateCcw size={12} />}
-                // backgroundColor="rgba(245, 158, 11, 0.1)"
-                // hoverColor="rgba(245, 158, 11, 0.2)"
               />
 
               <ToolbarButton
@@ -302,6 +297,8 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
   const [selectedClass, setSelectedClass] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  console.log("classes", classes, "instances", instances)
+
   const handleCreateInstance = (classData) => {
     setSelectedClass(classData);
     setIsModalOpen(true);
@@ -311,7 +308,6 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
     onAddInstance?.(newInstance);
     setIsModalOpen(false);
     setSelectedClass(null);
-    console.log("handleinstancecreated", newInstance);
   };
 
   const handleCloseModal = () => {
@@ -339,7 +335,7 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
   };
 
   const handleEditClass = (classData) => {
-    console.log("Editing class:", classData);
+    // console.log("Editing class:", classData);
   };
 
   const handleResetAllInstances = (classId) => {

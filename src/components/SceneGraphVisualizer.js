@@ -10,7 +10,55 @@ export default function SceneGraphVisualizer({
   placeHolders = null,
 }) {
   const [hoveredObject, setHoveredObject] = useState(null);
-  const [hoveredRelationship, setHoveredRelationship] = useState(null)
+  const [hoveredRelationship, setHoveredRelationship] = useState(null);
+  const [editingObject, setEditingObject] = useState(null);
+
+  // 편집 함수들 추가
+  const handleObjectEdit = (objectId, newName, newAttributes = null, newPlaceHolders = null) => {    
+    const updatedGraph = {
+      ...sceneGraph,
+      objects: sceneGraph.objects.map((obj) =>
+        obj.id === objectId
+          ? {
+              ...obj,
+              name: newName,
+              attributes: newAttributes ?? obj.attributes,
+            }
+          : obj
+      ),
+    };
+        
+    // placeHolders 업데이트가 필요한 경우 부모 컴포넌트에서 처리해야 할 수도 있음
+    // 일단 기본 함수 호출 (부모에서 placeHolders 처리하도록)
+    if (newPlaceHolders) {
+      onSceneGraphChange(updatedGraph, newPlaceHolders);
+    } else {
+      onSceneGraphChange(updatedGraph);
+    }
+  };
+
+  const handleObjectDelete = (objectId) => {
+    const updatedGraph = {
+      ...sceneGraph,
+      objects: sceneGraph.objects.filter((obj) => obj.id !== objectId),
+      relationships: sceneGraph.relationships.filter(
+        (rel) => rel.source !== objectId && rel.target !== objectId
+      ),
+    };
+    onSceneGraphChange(updatedGraph);
+  };
+
+  const handleAddAttribute = (objectId, newAttribute) => {
+    const updatedGraph = {
+      ...sceneGraph,
+      objects: sceneGraph.objects.map((obj) =>
+        obj.id === objectId
+          ? { ...obj, attributes: [...(obj.attributes || []), newAttribute] }
+          : obj
+      ),
+    };
+    onSceneGraphChange(updatedGraph);
+  };
  
   // DAG 기반 레벨 계산
   const getNodeLevels = (objects, relationships) => {
@@ -166,9 +214,16 @@ export default function SceneGraphVisualizer({
           >
             <ObjectNode
               object={obj}
+              onEdit={handleObjectEdit}
+              onDelete={handleObjectDelete}
+              onAddAttribute={handleAddAttribute}
               isHovered={hoveredObject === obj.id}
               setIsHovered={(hovered) =>
                 setHoveredObject(hovered ? obj.id : null)
+              }
+              isEditing={editingObject === obj.id}
+              setIsEditing={(editing) =>
+                setEditingObject(editing ? obj.id : null)
               }
               isEditable={isEditable}
               isClassMode={isClassMode}

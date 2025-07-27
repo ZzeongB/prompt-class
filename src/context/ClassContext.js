@@ -7,7 +7,6 @@ const ClassContext = createContext();
 
 // sceneGraph 복사
 const deepCloneSceneGraph = (sceneGraph) => {
-  console.log("deep cloning", sceneGraph);
   if (!sceneGraph || !sceneGraph.objects) return {};
 
   const idMapping = {};
@@ -37,7 +36,6 @@ const deepCloneSceneGraph = (sceneGraph) => {
 // placeholder 적용
 const replaceWithSceneGraphPlaceholders = (sceneGraph, placeholderMap) => {
   const cloned = deepCloneSceneGraph(sceneGraph);
-  console.log("cloned", cloned);
 
   if (!placeholderMap || Object.keys(placeholderMap).length === 0) {
     console.warn("placeholderMap is empty or invalid");
@@ -47,13 +45,16 @@ const replaceWithSceneGraphPlaceholders = (sceneGraph, placeholderMap) => {
   cloned.objects?.forEach((obj) => {
     // 객체 이름 placeholder 처리
     if (obj.name && placeholderMap[obj.name]) {
-      obj.defaultName = obj.name;
+      obj.defaultName = obj.name; // 원본 이름 저장
       obj.name = `{${placeholderMap[obj.name]}}`;
       obj.isPlaceholder = true;
     }
 
     // attributes가 문자열 배열일 때 처리
     if (obj.attributes && Array.isArray(obj.attributes)) {
+      // 원본 attributes 저장
+      obj.defaultAttributes = [...obj.attributes];
+
       obj.attributes = obj.attributes.map((attr) => {
         if (typeof attr === "string" && placeholderMap[attr]) {
           return `{${placeholderMap[attr]}}`;
@@ -66,49 +67,22 @@ const replaceWithSceneGraphPlaceholders = (sceneGraph, placeholderMap) => {
   return cloned;
 };
 
-// 두 sceneGraph를 비교하여 차이점을 찾는 함수
-const findSceneGraphDifferences = (original, current) => {
-  const differences = {};
-  
-  // 객체 이름 변경 확인
-  if (original.objects && current.objects) {
-    original.objects.forEach((originalObj, index) => {
-      const currentObj = current.objects[index];
-      if (currentObj && originalObj.name !== currentObj.name) {
-        differences[`objects.${index}.name`] = currentObj.name;
-      }
-      
-      // attributes 변경 확인
-      if (originalObj.attributes && currentObj.attributes) {
-        originalObj.attributes.forEach((originalAttr, attrIndex) => {
-          const currentAttr = currentObj.attributes[attrIndex];
-          if (currentAttr && originalAttr !== currentAttr) {
-            differences[`objects.${index}.attributes.${attrIndex}`] = currentAttr;
-          }
-        });
-      }
-    });
-  }
-  
-  return differences;
-};
-
 // 차이점을 sceneGraph에 적용하는 함수
 const applySceneGraphDifferences = (baseSceneGraph, differences) => {
   const result = deepCloneSceneGraph(baseSceneGraph);
-  
-  Object.keys(differences).forEach(path => {
+
+  Object.keys(differences).forEach((path) => {
     const value = differences[path];
-    const pathParts = path.split('.');
-    
-    if (pathParts[0] === 'objects') {
+    const pathParts = path.split(".");
+
+    if (pathParts[0] === "objects") {
       const objectIndex = parseInt(pathParts[1]);
       const property = pathParts[2];
-      
+
       if (result.objects && result.objects[objectIndex]) {
-        if (property === 'name') {
+        if (property === "name") {
           result.objects[objectIndex].name = value;
-        } else if (property === 'attributes') {
+        } else if (property === "attributes") {
           const attrIndex = parseInt(pathParts[3]);
           if (result.objects[objectIndex].attributes) {
             result.objects[objectIndex].attributes[attrIndex] = value;
@@ -117,7 +91,7 @@ const applySceneGraphDifferences = (baseSceneGraph, differences) => {
       }
     }
   });
-  
+
   return result;
 };
 
@@ -141,7 +115,6 @@ export const ClassProvider = ({ children }) => {
   const createClass = async (instanceData) => {
     try {
       const placeholders = await generatePlaceholders(instanceData.sceneGraph);
-      console.log(placeholders);
       const processedSceneGraph = replaceWithSceneGraphPlaceholders(
         instanceData.sceneGraph,
         placeholders
@@ -163,14 +136,14 @@ export const ClassProvider = ({ children }) => {
           sceneGraph: instanceData.sceneGraph,
           textDescription: instanceData.textDescription,
           instanceLabel: instanceData.instanceLabel,
-        }
+        },
       };
 
       setClasses((prev) => [...prev, newClass]);
 
       // 원본 인스턴스를 클래스의 인스턴스로 변환
-      setInstances((prev) => 
-        prev.map(instance => {
+      setInstances((prev) =>
+        prev.map((instance) => {
           if (instance.id === instanceData.id) {
             return {
               ...instance,
@@ -202,14 +175,14 @@ export const ClassProvider = ({ children }) => {
           sceneGraph: instanceData.sceneGraph,
           textDescription: instanceData.textDescription,
           instanceLabel: instanceData.instanceLabel,
-        }
+        },
       };
 
       setClasses((prev) => [...prev, fallbackClass]);
-      
+
       // 원본 인스턴스를 클래스의 인스턴스로 변환
-      setInstances((prev) => 
-        prev.map(instance => {
+      setInstances((prev) =>
+        prev.map((instance) => {
           if (instance.id === instanceData.id) {
             return {
               ...instance,
@@ -231,7 +204,7 @@ export const ClassProvider = ({ children }) => {
   const createInstanceFromClass = async (classData, newValues = {}) => {
     const sceneGraph = deepCloneSceneGraph(classData.template.sceneGraph);
 
-    sceneGraph.objects.forEach((obj) => {
+    sceneGraph.objects.forEach((obj, objIndex) => {
       // 객체 이름 처리
       if (obj.name && obj.name.includes("{") && obj.name.includes("}")) {
         const key = obj.name.replace(/[{}]/g, "");
@@ -242,31 +215,48 @@ export const ClassProvider = ({ children }) => {
 
       // attributes 처리 (문자열 배열)
       if (obj.attributes && Array.isArray(obj.attributes)) {
-        obj.attributes = obj.attributes.map((attr) => {
+        obj.attributes = obj.attributes.map((attr, attrIndex) => {
           if (
             typeof attr === "string" &&
             attr.includes("{") &&
             attr.includes("}")
           ) {
             const key = attr.replace(/[{}]/g, "");
-            return newValues[key] || attr; // placeholder를 값으로 교체
+
+            // newValues에서 찾거나 defaultAttributes에서 찾기
+            let value = newValues[key];
+
+            if (value === undefined && obj.defaultAttributes) {
+              value = obj.defaultAttributes[attrIndex];
+            }
+
+            return value !== undefined ? value : key;
           }
           return attr;
         });
+
+        // defaultAttributes 정리
+        delete obj.defaultAttributes;
       }
     });
 
     // sceneGraph에서 textDescription 생성
     let textDescription = classData.template.textDescription || "";
     try {
-      const { generateSceneGraphToText } = await import("../api/generateTextToGraph");
+      const { generateSceneGraphToText } = await import(
+        "../api/generateTextToGraph"
+      );
       textDescription = await generateSceneGraphToText({
         newSceneGraph: sceneGraph,
       });
     } catch (error) {
-      console.error("Failed to generate text description from sceneGraph:", error);
+      console.error(
+        "Failed to generate text description from sceneGraph:",
+        error
+      );
       // 폴백: 클래스 템플릿의 textDescription 사용
-      textDescription = classData.template.textDescription || generateInstanceLabel(newValues);
+      textDescription =
+        classData.template.textDescription || generateInstanceLabel(newValues);
     }
 
     const newInstance = {
@@ -285,24 +275,23 @@ export const ClassProvider = ({ children }) => {
     setInstances((prev) => [...prev, newInstance]);
     return newInstance;
   };
-
   // 클래스 업데이트 시 연결된 인스턴스들도 업데이트
   const updateClass = (classId, updates) => {
-    setClasses((prev) => 
-      prev.map(cls => {
+    setClasses((prev) =>
+      prev.map((cls) => {
         if (cls.id === classId) {
           const updatedClass = {
             ...cls,
             ...updates,
             template: {
               ...cls.template,
-              ...updates.template
-            }
+              ...updates.template,
+            },
           };
-          
+
           // 연결된 인스턴스들 업데이트
           updateInstancesFromClass(updatedClass);
-          
+
           return updatedClass;
         }
         return cls;
@@ -310,145 +299,139 @@ export const ClassProvider = ({ children }) => {
     );
   };
 
-  // 클래스 변경에 따른 인스턴스 업데이트
-  const updateInstancesFromClass = async (updatedClass) => {
-    const updatePromises = instances
-      .filter(instance => instance.classId === updatedClass.id)
-      .map(async (instance) => {
-        // override되지 않은 부분만 클래스에서 업데이트
-        const newSceneGraph = applyClassUpdatesToInstance(
-          updatedClass.template.sceneGraph,
-          instance.overrides,
-          instance.originalSceneGraph
-        );
-        
-        // sceneGraph가 변경되었다면 textDescription도 업데이트
-        let newTextDescription = instance.textDescription;
-        if (!instance.overrides.textDescription) {
-          try {
-            const { generateSceneGraphToText } = await import("../api/generateTextToGraph");
-            newTextDescription = await generateSceneGraphToText({
-              newSceneGraph: newSceneGraph,
-              previousSceneGraph: instance.sceneGraph,
-              previousTextDescription: instance.textDescription,
-            });
-          } catch (error) {
-            console.error("Failed to update text description for instance:", instance.id, error);
-            // 폴백: 클래스 템플릿의 textDescription 사용
-            newTextDescription = updatedClass.template.textDescription || instance.textDescription;
-          }
-        }
-        
-        return {
-          ...instance,
-          sceneGraph: newSceneGraph,
-          textDescription: newTextDescription,
-        };
-      });
-
-    const updatedInstances = await Promise.all(updatePromises);
-    
-    setInstances((prev) => 
-      prev.map(instance => {
-        const updated = updatedInstances.find(u => u.id === instance.id);
-        return updated || instance;
-      })
-    );
-  };
-
-  // 클래스 업데이트를 인스턴스에 적용 (override 고려)
-  const applyClassUpdatesToInstance = (classSceneGraph, overrides, originalSceneGraph) => {
+  // 클래스 업데이트를 인스턴스에 적용 (override 고려) - placeholders 활용
+  const applyClassUpdatesToInstance = (
+    classSceneGraph,
+    overrides,
+    originalSceneGraph,
+    placeholders = {} // placeholders 매개변수 추가
+  ) => {
     // 클래스의 sceneGraph를 기본으로 시작
     let result = deepCloneSceneGraph(classSceneGraph);
-    
+
     // placeholder를 원본 값으로 복원
-    result.objects.forEach((obj) => {
+    result.objects.forEach((obj, objIndex) => {
+      // 객체 이름 처리
       if (obj.name && obj.name.includes("{") && obj.name.includes("}")) {
-        const key = obj.name.replace(/[{}]/g, "");
-        // 원본에서 해당하는 값 찾기
-        const originalObj = originalSceneGraph.objects?.find(orig => 
-          orig.defaultName === key || orig.name === key
-        );
-        if (originalObj) {
-          obj.name = originalObj.name;
-        }
+        const placeholderKey = obj.name.replace(/[{}]/g, "");
+
+        // placeholders에서 해당하는 원본 값을 찾기
+        // placeholders: { "red": "color" } 형태에서
+        // placeholderKey가 "color"일 때 "red"를 찾아야 함
+        const originalValue =
+          Object.keys(placeholders).find(
+            (key) => placeholders[key] === placeholderKey
+          ) ||
+          originalSceneGraph.objects?.[objIndex]?.name ||
+          placeholderKey;
+
+        obj.name = originalValue;
+
         delete obj.defaultName;
         delete obj.isPlaceholder;
       }
 
+      // attributes 처리 (문자열 배열)
       if (obj.attributes && Array.isArray(obj.attributes)) {
-        obj.attributes = obj.attributes.map((attr, index) => {
-          if (typeof attr === "string" && attr.includes("{") && attr.includes("}")) {
-            const key = attr.replace(/[{}]/g, "");
-            // 원본에서 해당하는 값 찾기
-            const originalObj = originalSceneGraph.objects?.find(orig => 
-              orig.attributes && orig.attributes[index]
-            );
-            return originalObj?.attributes[index] || attr;
+        obj.attributes = obj.attributes.map((attr, attrIndex) => {
+          if (
+            typeof attr === "string" &&
+            attr.includes("{") &&
+            attr.includes("}")
+          ) {
+            const placeholderKey = attr.replace(/[{}]/g, "");
+
+            // placeholders에서 해당하는 원본 값을 찾기
+            const originalValue =
+              Object.keys(placeholders).find(
+                (key) => placeholders[key] === placeholderKey
+              ) ||
+              originalSceneGraph.objects?.[objIndex]?.attributes?.[attrIndex] ||
+              placeholderKey;
+
+            return originalValue;
           }
           return attr;
         });
+
+        delete obj.defaultAttributes;
       }
     });
-    
+
     // override된 부분 적용
-    result = applySceneGraphDifferences(result, overrides);
-    
+    if (overrides && Object.keys(overrides).length > 0) {
+      result = applySceneGraphDifferences(result, overrides);
+    }
+
     return result;
   };
 
-  // 인스턴스 업데이트 (override 추적)
+  // updateInstance 함수에서 createResolvedBaseSceneGraph 호출 부분도 수정
   const updateInstance = (instanceId, updates) => {
-    setInstances((prev) => 
-      prev.map(instance => {
-        if (instance.id === instanceId && instance.isFromClass) {
-          // 클래스와 비교하여 override 계산
-          const classData = classes.find(cls => cls.id === instance.classId);
-          if (classData) {
-            // 새로운 override 계산
-            const newOverrides = calculateOverrides(
-              classData.originalData.sceneGraph,
-              updates.sceneGraph || instance.sceneGraph,
-              instance.overrides
+    setInstances((prev) =>
+      prev.map((instance) => {
+        if (instance.id === instanceId) {
+          if (instance.isFromClass) {
+            // 클래스에서 파생된 인스턴스인 경우 override 계산
+            const classData = classes.find(
+              (cls) => cls.id === instance.classId
             );
-            
-            return {
-              ...instance,
-              ...updates,
-              overrides: {
-                ...instance.overrides,
-                ...newOverrides,
-                // textDescription override 추적
-                ...(updates.textDescription !== classData.template.textDescription ? 
-                    { textDescription: true } : {}),
-              }
-            };
+            if (classData) {
+              // 업데이트된 sceneGraph
+              const updatedSceneGraph =
+                updates.sceneGraph || instance.sceneGraph;
+
+              // 클래스 템플릿을 현재 인스턴스의 originalSceneGraph 값으로 복원한 "기본" sceneGraph 생성
+              // placeholders 전달 추가
+              const baseSceneGraph = createResolvedBaseSceneGraph(
+                classData.template.sceneGraph,
+                instance.originalSceneGraph,
+                classData.placeholders // placeholders 전달
+              );
+
+              // 기본값과 현재값 비교하여 override 계산
+              const newOverrides = findSceneGraphDifferences(
+                baseSceneGraph,
+                updatedSceneGraph
+              );
+
+              return {
+                ...instance,
+                ...updates,
+                overrides: {
+                  ...newOverrides,
+                  // textDescription override 추적
+                  ...(updates.textDescription &&
+                  updates.textDescription !== classData.template.textDescription
+                    ? { textDescription: true }
+                    : {}),
+                },
+              };
+            }
           }
+
+          // 일반 인스턴스인 경우 그냥 업데이트
+          return { ...instance, ...updates };
         }
-        return instance.id === instanceId ? { ...instance, ...updates } : instance;
+        return instance;
       })
     );
   };
 
-  // override 계산
-  const calculateOverrides = (originalSceneGraph, currentSceneGraph, existingOverrides) => {
-    const differences = findSceneGraphDifferences(originalSceneGraph, currentSceneGraph);
-    return { ...existingOverrides, ...differences };
-  };
-
-  // 인스턴스의 override 초기화 (클래스로 되돌리기)
+  // resetInstanceToClass 함수도 수정
   const resetInstanceToClass = (instanceId) => {
-    setInstances((prev) => 
-      prev.map(instance => {
+    setInstances((prev) =>
+      prev.map((instance) => {
         if (instance.id === instanceId && instance.isFromClass) {
-          const classData = classes.find(cls => cls.id === instance.classId);
+          const classData = classes.find((cls) => cls.id === instance.classId);
           if (classData) {
             return {
               ...instance,
               sceneGraph: applyClassUpdatesToInstance(
                 classData.template.sceneGraph,
                 {},
-                instance.originalSceneGraph
+                instance.originalSceneGraph,
+                classData.placeholders // placeholders 전달
               ),
               textDescription: classData.template.textDescription,
               overrides: {},
@@ -459,7 +442,174 @@ export const ClassProvider = ({ children }) => {
       })
     );
   };
-  
+
+  // updateInstancesFromClass 함수도 수정 필요
+  const updateInstancesFromClass = async (updatedClass) => {
+    const updatePromises = instances
+      .filter((instance) => instance.classId === updatedClass.id)
+      .map(async (instance) => {
+        // override되지 않은 부분만 클래스에서 업데이트
+        // placeholders 전달 추가
+        const newSceneGraph = applyClassUpdatesToInstance(
+          updatedClass.template.sceneGraph,
+          instance.overrides,
+          instance.originalSceneGraph,
+          updatedClass.placeholders // placeholders 전달
+        );
+
+        // 나머지 로직은 동일...
+        let newTextDescription = instance.textDescription;
+        if (!instance.overrides.textDescription) {
+          try {
+            const { generateSceneGraphToText } = await import(
+              "../api/generateTextToGraph"
+            );
+            newTextDescription = await generateSceneGraphToText({
+              newSceneGraph: newSceneGraph,
+              previousSceneGraph: instance.sceneGraph,
+              previousTextDescription: instance.textDescription,
+            });
+          } catch (error) {
+            console.error(
+              "Failed to update text description for instance:",
+              instance.id,
+              error
+            );
+            newTextDescription =
+              updatedClass.template.textDescription || instance.textDescription;
+          }
+        }
+
+        return {
+          ...instance,
+          sceneGraph: newSceneGraph,
+          textDescription: newTextDescription,
+        };
+      });
+
+    const updatedInstances = await Promise.all(updatePromises);
+
+    setInstances((prev) =>
+      prev.map((instance) => {
+        const updated = updatedInstances.find((u) => u.id === instance.id);
+        return updated || instance;
+      })
+    );
+  };
+
+  // createResolvedBaseSceneGraph 함수도 수정
+  const createResolvedBaseSceneGraph = (
+    classTemplateSceneGraph,
+    originalInstanceSceneGraph,
+    placeholders = {} // placeholders 매개변수 추가
+  ) => {
+    const resolved = deepCloneSceneGraph(classTemplateSceneGraph);
+
+    resolved.objects.forEach((obj, objIndex) => {
+      // 객체 이름 복원
+      if (obj.name && obj.name.includes("{") && obj.name.includes("}")) {
+        const placeholderKey = obj.name.replace(/[{}]/g, "");
+
+        // placeholders에서 원본 값 찾기
+        const resolvedName =
+          Object.keys(placeholders).find(
+            (key) => placeholders[key] === placeholderKey
+          ) ||
+          originalInstanceSceneGraph.objects?.[objIndex]?.name ||
+          placeholderKey;
+
+        obj.name = resolvedName;
+
+        delete obj.defaultName;
+        delete obj.isPlaceholder;
+      }
+
+      // attributes 복원
+      if (obj.attributes && Array.isArray(obj.attributes)) {
+        obj.attributes = obj.attributes.map((attr, attrIndex) => {
+          if (
+            typeof attr === "string" &&
+            attr.includes("{") &&
+            attr.includes("}")
+          ) {
+            const placeholderKey = attr.replace(/[{}]/g, "");
+
+            // placeholders에서 원본 값 찾기
+            const resolvedAttr =
+              Object.keys(placeholders).find(
+                (key) => placeholders[key] === placeholderKey
+              ) ||
+              originalInstanceSceneGraph.objects?.[objIndex]?.attributes?.[
+                attrIndex
+              ] ||
+              placeholderKey;
+
+            return resolvedAttr;
+          }
+          return attr;
+        });
+
+        delete obj.defaultAttributes;
+      }
+    });
+
+    return resolved;
+  };
+  // 차이점 찾기 함수 개선
+  const findSceneGraphDifferences = (original, current) => {
+    const differences = {};
+
+    // 객체 개수 체크
+    if (!original.objects || !current.objects) {
+      return differences;
+    }
+
+    if (original.objects.length !== current.objects.length) {
+      // 객체 개수가 다르면 전체를 override로 처리할 수도 있지만,
+      // 여기서는 기존 로직을 유지
+    }
+
+    // 각 객체 비교
+    original.objects.forEach((originalObj, index) => {
+      const currentObj = current.objects[index];
+
+      if (!currentObj) {
+        return;
+      }
+
+      // 이름 비교
+      if (originalObj.name !== currentObj.name) {
+        differences[`objects.${index}.name`] = currentObj.name;
+      }
+
+      // attributes 비교
+      if (originalObj.attributes && currentObj.attributes) {
+        originalObj.attributes.forEach((originalAttr, attrIndex) => {
+          const currentAttr = currentObj.attributes[attrIndex];
+
+          if (currentAttr !== undefined && originalAttr !== currentAttr) {
+            differences[`objects.${index}.attributes.${attrIndex}`] =
+              currentAttr;
+          }
+        });
+      }
+    });
+
+    return differences;
+  };
+  // override 계산
+  const calculateOverrides = (
+    originalSceneGraph,
+    currentSceneGraph,
+    existingOverrides
+  ) => {
+    const differences = findSceneGraphDifferences(
+      originalSceneGraph,
+      currentSceneGraph
+    );
+    return { ...existingOverrides, ...differences };
+  };
+
   const duplicateInstance = (instanceData) => {
     const newId = `instance-${uuidv4()}`;
     const duplicated = {
@@ -481,10 +631,10 @@ export const ClassProvider = ({ children }) => {
 
   const deleteClass = (classId) => {
     setClasses((prev) => prev.filter((c) => c.id !== classId));
-    
+
     // 해당 클래스의 인스턴스들을 standalone으로 변경
-    setInstances((prev) => 
-      prev.map(instance => {
+    setInstances((prev) =>
+      prev.map((instance) => {
         if (instance.classId === classId) {
           return {
             ...instance,
