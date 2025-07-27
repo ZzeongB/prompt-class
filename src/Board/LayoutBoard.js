@@ -1,63 +1,27 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   ReactFlow,
   useNodesState,
   useEdgesState,
   useReactFlow,
-  MarkerType,
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
 import InstancePanelNode from "../components/nodes/InstancePanelNode";
 import ResizableNode from "../components/nodes/ResizableNode";
-import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
-import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 import { generateImageFromInstanceData } from "../api/generateImage";
-import { generateSceneGraphToText } from "../api/generateTextToGraph";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
+import { useClassContext } from "../context/ClassContext";
 import { logEvent } from "../api/logEvent";
+import { syncMovedNodePositions } from "../utils/node/syncNodePositions";
 import {
   LEFT_OFFSET_BASELINE as LEFT_OFFSET,
   TOP_OFFSET,
-  BACKGROUND_COLOR,
-  OBJ_COLOR,
 } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
-
-const baseGhostStyle = {
-  padding: "8px 12px",
-  border: "1px solid #d1d5db",
-  borderRadius: "6px",
-  backgroundColor: "#ffffff",
-  opacity: 0.9,
-  pointerEvents: "none",
-  userSelect: "none",
-  position: "absolute",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 999,
-  fontSize: "12px",
-  fontWeight: "500",
-  color: "#374151",
-  fontFamily: "system-ui, -apple-system, sans-serif",
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-  minWidth: "60px",
-  minHeight: "24px",
-};
-
-const ghostNodeStyles = {
-  "instance-group": {
-    ...baseGhostStyle,
-  },
-};
-
-const edgeTypes = {
-  main: DefaultEdge,
-};
 
 const nodeTypes = {
   class: InstancePanelNode,
@@ -66,83 +30,128 @@ const nodeTypes = {
   "instance-group": InstancePanelNode,
 };
 
+const edgeTypes = {
+  main: DefaultEdge,
+};
+
 function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
+  const { screenToFlowPosition } = useReactFlow();
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
   const [progress, setProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isSelectingRegion, setIsSelectingRegion] = useState(false);
   const [ghostNode, setGhostNode] = useState(null);
   const [showImageOnly, setShowImageOnly] = useState(false);
 
   const { image, setImage } = useImage();
+  const { instances, classes, setInstances, updateInstance, deleteInstance } =
+    useClassContext();
 
-  // 새 인스턴스가 추가될 때 처리
+  // 동기화 방향을 제어하는 플래그들
+  const syncFromReactFlow = useRef(false);
+  const syncFromClassContext = useRef(false);
+
+  // ClassContext → ReactFlow 동기화
   useEffect(() => {
-    if (newInstanceToAdd) {
+    if (syncFromReactFlow.current) {
+      syncFromReactFlow.current = false;
+      return; // ReactFlow에서 온 변경사항이면 스킵
+    }
+
+    syncFromClassContext.current = true;
+
+    setNodes((prevNodes) => {
+      const updatedNodes = [...prevNodes];
+
+      // 기존 노드들 업데이트
+      instances.forEach((instance) => {
+        const nodeIndex = updatedNodes.findIndex(
+          (n) => n.data?.instanceId === instance.id
+        );
+        const resizableIndex = updatedNodes.findIndex(
+          (n) => n.id === `${instance.id}-resizable`
+        );
+
+        if (nodeIndex !== -1) {
+          // 클래스 정보 조회
+          const parentClass = instance.isFromClass
+            ? classes.find((cls) => cls?.id === instance.classId)
+            : null;
+
+          const updatedData = {
+            ...updatedNodes[nodeIndex].data,
+            instanceLabel: instance.instanceLabel,
+            textDescription: instance.textDescription,
+            sceneGraph: instance.sceneGraph,
+            isFromClass: instance.isFromClass,
+            classId: instance.classId,
+            overrides: instance.overrides,
+            parentClassName: parentClass?.name,
+            hasOverrides:
+              instance.overrides && Object.keys(instance.overrides).length > 0,
+          };
+
+          updatedNodes[nodeIndex] = {
+            ...updatedNodes[nodeIndex],
+            data: updatedData,
+          };
+
+          // Resizable 노드도 동일하게 업데이트
+          if (resizableIndex !== -1) {
+            updatedNodes[resizableIndex] = {
+              ...updatedNodes[resizableIndex],
+              data: updatedData,
+            };
+          }
+        }
+      });
+
+      // 삭제된 인스턴스의 노드들 제거
+      const instanceIds = new Set(instances.map((inst) => inst.id));
+      const filteredNodes = updatedNodes.filter((node) => {
+        const instanceId = node.id.endsWith("-resizable")
+          ? node.id.replace("-resizable", "")
+          : node.data?.instanceId || node.id;
+        return instanceIds.has(instanceId);
+      });
+
+      return filteredNodes;
+    });
+
+    syncFromClassContext.current = false;
+  }, [instances, classes, setNodes]);
+
+  // ReactFlow → ClassContext 동기화 (데이터 변경용)
+  const syncToClassContext = useCallback(
+    (nodeId, updates) => {
+      syncFromReactFlow.current = true;
+      updateInstance(nodeId, updates);
+    },
+    [updateInstance]
+  );
+
+  // 새 인스턴스 추가
+  useEffect(() => {
+    if (
+      newInstanceToAdd &&
+      !nodes.find((n) => n.data?.instanceId === newInstanceToAdd.id)
+    ) {
       addInstanceToBoard(newInstanceToAdd);
       onInstanceAdded?.();
     }
-  }, [newInstanceToAdd, onInstanceAdded]);
+  }, [newInstanceToAdd, onInstanceAdded, nodes]);
 
-  const addInstanceToBoard = async (instanceData) => {
-    // 현재 resizable이 아닌 노드 개수 확인
-    const nonResizableCount = nodes.filter(
-      (n) => n.type !== "resizable"
-    ).length;
-    if (nonResizableCount >= 10) {
-      alert("최대 10개의 노드까지만 생성할 수 있습니다.");
-      return;
-    }
-
-    // 새 노드들이 겹치지 않는 위치 찾기
-    const findEmptyPosition = () => {
-      const gridSize = 80;
-      const maxCols = Math.floor(512 / gridSize);
-
-      for (let row = 0; row < 10; row++) {
-        for (let col = 0; col < maxCols; col++) {
-          const x = col * gridSize + 20;
-          const y = row * gridSize + 20;
-
-          const hasConflict = nodes.some((node) => {
-            const distance = Math.sqrt(
-              Math.pow(node.position.x - x, 2) +
-                Math.pow(node.position.y - y, 2)
-            );
-            return distance < 60;
-          });
-
-          if (!hasConflict) {
-            return { x, y };
-          }
-        }
-      }
-
-      return {
-        x: Math.random() * 400 + 50,
-        y: Math.random() * 400 + 50,
-      };
-    };
-
+  const addInstanceToBoard = (instanceData) => {
     const position = findEmptyPosition();
-    const uniqueId = uuidv4();
-    const sharedId = `instance-${uniqueId}`;
+    const sharedId = instanceData.id;
 
-    // 텍스트 설명 생성
-    let textDescription = "";
-    try {
-      textDescription = await generateSceneGraphToText({
-        newSceneGraph: instanceData.sceneGraph,
-      });
-    } catch (error) {
-      console.error("Failed to generate text description:", error);
-      textDescription = instanceData.instanceLabel || "New Instance";
-    }
+    // 클래스 정보 조회
+    const parentClass = instanceData.isFromClass
+      ? classes.find((cls) => cls?.id === instanceData.classId)
+      : null;
 
     const objNode = {
       id: sharedId,
@@ -153,15 +162,18 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
         label: instanceData.instanceLabel || "New Instance",
         type: "object",
         sharedId,
-        classId: instanceData.isFromClass
-          ? instanceData.createdFrom
-          : "__baseline__",
+        classId: instanceData.classId || "__baseline__",
         instanceId: sharedId,
         justCreated: false,
-        // 단순화된 데이터 구조
         instanceLabel: instanceData.instanceLabel || "New Instance",
-        textDescription: textDescription,
-        sceneGraph: instanceData.sceneGraph,
+        textDescription: instanceData.textDescription || "",
+        sceneGraph: instanceData.sceneGraph || {},
+        isFromClass: instanceData.isFromClass || false,
+        overrides: instanceData.overrides || {},
+        parentClassName: parentClass?.name || null,
+        hasOverrides:
+          instanceData.overrides &&
+          Object.keys(instanceData.overrides).length > 0,
       },
       updatedAt: new Date().toISOString(),
       style: { height: 20 },
@@ -170,61 +182,46 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
     const resizableNode = {
       id: `${sharedId}-resizable`,
       type: "resizable",
-      position: { x: position.x, y: position.y },
+      position,
       data: objNode.data,
       style: { height: 50, width: 50 },
     };
 
-    setNodes((prevNodes) => [...prevNodes, resizableNode, objNode]);
+    setNodes((prev) => [...prev, resizableNode, objNode]);
   };
 
-  useEffect(() => {
-    if (!isGenerating) {
-      setProgress(100);
-      return;
+  const findEmptyPosition = () => {
+    const gridSize = 80;
+    const maxCols = Math.floor(512 / gridSize);
+
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < maxCols; col++) {
+        const x = col * gridSize + 20;
+        const y = row * gridSize + 20;
+
+        const hasConflict = nodes.some((node) => {
+          if (!node?.position) return false;
+          const distance = Math.sqrt(
+            Math.pow(node.position.x - x, 2) + Math.pow(node.position.y - y, 2)
+          );
+          return distance < 60;
+        });
+
+        if (!hasConflict) return { x, y };
+      }
     }
 
-    const interval = setInterval(async () => {
-      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/progress`);
-      const data = await res.json();
-      setProgress(data.progress);
-
-      if (data.progress >= 100) {
-        clearInterval(interval);
-        setIsGenerating(false);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isGenerating]);
+    return { x: Math.random() * 400 + 50, y: Math.random() * 400 + 50 };
+  };
 
   const handleAddNewNode = () => {
     setGhostNode({
       id: `ghost-${Date.now()}`,
       type: "instance-group",
-      data: {
-        label: "New Box",
-        expandedHeight: 70,
-        type: "object",
-        justCreated: true,
-      },
+      data: { label: "New Box", justCreated: true },
       position: { x: 0, y: 0 },
     });
   };
-
-  const handleNodesChange = useCallback(
-    (changes) => {
-      setNodes((prevNodes) =>
-        syncMovedNodePositions({
-          changes,
-          prevNodes,
-          edges,
-        })
-      );
-      onNodesChange(changes);
-    },
-    [onNodesChange, edges, setNodes]
-  );
 
   const handleMouseMove = useCallback(
     (e) => {
@@ -242,13 +239,11 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
 
   const handleGhostClick = async (e) => {
     if (!ghostNode) return;
+
     e.preventDefault();
     e.stopPropagation();
 
-    const nonResizableCount = nodes.filter(
-      (n) => n.type !== "resizable"
-    ).length;
-    if (nonResizableCount >= 10) {
+    if (nodes.filter((n) => n.type !== "resizable").length >= 10) {
       alert("최대 10개의 노드까지만 생성할 수 있습니다.");
       setGhostNode(null);
       return;
@@ -258,6 +253,21 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
     const uniqueId = uuidv4();
     const sharedId = `instance-${uniqueId}`;
 
+    // ClassContext에 새 인스턴스 추가
+    const newInstance = {
+      id: sharedId,
+      instanceLabel: "New Box",
+      textDescription: "",
+      sceneGraph: { objects: [], relationships: [] },
+      createdAt: new Date().toISOString(),
+      isFromClass: false,
+      classId: null,
+      overrides: {},
+    };
+
+    setInstances((prev) => [...prev, newInstance]);
+
+    // ReactFlow에 노드 추가
     const objNode = {
       id: sharedId,
       type: "instance-group",
@@ -270,10 +280,13 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
         classId: "__baseline__",
         instanceId: sharedId,
         justCreated: true,
-        // 단순화된 데이터 구조
         instanceLabel: "New Box",
         textDescription: "",
-        sceneGraph: {},
+        sceneGraph: { objects: [], relationships: [] },
+        isFromClass: false,
+        overrides: {},
+        parentClassName: null,
+        hasOverrides: false,
       },
       updatedAt: new Date().toISOString(),
       style: { height: 20 },
@@ -282,45 +295,40 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
     const resizableNode = {
       id: `${sharedId}-resizable`,
       type: "resizable",
-      position: { x: position.x, y: position.y },
+      position,
       data: objNode.data,
       style: { height: 50, width: 50 },
     };
 
-    setNodes((prevNodes) => [...prevNodes, resizableNode, objNode]);
+    setNodes((prev) => [...prev, resizableNode, objNode]);
     setGhostNode(null);
   };
 
   const handleClick = async () => {
     setProgress(0);
     setIsGenerating(true);
-    setErrorMessage();
-
-    const startTime = performance.now();
+    setErrorMessage("");
 
     setTimeout(async () => {
-      const sentences = nodes
-        .filter((n) => n.type !== "resizable")
-        .map((n) => n.data.textDescription || "No label");
-      const boxes = nodes
-        .filter((n) => n.type === "resizable")
-        .map((n) => {
-          return getNormalizedBox(
-            n,
-            flowToScreenPosition,
-            LEFT_OFFSET,
-            TOP_OFFSET,
-            true
-          );
-        });
-
       try {
+        const sentences = nodes
+          .filter((n) => n.type !== "resizable")
+          .map((n) => n.data?.textDescription || "No label");
+
+        const boxes = nodes
+          .filter((n) => n.type === "resizable")
+          .map((n) => ({
+            x: n.position?.x || 0,
+            y: n.position?.y || 0,
+            width: 50,
+            height: 50,
+          }));
+
         const response = await generateImageFromInstanceData(
           sentences,
           boxes,
           globalCaption
         );
-
         onImageGenerated(response.image);
         setImage(response.image);
         setImageBoard(response.image);
@@ -338,12 +346,55 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
     }, 200);
   };
 
-  const onNodeDragStop = (_event, node) => {
+  const onNodeDragStop = (event, node) => {
     logEvent("baselineboard.node.moved", {
       nodeId: node.id,
       newPos: node.position,
     });
   };
+
+  const handleNodesChange = useCallback(
+    (changes) => {
+      // 먼저 기본 ReactFlow 변경 처리
+      onNodesChange(changes);
+
+      // position 변경이 있는 경우에만 페어 노드 동기화
+      const positionChanges = changes.filter(
+        (change) => change.type === "position" && change.position
+      );
+
+      if (positionChanges.length > 0) {
+        // 각 position 변경에 대해 페어 노드도 같이 움직이도록 처리
+        const additionalChanges = [];
+
+        positionChanges.forEach((change) => {
+          const nodeId = change.id;
+          let pairedNodeId;
+
+          // 페어 노드 ID 결정
+          if (nodeId.endsWith("-resizable")) {
+            pairedNodeId = nodeId.replace("-resizable", "");
+          } else {
+            pairedNodeId = `${nodeId}-resizable`;
+          }
+
+          // 페어 노드를 위한 position 변경 추가
+          additionalChanges.push({
+            id: pairedNodeId,
+            type: "position",
+            position: change.position,
+            positionAbsolute: change.positionAbsolute,
+          });
+        });
+
+        // 페어 노드들에 대한 추가 변경사항 적용
+        if (additionalChanges.length > 0) {
+          onNodesChange(additionalChanges);
+        }
+      }
+    },
+    [onNodesChange]
+  );
 
   return (
     <div
@@ -360,11 +411,7 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
           display: "column",
         }}
       >
-        <CustomButton
-          color={isSelectingRegion ? "neutral" : "grey"}
-          size="sm"
-          onClick={handleAddNewNode}
-        >
+        <CustomButton color="grey" size="sm" onClick={handleAddNewNode}>
           <span
             style={{
               display: "inline-flex",
@@ -406,7 +453,6 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
           }}
         >
           <ProgressBar now={progress} errorMessage={errorMessage} />
-
           <CustomButton
             onClick={handleClick}
             color="purpleBlue"
@@ -421,9 +467,18 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
       {ghostNode && (
         <div
           style={{
-            ...ghostNodeStyles[ghostNode.type],
+            position: "absolute",
             left: ghostNode.position.x,
             top: ghostNode.position.y,
+            padding: "8px 12px",
+            border: "1px solid #d1d5db",
+            borderRadius: "6px",
+            backgroundColor: "#ffffff",
+            opacity: 0.9,
+            pointerEvents: "none",
+            zIndex: 999,
+            fontSize: "12px",
+            fontWeight: "500",
           }}
         >
           {ghostNode.data?.label}
@@ -445,12 +500,7 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
           zoomOnScroll={false}
           zoomOnDoubleClick={false}
           zoomOnPinch={false}
-          nodeDragBounds={{
-            left: 0,
-            top: 0,
-            right: 512,
-            bottom: 512,
-          }}
+          nodeDragBounds={{ left: 0, top: 0, right: 512, bottom: 512 }}
           onNodeDragStop={onNodeDragStop}
           translateExtent={[
             [0, 0],
@@ -476,7 +526,7 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
         >
           <img
             src={imageBoard}
-            alt="No Image"
+            alt="Generated"
             style={{
               position: "absolute",
               top: 0,

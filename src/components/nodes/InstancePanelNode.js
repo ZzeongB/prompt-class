@@ -5,17 +5,18 @@ import {
   generateTextToGraph,
 } from "../../api/generateTextToGraph";
 import PanelTemplate from "../PanelTemplate";
+import { useClassContext } from "../../context/ClassContext";
 
 export default function InstancePanelNode({ id, data, onUpdate }) {
-  const toolbarRef = useRef(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(
-    data?.justCreated === true
-  );
+  const [isInitializing, setIsInitializing] = useState(data?.justCreated === true);
   const [modal, setModal] = useState(null);
 
-  // 단순화된 sceneData - data에서 직접 사용
+  const { updateInstance, deleteInstance, classes, instances } = useClassContext();
+  const { getNodes, setNodes, deleteElements } = useReactFlow();
+
+  // 로컬 sceneData 상태 (빠른 UI 반응용)
   const [sceneData, setSceneData] = useState({
     instanceLabel: data?.instanceLabel || data?.label || "New Box",
     textDescription: data?.textDescription || "",
@@ -23,46 +24,58 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   });
 
   const hasPromptedRef = useRef(false);
-  const { getNodes, setNodes, deleteElements } = useReactFlow();
+  const syncingRef = useRef(false);
+
+  // ClassContext 데이터와 동기화
+  useEffect(() => {
+    if (syncingRef.current) return; // 자신이 업데이트한 경우 스킵
+    
+    const instanceData = instances.find(inst => inst.id === id);
+    if (instanceData) {
+      setSceneData({
+        instanceLabel: instanceData.instanceLabel || "New Box",
+        textDescription: instanceData.textDescription || "",
+        sceneGraph: instanceData.sceneGraph || {},
+      });
+    }
+  }, [instances, id]);
+
+  // 현재 인스턴스가 클래스에서 파생되었는지 확인
+  const instanceData = instances.find(inst => inst.id === id) || {};
+  const isFromClass = instanceData.isFromClass || data?.isFromClass;
+  const parentClass = isFromClass ? classes.find(cls => cls.id === (instanceData.classId || data?.classId)) : null;
 
   const handleDelete = () => {
-    const nodes = getNodes();
-    const sharedId = data.sharedId ?? id;
-    const toDelete = nodes.filter(
-      (n) => n.id === id || n.data?.sharedId === sharedId
-    );
-    deleteElements({ nodes: toDelete });
+    deleteInstance(id);
   };
 
-  // sceneData가 변경될 때 노드 데이터 업데이트
-  useEffect(() => {
-    setNodes((nodes) =>
-      nodes.map((node) => {
+  // 양방향 동기화 헬퍼 함수
+  const syncUpdate = (updates) => {
+    syncingRef.current = true;
+    
+    // 1. 로컬 상태 즉시 업데이트 (빠른 UI 반응)
+    setSceneData(prev => ({ ...prev, ...updates }));
+    
+    // 2. ReactFlow 노드 업데이트
+    setNodes(nodes => 
+      nodes.map(node => {
         if (node.id === id || node.data?.sharedId === data.sharedId) {
           return {
             ...node,
-            data: {
-              ...node.data,
-              label: sceneData.instanceLabel,
-              instanceLabel: sceneData.instanceLabel,
-              textDescription: sceneData.textDescription,
-              sceneGraph: sceneData.sceneGraph,
-            },
+            data: { ...node.data, ...updates }
           };
         }
         return node;
       })
     );
-  }, [sceneData, id, setNodes, data.sharedId]);
-
-  // data가 변경될 때 sceneData 동기화
-  useEffect(() => {
-    setSceneData({
-      instanceLabel: data?.instanceLabel || data?.label || "New Box",
-      textDescription: data?.textDescription || "",
-      sceneGraph: data?.sceneGraph || {},
-    });
-  }, [data?.instanceLabel, data?.label, data?.textDescription, data?.sceneGraph]);
+    
+    // 3. ClassContext 업데이트
+    updateInstance(id, updates);
+    
+    setTimeout(() => {
+      syncingRef.current = false;
+    }, 100);
+  };
 
   useEffect(() => {
     if (data?.justCreated && isInitializing && !hasPromptedRef.current) {
@@ -76,11 +89,13 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
             handleInitialDescriptionInput(description);
           } else {
             setIsInitializing(false);
+            syncUpdate({ justCreated: false });
           }
         },
         onCancel: () => {
           setModal(null);
           setIsInitializing(false);
+          syncUpdate({ justCreated: false });
         },
       });
     }
@@ -94,10 +109,11 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
       });
       const instanceLabel = sceneGraph.objects?.[0]?.name || "New Box";
       
-      setSceneData({
+      syncUpdate({
         instanceLabel,
         textDescription: description,
         sceneGraph,
+        justCreated: false,
       });
       
       onUpdate?.({
@@ -114,10 +130,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
   };
 
   const handleInstanceLabelChange = async (newLabel) => {
-    setSceneData((prev) => ({
-      ...prev,
-      instanceLabel: newLabel,
-    }));
+    syncUpdate({ instanceLabel: newLabel });
     onUpdate?.({ label: newLabel });
   };
 
@@ -129,9 +142,6 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
     const prevGraph = sceneData.sceneGraph;
     const currLabel = sceneData.instanceLabel;
 
-    // 먼저 UI 업데이트
-    setSceneData((prev) => ({ ...prev, textDescription: newDescription }));
-
     try {
       const sceneGraph = await generateTextToGraph({
         newTextDescription: newDescription,
@@ -140,24 +150,21 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
       });
       const instanceLabel = sceneGraph.objects?.[0]?.name || currLabel;
 
-      setSceneData((prev) => ({
-        ...prev,
-        sceneGraph: sceneGraph,
-        instanceLabel: instanceLabel,
+      syncUpdate({
+        instanceLabel,
         textDescription: newDescription,
-      }));
+        sceneGraph,
+      });
       
       onUpdate?.({
         label: instanceLabel,
         textDescription: newDescription,
       });
     } catch (error) {
-      // 에러 발생 시 이전 상태로 복원
-      setSceneData((prev) => ({
-        ...prev,
-        textDescription: prevText,
-      }));
+      console.error("Failed to update the scene:", error);
       alert("Failed to update the scene. Please try again.");
+      // 에러 시 이전 상태로 복원
+      setSceneData(prev => ({ ...prev, textDescription: prevText }));
     } finally {
       setIsUpdating(false);
     }
@@ -165,11 +172,7 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
 
   const handleSceneGraphChange = async (updatedSceneGraph, update = true) => {
     if (!update) {
-      console.log("Scene graph updated without text generation");
-      setSceneData((prev) => ({
-        ...prev,
-        sceneGraph: updatedSceneGraph,
-      }));
+      syncUpdate({ sceneGraph: updatedSceneGraph });
       return;
     }
     
@@ -181,26 +184,20 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
         previousSceneGraph: sceneData.sceneGraph,
         previousTextDescription: sceneData.textDescription,
       });
-      const newLabel =
-        updatedSceneGraph.objects?.[0]?.name || sceneData.instanceLabel;
+      const newLabel = updatedSceneGraph.objects?.[0]?.name || sceneData.instanceLabel;
 
-      setSceneData((prev) => ({
-        ...prev,
-        sceneGraph: updatedSceneGraph,
-        textDescription: newText,
+      syncUpdate({
         instanceLabel: newLabel,
-      }));
+        textDescription: newText,
+        sceneGraph: updatedSceneGraph,
+      });
 
       onUpdate?.({
         label: newLabel,
         textDescription: newText,
       });
     } catch (error) {
-      console.error(
-        "Failed to update from sceneGraph:",
-        updatedSceneGraph,
-        error
-      );
+      console.error("Failed to update from sceneGraph:", updatedSceneGraph, error);
       alert("Scene update failed. Try again.");
     } finally {
       setIsUpdating(false);
@@ -209,13 +206,11 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
 
   const [descriptionTimeout, setDescriptionTimeout] = useState(null);
   const handleDescriptionChangeWithDebounce = (newDescription) => {
-    // 즉시 UI 업데이트
-    setSceneData((prev) => ({ ...prev, textDescription: newDescription }));
+    // 즉시 로컬 상태 업데이트
+    setSceneData(prev => ({ ...prev, textDescription: newDescription }));
     
-    // 이전 타이머 클리어
     if (descriptionTimeout) clearTimeout(descriptionTimeout);
     
-    // 새 타이머 설정
     const timeoutId = setTimeout(() => {
       handleDescriptionChange(newDescription);
     }, 1000);
@@ -224,16 +219,25 @@ export default function InstancePanelNode({ id, data, onUpdate }) {
 
   useEffect(() => {
     return () => {
-      if (descriptionTimeout) {
-        clearTimeout(descriptionTimeout);
-      }
+      if (descriptionTimeout) clearTimeout(descriptionTimeout);
     };
   }, [descriptionTimeout]);
+
+  // 클래스 연결 상태 표시용 데이터
+  const enhancedData = {
+    ...data,
+    instanceLabel: sceneData.instanceLabel,
+    textDescription: sceneData.textDescription,
+    sceneGraph: sceneData.sceneGraph,
+    isFromClass,
+    parentClassName: parentClass?.name,
+    hasOverrides: instanceData.overrides && Object.keys(instanceData.overrides).length > 0,
+  };
 
   return (
     <PanelTemplate
       id={id}
-      data={data}
+      data={enhancedData}
       isExpanded={isExpanded}
       setIsExpanded={setIsExpanded}
       sceneData={sceneData}

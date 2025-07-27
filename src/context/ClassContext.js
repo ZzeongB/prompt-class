@@ -22,7 +22,7 @@ const deepCloneSceneGraph = (sceneGraph) => {
     };
   });
 
-  const newRelationships = sceneGraph.relationships.map((rel) => ({
+  const newRelationships = (sceneGraph.relationships || []).map((rel) => ({
     source: idMapping[rel.source] || rel.source,
     target: idMapping[rel.target] || rel.target,
     relation: rel.relation,
@@ -66,6 +66,61 @@ const replaceWithSceneGraphPlaceholders = (sceneGraph, placeholderMap) => {
   return cloned;
 };
 
+// 두 sceneGraph를 비교하여 차이점을 찾는 함수
+const findSceneGraphDifferences = (original, current) => {
+  const differences = {};
+  
+  // 객체 이름 변경 확인
+  if (original.objects && current.objects) {
+    original.objects.forEach((originalObj, index) => {
+      const currentObj = current.objects[index];
+      if (currentObj && originalObj.name !== currentObj.name) {
+        differences[`objects.${index}.name`] = currentObj.name;
+      }
+      
+      // attributes 변경 확인
+      if (originalObj.attributes && currentObj.attributes) {
+        originalObj.attributes.forEach((originalAttr, attrIndex) => {
+          const currentAttr = currentObj.attributes[attrIndex];
+          if (currentAttr && originalAttr !== currentAttr) {
+            differences[`objects.${index}.attributes.${attrIndex}`] = currentAttr;
+          }
+        });
+      }
+    });
+  }
+  
+  return differences;
+};
+
+// 차이점을 sceneGraph에 적용하는 함수
+const applySceneGraphDifferences = (baseSceneGraph, differences) => {
+  const result = deepCloneSceneGraph(baseSceneGraph);
+  
+  Object.keys(differences).forEach(path => {
+    const value = differences[path];
+    const pathParts = path.split('.');
+    
+    if (pathParts[0] === 'objects') {
+      const objectIndex = parseInt(pathParts[1]);
+      const property = pathParts[2];
+      
+      if (result.objects && result.objects[objectIndex]) {
+        if (property === 'name') {
+          result.objects[objectIndex].name = value;
+        } else if (property === 'attributes') {
+          const attrIndex = parseInt(pathParts[3]);
+          if (result.objects[objectIndex].attributes) {
+            result.objects[objectIndex].attributes[attrIndex] = value;
+          }
+        }
+      }
+    }
+  });
+  
+  return result;
+};
+
 export const useClassContext = () => {
   const context = useContext(ClassContext);
   if (!context) {
@@ -97,13 +152,38 @@ export const ClassProvider = ({ children }) => {
         name: instanceData.instanceLabel + " Class",
         template: {
           sceneGraph: processedSceneGraph,
+          textDescription: instanceData.textDescription,
+          instanceLabel: instanceData.instanceLabel,
         },
         createdAt: new Date().toISOString(),
         createdFrom: instanceData.instanceLabel,
         placeholders,
+        // 원본 데이터 저장 (기본값으로 사용)
+        originalData: {
+          sceneGraph: instanceData.sceneGraph,
+          textDescription: instanceData.textDescription,
+          instanceLabel: instanceData.instanceLabel,
+        }
       };
 
       setClasses((prev) => [...prev, newClass]);
+
+      // 원본 인스턴스를 클래스의 인스턴스로 변환
+      setInstances((prev) => 
+        prev.map(instance => {
+          if (instance.id === instanceData.id) {
+            return {
+              ...instance,
+              classId: newClass.id,
+              isFromClass: true,
+              createdFrom: newClass.name,
+              overrides: {}, // 초기에는 override 없음
+              originalSceneGraph: instanceData.sceneGraph, // 현재 상태를 원본으로 저장
+            };
+          }
+          return instance;
+        })
+      );
 
       return newClass;
     } catch (error) {
@@ -113,15 +193,36 @@ export const ClassProvider = ({ children }) => {
         name: instanceData.instanceLabel + " Class",
         template: {
           sceneGraph: deepCloneSceneGraph(instanceData.sceneGraph),
+          textDescription: instanceData.textDescription,
+          instanceLabel: instanceData.instanceLabel,
         },
         createdAt: new Date().toISOString(),
         createdFrom: instanceData.instanceLabel,
+        originalData: {
+          sceneGraph: instanceData.sceneGraph,
+          textDescription: instanceData.textDescription,
+          instanceLabel: instanceData.instanceLabel,
+        }
       };
 
-      setClasses((prev) => {
-        const updated = [...prev, fallbackClass];
-        return updated;
-      });
+      setClasses((prev) => [...prev, fallbackClass]);
+      
+      // 원본 인스턴스를 클래스의 인스턴스로 변환
+      setInstances((prev) => 
+        prev.map(instance => {
+          if (instance.id === instanceData.id) {
+            return {
+              ...instance,
+              classId: fallbackClass.id,
+              isFromClass: true,
+              createdFrom: fallbackClass.name,
+              overrides: {},
+              originalSceneGraph: instanceData.sceneGraph,
+            };
+          }
+          return instance;
+        })
+      );
 
       return fallbackClass;
     }
@@ -159,13 +260,171 @@ export const ClassProvider = ({ children }) => {
       id: `instance-${uuidv4()}`,
       instanceLabel: generateInstanceLabel(newValues),
       sceneGraph, // 업데이트된 sceneGraph
+      textDescription: classData.template.textDescription || "",
       createdAt: new Date().toISOString(),
       createdFrom: classData.name,
+      classId: classData.id,
       isFromClass: true,
+      overrides: {}, // 초기에는 override 없음
+      originalSceneGraph: sceneGraph, // 초기 상태를 원본으로 저장
     };
 
     setInstances((prev) => [...prev, newInstance]);
     return newInstance;
+  };
+
+  // 클래스 업데이트 시 연결된 인스턴스들도 업데이트
+  const updateClass = (classId, updates) => {
+    setClasses((prev) => 
+      prev.map(cls => {
+        if (cls.id === classId) {
+          const updatedClass = {
+            ...cls,
+            ...updates,
+            template: {
+              ...cls.template,
+              ...updates.template
+            }
+          };
+          
+          // 연결된 인스턴스들 업데이트
+          updateInstancesFromClass(updatedClass);
+          
+          return updatedClass;
+        }
+        return cls;
+      })
+    );
+  };
+
+  // 클래스 변경에 따른 인스턴스 업데이트
+  const updateInstancesFromClass = (updatedClass) => {
+    setInstances((prev) => 
+      prev.map(instance => {
+        if (instance.classId === updatedClass.id) {
+          // override되지 않은 부분만 클래스에서 업데이트
+          const newSceneGraph = applyClassUpdatesToInstance(
+            updatedClass.template.sceneGraph,
+            instance.overrides,
+            instance.originalSceneGraph
+          );
+          
+          return {
+            ...instance,
+            sceneGraph: newSceneGraph,
+            // textDescription은 override되지 않았다면 클래스에서 가져옴
+            textDescription: instance.overrides.textDescription 
+              ? instance.textDescription 
+              : updatedClass.template.textDescription,
+          };
+        }
+        return instance;
+      })
+    );
+  };
+
+  // 클래스 업데이트를 인스턴스에 적용 (override 고려)
+  const applyClassUpdatesToInstance = (classSceneGraph, overrides, originalSceneGraph) => {
+    // 클래스의 sceneGraph를 기본으로 시작
+    let result = deepCloneSceneGraph(classSceneGraph);
+    
+    // placeholder를 원본 값으로 복원
+    result.objects.forEach((obj) => {
+      if (obj.name && obj.name.includes("{") && obj.name.includes("}")) {
+        const key = obj.name.replace(/[{}]/g, "");
+        // 원본에서 해당하는 값 찾기
+        const originalObj = originalSceneGraph.objects?.find(orig => 
+          orig.defaultName === key || orig.name === key
+        );
+        if (originalObj) {
+          obj.name = originalObj.name;
+        }
+        delete obj.defaultName;
+        delete obj.isPlaceholder;
+      }
+
+      if (obj.attributes && Array.isArray(obj.attributes)) {
+        obj.attributes = obj.attributes.map((attr, index) => {
+          if (typeof attr === "string" && attr.includes("{") && attr.includes("}")) {
+            const key = attr.replace(/[{}]/g, "");
+            // 원본에서 해당하는 값 찾기
+            const originalObj = originalSceneGraph.objects?.find(orig => 
+              orig.attributes && orig.attributes[index]
+            );
+            return originalObj?.attributes[index] || attr;
+          }
+          return attr;
+        });
+      }
+    });
+    
+    // override된 부분 적용
+    result = applySceneGraphDifferences(result, overrides);
+    
+    return result;
+  };
+
+  // 인스턴스 업데이트 (override 추적)
+  const updateInstance = (instanceId, updates) => {
+    setInstances((prev) => 
+      prev.map(instance => {
+        if (instance.id === instanceId && instance.isFromClass) {
+          // 클래스와 비교하여 override 계산
+          const classData = classes.find(cls => cls.id === instance.classId);
+          if (classData) {
+            // 새로운 override 계산
+            const newOverrides = calculateOverrides(
+              classData.originalData.sceneGraph,
+              updates.sceneGraph || instance.sceneGraph,
+              instance.overrides
+            );
+            
+            return {
+              ...instance,
+              ...updates,
+              overrides: {
+                ...instance.overrides,
+                ...newOverrides,
+                // textDescription override 추적
+                ...(updates.textDescription !== classData.template.textDescription ? 
+                    { textDescription: true } : {}),
+              }
+            };
+          }
+        }
+        return instance.id === instanceId ? { ...instance, ...updates } : instance;
+      })
+    );
+  };
+
+  // override 계산
+  const calculateOverrides = (originalSceneGraph, currentSceneGraph, existingOverrides) => {
+    const differences = findSceneGraphDifferences(originalSceneGraph, currentSceneGraph);
+    return { ...existingOverrides, ...differences };
+  };
+
+  // 인스턴스의 override 초기화 (클래스로 되돌리기)
+  const resetInstanceToClass = (instanceId) => {
+    setInstances((prev) => 
+      prev.map(instance => {
+        if (instance.id === instanceId && instance.isFromClass) {
+          const classData = classes.find(cls => cls.id === instance.classId);
+          if (classData) {
+            return {
+              ...instance,
+              sceneGraph: applyClassUpdatesToInstance(
+                classData.template.sceneGraph,
+                {},
+                instance.originalSceneGraph
+              ),
+              textDescription: classData.template.textDescription,
+              overrides: {},
+            };
+          }
+        }
+        return instance;
+      })
+    );
   };
   
   const duplicateInstance = (instanceData) => {
@@ -174,9 +433,13 @@ export const ClassProvider = ({ children }) => {
       id: newId,
       instanceLabel: instanceData.instanceLabel + " Copy",
       sceneGraph: deepCloneSceneGraph(instanceData.sceneGraph),
+      textDescription: instanceData.textDescription,
       createdAt: new Date().toISOString(),
       createdFrom: instanceData.instanceLabel,
       isFromClass: instanceData.isFromClass || false,
+      classId: instanceData.classId,
+      overrides: instanceData.overrides ? { ...instanceData.overrides } : {},
+      originalSceneGraph: instanceData.originalSceneGraph,
     };
 
     setInstances((prev) => [...prev, duplicated]);
@@ -184,9 +447,22 @@ export const ClassProvider = ({ children }) => {
   };
 
   const deleteClass = (classId) => {
-    setClasses((prev) => {
-      prev.filter((c) => c.id !== classId);
-    });
+    setClasses((prev) => prev.filter((c) => c.id !== classId));
+    
+    // 해당 클래스의 인스턴스들을 standalone으로 변경
+    setInstances((prev) => 
+      prev.map(instance => {
+        if (instance.classId === classId) {
+          return {
+            ...instance,
+            isFromClass: false,
+            classId: null,
+            overrides: {},
+          };
+        }
+        return instance;
+      })
+    );
   };
 
   const deleteInstance = (instanceId) => {
@@ -197,8 +473,11 @@ export const ClassProvider = ({ children }) => {
     classes,
     instances,
     createClass,
+    updateClass,
     deleteClass,
     createInstanceFromClass,
+    updateInstance,
+    resetInstanceToClass,
     duplicateInstance,
     deleteInstance,
     setInstances,
