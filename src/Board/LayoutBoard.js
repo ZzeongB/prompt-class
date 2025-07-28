@@ -22,6 +22,7 @@ import {
   TOP_OFFSET,
 } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
+import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 
 const nodeTypes = {
   class: InstancePanelNode,
@@ -37,7 +38,7 @@ const edgeTypes = {
 function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
   const [progress, setProgress] = useState(0);
@@ -53,6 +54,26 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
   // 동기화 방향을 제어하는 플래그들
   const syncFromReactFlow = useRef(false);
   const syncFromClassContext = useRef(false);
+
+  useEffect(() => {
+    if (!isGenerating) {
+      setProgress(100);
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/progress`);
+      const data = await res.json();
+      setProgress(data.progress);
+
+      if (data.progress >= 100) {
+        clearInterval(interval);
+        setIsGenerating(false);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isGenerating]);
 
   // ClassContext → ReactFlow 동기화
   useEffect(() => {
@@ -318,12 +339,15 @@ function LayoutBoard({ onImageGenerated, newInstanceToAdd, onInstanceAdded }) {
 
         const boxes = nodes
           .filter((n) => n.type === "resizable")
-          .map((n) => ({
-            x: n.position?.x || 0,
-            y: n.position?.y || 0,
-            width: 50,
-            height: 50,
-          }));
+          .map((n) => {
+            return getNormalizedBox(
+              n,
+              flowToScreenPosition,
+              LEFT_OFFSET,
+              TOP_OFFSET,
+              true
+            );
+          });
 
         const response = await generateImageFromInstanceData(
           sentences,
