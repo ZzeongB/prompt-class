@@ -167,7 +167,7 @@ export default function InstanceCard({
       <div
         style={{
           padding: "8px 12px",
-          backgroundColor: isEditing ? "#eff6ff" : "rgba(241, 245, 249, 0.6)",
+          backgroundColor: isEditing ? "#eff6ff" : "#ffffff",
           borderRadius: "6px 6px 0 0",
           borderBottom: isExpanded ? "1px solid #e2e8f0" : "none",
           display: "flex",

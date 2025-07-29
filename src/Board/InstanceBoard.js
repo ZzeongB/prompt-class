@@ -50,12 +50,12 @@ export default function InstanceBoard({
     <div
       style={{
         height: "100vh",
-          backgroundColor: "#f8fafc",
-          borderLeft: "1px solid #e2e8f0",
-          padding: "16px",
-          overflow: "auto",
-          display: "flex",
-          flexDirection: "column",
+        backgroundColor: "#f8fafc",
+        borderLeft: "1px solid #e2e8f0",
+        padding: "16px",
+        overflow: "auto",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       {/* 헤더 및 컨트롤 */}
@@ -99,20 +99,29 @@ export default function InstanceBoard({
         ))}
 
         {filteredAndSortedInstances.length === 0 && (
-          <div
-            style={{
-              gridColumn: "1 / -1",
-              padding: "40px",
-              textAlign: "center",
-              color: "#6b7280",
-              fontSize: "14px",
-              border: "2px dashed #d1d5db",
-              borderRadius: "8px",
-            }}
-          >
-            {searchTerm || filterType !== "all"
-              ? "No instances match your search criteria"
-              : "No instances created yet. Create one from the Layout Board!"}
+          <div>
+            {searchTerm || filterType !== "all" ? (
+              "No instances match your search criteria"
+            ) : (
+              <div
+                style={{
+                  textAlign: "center",
+                  color: "#64748b",
+                  fontSize: "12px",
+                  padding: "40px 20px",
+                  fontStyle: "italic",
+                  backgroundColor: "#ffffff",
+                  borderRadius: "8px",
+                  border: "1px dashed #cbd5e1",
+                }}
+              >
+                No instances yet.
+                <br />
+                <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                  Create an instance by clicking "Create New Box"!
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

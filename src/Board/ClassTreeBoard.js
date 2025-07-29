@@ -472,7 +472,7 @@ export const ClassTreeBoard = ({ onAddInstance }) => {
           style={{
             marginTop: "16px",
             padding: "12px",
-            backgroundColor: "#ffffff",
+            backgroundColor: "#f8fafc",
             borderRadius: "6px",
             border: "1px solid #e5e7eb",
           }}

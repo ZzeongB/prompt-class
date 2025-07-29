@@ -1,5 +1,6 @@
 // InstanceBoard.js - 모든 인스턴스 상세 정보 표시
 import React, { useState, useMemo } from "react";
+import { Plus } from "lucide-react";
 import ObjectNode from "./nodes/ObjectNode";
 import RelationshipNode from "./nodes/RelationshipNode";
 
@@ -19,6 +20,8 @@ export default function SceneGraphVisualizer({
   const [hoveredRelationship, setHoveredRelationship] = useState(null);
   const [editingObject, setEditingObject] = useState(null);
   const [draggingObject, setDraggingObject] = useState(null);
+  const [connectingMode, setConnectingMode] = useState(false);
+  const [selectedSourceObject, setSelectedSourceObject] = useState(null);
 
   // 안전한 데이터 확인
   const safeSceneGraph = {
@@ -74,6 +77,81 @@ export default function SceneGraphVisualizer({
       ),
     };
     onSceneGraphChange(updatedGraph);
+  };
+
+  // Object 추가 기능
+  const handleAddObject = () => {
+    const newId = `object${safeSceneGraph.objects.length + 1}`;
+    const updatedGraph = {
+      ...safeSceneGraph,
+      objects: [
+        ...safeSceneGraph.objects,
+        { id: newId, name: "new object", attributes: [] },
+      ],
+    };
+    onSceneGraphChange(updatedGraph);
+  };
+
+  // Relationship 관련 기능들
+  const handleRelationshipEdit = (sourceId, targetId, newRelation) => {
+    const updatedGraph = {
+      ...safeSceneGraph,
+      relationships: safeSceneGraph.relationships.map((rel) =>
+        rel.source === sourceId && rel.target === targetId
+          ? { ...rel, relation: newRelation }
+          : rel
+      ),
+    };
+    onSceneGraphChange(updatedGraph);
+  };
+
+  const handleRelationshipDelete = (sourceId, targetId) => {
+    const updatedGraph = {
+      ...safeSceneGraph,
+      relationships: safeSceneGraph.relationships.filter(
+        (rel) => !(rel.source === sourceId && rel.target === targetId)
+      ),
+    };
+    onSceneGraphChange(updatedGraph);
+  };
+
+  const handleObjectClick = (objectId) => {
+    if (connectingMode) {
+      if (!selectedSourceObject) {
+        // First object selected as source
+        setSelectedSourceObject(objectId);
+      } else if (selectedSourceObject !== objectId) {
+        // Second object selected as target - create relationship
+        const relationshipExists = safeSceneGraph.relationships.some(
+          (rel) =>
+            rel.source === selectedSourceObject && rel.target === objectId
+        );
+
+        if (!relationshipExists) {
+          const updatedGraph = {
+            ...safeSceneGraph,
+            relationships: [
+              ...safeSceneGraph.relationships,
+              {
+                source: selectedSourceObject,
+                target: objectId,
+                relation: "related to",
+              },
+            ],
+          };
+          onSceneGraphChange(updatedGraph);
+        }
+
+        // Reset connecting mode
+        setConnectingMode(false);
+        setSelectedSourceObject(null);
+      }
+    }
+  };
+
+  const handleToggleConnectMode = () => {
+    setConnectingMode(!connectingMode);
+    setSelectedSourceObject(null);
   };
 
   // 드래그 이벤트 핸들러
@@ -262,7 +340,7 @@ export default function SceneGraphVisualizer({
           justifyContent: "center",
           color: "#6b7280",
           fontSize: "11px",
-          backgroundColor: "#f8fafc",
+          backgroundColor: "#fffffff",
           borderRadius: "6px",
           border: "1px solid #e5e7eb",
         }}
@@ -281,11 +359,101 @@ export default function SceneGraphVisualizer({
         maxWidth: "100%",
         maxHeight: "100%",
         overflow: "auto", // 스크롤바 추가
-        background: "#f8fafc",
+        background: "#ffffff",
         borderRadius: "6px",
         border: "1px solid transparent",
       }}
     >
+      {/* Add Object 버튼 */}
+      {isEditable && (
+        <button
+          onClick={handleAddObject}
+          style={{
+            position: "absolute",
+            top: "8px",
+            right: "36px",
+            background: "#e2e8f0",
+            color: "#64748b",
+            border: "none",
+            borderRadius: "4px",
+            padding: "4px 6px",
+            fontSize: "10px",
+            fontWeight: "400",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "3px",
+            opacity: "0.7",
+            transition: "opacity 0.2s ease",
+            zIndex: 20,
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.opacity = "1";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.opacity = "0.7";
+          }}
+        >
+          <Plus size={12} />
+          Add
+        </button>
+      )}
+
+      {/* Connect 모드 토글 버튼 */}
+      {isEditable && (
+        <button
+          onClick={handleToggleConnectMode}
+          style={{
+            position: "absolute",
+            top: "8px",
+            right: "8px",
+            background: connectingMode ? "#dcfce7" : "#e2e8f0",
+            color: connectingMode ? "#15803d" : "#64748b",
+            border: connectingMode ? "1px solid #86efac" : "none",
+            borderRadius: "4px",
+            padding: "4px 6px",
+            fontSize: "10px",
+            fontWeight: "400",
+            cursor: "pointer",
+            opacity: connectingMode ? "1" : "0.7",
+            transition: "all 0.2s ease",
+            zIndex: 20,
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.opacity = "1";
+          }}
+          onMouseLeave={(e) => {
+            if (!connectingMode) e.target.style.opacity = "0.7";
+          }}
+          title={connectingMode ? "Cancel connecting" : "Connect objects"}
+        >
+          ⟷
+        </button>
+      )}
+
+      {/* 연결 모드 안내 메시지 */}
+      {connectingMode && (
+        <div
+          style={{
+            position: "absolute",
+            top: "40px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            fontSize: "11px",
+            color: "#15803d",
+            backgroundColor: "#dcfce7",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            border: "1px solid #86efac",
+            zIndex: 20,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {selectedSourceObject
+            ? "Click target object to create relationship"
+            : "Click source object to start connecting"}
+        </div>
+      )}
       {/* 실제 그래프 컨테이너 */}
       <div
         style={{
@@ -354,6 +522,7 @@ export default function SceneGraphVisualizer({
           if (!pos) return null;
 
           const { width, height } = getNodeDimensions(obj);
+          const isSelected = selectedSourceObject === obj.id;
 
           return (
             <div
@@ -365,30 +534,40 @@ export default function SceneGraphVisualizer({
                 width: width,
                 height: height,
               }}
+              onClick={() => handleObjectClick(obj.id)}
             >
-              <ObjectNode
-                object={obj}
-                onEdit={handleObjectEdit}
-                onDelete={handleObjectDelete}
-                onAddAttribute={handleAddAttribute}
-                isHovered={hoveredObject === obj.id}
-                setIsHovered={(hovered) =>
-                  setHoveredObject(hovered ? obj.id : null)
-                }
-                isEditing={editingObject === obj.id}
-                setIsEditing={(editing) =>
-                  setEditingObject(editing ? obj.id : null)
-                }
-                isEditable={isEditable}
-                isClassMode={isClassMode}
-                placeHolders={placeHolders}
-                onDragStart={handleObjectDragStart}
-                onDragEnd={handleObjectDragEnd}
-                isDraggable={!isClassMode && isEditable}
-                parentInstanceId={instanceId}
-                compact={compact}
-                dimensions={getNodeDimensions(obj)}
-              />
+              <div
+                style={{
+                  border: isSelected ? "2px solid #15803d" : "none",
+                  borderRadius: "8px",
+                  padding: isSelected ? "2px" : "0",
+                  cursor: connectingMode ? "pointer" : "default",
+                }}
+              >
+                <ObjectNode
+                  object={obj}
+                  onEdit={handleObjectEdit}
+                  onDelete={handleObjectDelete}
+                  onAddAttribute={handleAddAttribute}
+                  isHovered={hoveredObject === obj.id}
+                  setIsHovered={(hovered) =>
+                    setHoveredObject(hovered ? obj.id : null)
+                  }
+                  isEditing={editingObject === obj.id}
+                  setIsEditing={(editing) =>
+                    setEditingObject(editing ? obj.id : null)
+                  }
+                  isEditable={isEditable}
+                  isClassMode={isClassMode}
+                  placeHolders={placeHolders}
+                  onDragStart={handleObjectDragStart}
+                  onDragEnd={handleObjectDragEnd}
+                  isDraggable={!isClassMode && isEditable && !connectingMode}
+                  parentInstanceId={instanceId}
+                  compact={compact}
+                  dimensions={getNodeDimensions(obj)}
+                />
+              </div>
             </div>
           );
         })}
@@ -427,6 +606,8 @@ export default function SceneGraphVisualizer({
               <RelationshipNode
                 relationship={rel}
                 objects={safeSceneGraph.objects}
+                onEdit={handleRelationshipEdit}
+                onDelete={handleRelationshipDelete}
                 isEditable={isEditable}
                 isHovered={
                   hoveredRelationship === `${rel.source}-${rel.target}-${i}`
