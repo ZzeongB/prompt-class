@@ -10,12 +10,17 @@ import CustomButton from "./components/CustomButton";
 import { logEvent } from "./api/logEvent";
 import { HelpCircle } from "lucide-react";
 import HelpModal from "./components/modal/HelpModal"; // 추가
+import InstanceBoard from "./Board/InstanceBoard";
 
 export default function AppUI({ isBaseline: initialIsBaseline }) {
   const [imageSrc, setImageSrc] = useState("");
   const [isBaseline, setIsBaseline] = useState(initialIsBaseline);
   const [showHelp, setShowHelp] = useState(false);
   const [newInstanceToAdd, setNewInstanceToAdd] = useState(null);
+  const [selectedInstanceId, setSelectedInstanceId] = useState(null);
+  const onInstanceSelect = () => {
+    console.log("onInstanceSelect");
+  };
 
   useEffect(() => {
     sessionStorage.setItem("is_baseline", JSON.stringify(isBaseline));
@@ -83,7 +88,7 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
             style={{
               display: "flex",
               height: "600px",
-              width: "850px",
+              width: "1500px",
               boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
               position: "relative",
               marginRight: "20px",
@@ -134,11 +139,11 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                     onImageGenerated={setImageSrc}
                     newInstanceToAdd={newInstanceToAdd}
                     onInstanceAdded={handleInstanceAdded}
+                    setSelectedInstanceId={setSelectedInstanceId}
                   />
                 )}
               </div>
             </div>
-
             <div
               style={{
                 flexGrow: 1,
@@ -153,6 +158,29 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                 marginTop: "12px",
                 marginRight: "12px",
                 marginBottom: "12px",
+                width: "400px",
+              }}
+            >
+              <InstanceBoard
+                selectedInstanceId={selectedInstanceId}
+                onInstanceSelect={onInstanceSelect}
+              />
+            </div>
+            <div
+              style={{
+                flexGrow: 1,
+                marginLeft: "10px",
+                overflowY: "auto",
+                background: "#FEFEFE",
+                borderRadius: "8px",
+                boxShadow: "-1px 0 4px rgba(0,0,0,0.04)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                marginTop: "12px",
+                marginRight: "12px",
+                marginBottom: "12px",
+                width: "400px",
               }}
             >
               <ClassTreeBoard onAddInstance={handleAddInstance} />

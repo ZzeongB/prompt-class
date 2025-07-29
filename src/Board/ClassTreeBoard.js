@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Edit2, RotateCcw, Check, X } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  RotateCcw,
+  Check,
+  X,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { useClassContext } from "../context/ClassContext";
 import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
 import { CreateInstanceModal } from "../components/modal/CreateInstanceModal";
@@ -14,6 +23,7 @@ const ClassCard = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false); // expanding 상태 추가
   const { updateClass, instances } = useClassContext();
 
   // 편집용 임시 상태 - placeholders 포함
@@ -39,19 +49,16 @@ const ClassCard = ({
   const connectedInstances = instances.filter(
     (inst) => inst.classId === classData.id
   );
-  // const instancesWithOverrides = connectedInstances.filter(
-  //   (inst) => inst.overrides && Object.keys(inst.overrides).length > 0
-  // ).length;
 
-  
   const instancesWithOverrides = connectedInstances.filter((inst) => {
-    const hasOverrides = inst.overrides && Object.keys(inst.overrides).length > 0;
+    const hasOverrides =
+      inst.overrides && Object.keys(inst.overrides).length > 0;
     return hasOverrides;
   });
 
-
   const handleEdit = () => {
     setIsEditing(true);
+    setIsExpanded(true); // 편집 시 자동으로 expand
     setTempSceneData({
       sceneGraph: classData.template?.sceneGraph || {},
       placeholders: classData.placeholders || {},
@@ -67,7 +74,7 @@ const ClassCard = ({
           ...classData.template,
           sceneGraph: tempSceneData.sceneGraph,
         },
-        placeholders: tempSceneData.placeholders, // placeholders도 저장
+        placeholders: tempSceneData.placeholders,
       });
       setIsEditing(false);
     } catch (error) {
@@ -86,12 +93,12 @@ const ClassCard = ({
     });
   };
 
-  // handleSceneGraphChange 수정 - placeholders 처리 추가
   const handleSceneGraphChange = (newSceneGraph, newPlaceHolders) => {
-    
-    setTempSceneData(prev => ({
+    setTempSceneData((prev) => ({
       sceneGraph: newSceneGraph,
-      placeholders: newPlaceHolders ? { ...prev.placeholders, ...newPlaceHolders } : prev.placeholders,
+      placeholders: newPlaceHolders
+        ? { ...prev.placeholders, ...newPlaceHolders }
+        : prev.placeholders,
     }));
   };
 
@@ -117,8 +124,10 @@ const ClassCard = ({
         backgroundColor: isEditing ? "#f8fafc" : "white",
         boxShadow: isEditing ? "0 4px 12px rgba(59, 130, 246, 0.15)" : "none",
         transition: "all 0.2s ease",
-        minHeight: "200px",
+        minHeight: isExpanded ? "200px" : "auto",
+        cursor: "pointer",
       }}
+      onClick={() => setIsExpanded(!isExpanded)}
     >
       {/* 클래스 정보 헤더 */}
       <div
@@ -126,13 +135,13 @@ const ClassCard = ({
           padding: "8px 12px",
           backgroundColor: isEditing ? "#eff6ff" : "rgba(241, 245, 249, 0.6)",
           borderRadius: "6px 6px 0 0",
-          borderBottom: "1px solid #e2e8f0",
+          borderBottom: isExpanded ? "1px solid #e2e8f0" : "none",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
         }}
       >
-        <div>
+        <div style={{ flex: 1 }}>
           <div
             style={{
               fontSize: "12px",
@@ -161,7 +170,7 @@ const ClassCard = ({
           </div>
           <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px" }}>
             {instanceCount} instance{instanceCount !== 1 ? "s" : ""}
-            {instancesWithOverrides > 0 && (
+            {instancesWithOverrides.length > 0 && (
               <span
                 style={{
                   marginLeft: "8px",
@@ -169,11 +178,28 @@ const ClassCard = ({
                   fontWeight: "500",
                 }}
               >
-                • {instancesWithOverrides} with overrides
+                • {instancesWithOverrides.length} with overrides
               </span>
             )}
           </div>
         </div>
+
+        {/* Expand/Collapse 버튼 */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsExpanded(!isExpanded);
+          }}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 4,
+            color: "#64748b",
+          }}
+        >
+          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
 
         {isUpdating && (
           <div
@@ -181,6 +207,7 @@ const ClassCard = ({
               fontSize: "10px",
               color: "#6b7280",
               fontStyle: "italic",
+              marginLeft: "8px",
             }}
           >
             Updating instances...
@@ -188,29 +215,34 @@ const ClassCard = ({
         )}
       </div>
 
-      {/* SceneGraphVisualizer - 가운데 배치 */}
-      <div
-        style={{
-          display: "flex",
-          // justifyContent: "center",
-          // alignItems: "center",
-          padding: "12px",
-          minHeight: "120px",
-        }}
-      >
-        <SceneGraphVisualizer
-          sceneGraph={sceneData.sceneGraph}
-          onSceneGraphChange={
-            isEditing ? handleSceneGraphChange : handleDummyFunction
-          }
-          isEditable={isEditing}
-          isClassMode={true}
-          placeHolders={isEditing ? tempSceneData.placeholders : classData.placeholders}
-        />
-      </div>
+      {/* Expanded Section - SceneGraphVisualizer */}
+      {isExpanded && (
+        <div
+          style={{
+            width: "100%",
+            height: "400px", // 고정 높이 설정
+            maxHeight: "80vh", // 뷰포트 높이의 80%를 넘지 않도록
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            overflow: "hidden", // 상위에서도 넘침 방지
+          }}
+        >
+          <SceneGraphVisualizer
+            sceneGraph={sceneData.sceneGraph}
+            onSceneGraphChange={
+              isEditing ? handleSceneGraphChange : handleDummyFunction
+            }
+            isEditable={isEditing}
+            isClassMode={true}
+            placeHolders={
+              isEditing ? tempSceneData.placeholders : classData.placeholders
+            }
+          />
+        </div>
+      )}
 
-      {/* Toolbar - 우하단 배치 */}
-      <div style={{ position: "absolute", top: "5px", right: "8px" }}>
+      {/* Toolbar - 우상단 배치 */}
+      <div style={{ position: "absolute", top: "5px", right: "38px" }}>
         <div
           style={{
             display: "flex",
@@ -224,13 +256,19 @@ const ClassCard = ({
           {isEditing ? (
             <>
               <ToolbarButton
-                onClick={handleSaveEdit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSaveEdit();
+                }}
                 title="Save Changes"
                 icon={<Check size={12} />}
               />
 
               <ToolbarButton
-                onClick={handleCancelEdit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCancelEdit();
+                }}
                 title="Cancel Edit"
                 icon={<X size={12} />}
               />
@@ -238,25 +276,37 @@ const ClassCard = ({
           ) : (
             <>
               <ToolbarButton
-                onClick={() => onCreateInstance(classData)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateInstance(classData);
+                }}
                 title="Create Instance"
                 icon={<Plus size={12} />}
               />
 
               <ToolbarButton
-                onClick={handleEdit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit();
+                }}
                 title="Edit Class"
                 icon={<Edit2 size={12} />}
               />
 
               <ToolbarButton
-                onClick={handleResetInstances}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleResetInstances();
+                }}
                 title="Reset All Instances"
                 icon={<RotateCcw size={12} />}
               />
 
               <ToolbarButton
-                onClick={() => onDelete(classData.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(classData.id);
+                }}
                 title="Delete Class"
                 icon={<Trash2 size={12} />}
                 danger={true}
@@ -297,7 +347,6 @@ const ClassCard = ({
     </div>
   );
 };
-
 export const ClassTreeBoard = ({ onAddInstance }) => {
   const { classes, deleteClass, instances, resetInstanceToClass } =
     useClassContext();

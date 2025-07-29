@@ -1,8 +1,6 @@
-// 1. ObjectNode.js에 드래그 기능 추가
+// ObjectNode.js - 편집 상태 개선 버전
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronRight, ChevronDown } from "lucide-react";
-import EditableLabel from "../nodeComponents/EditableLabel";
-import DeleteButton from "../nodeComponents/DeleteButton";
+import { ChevronRight, ChevronDown, X, Plus } from "lucide-react";
 
 const ObjectNode = ({
   object,
@@ -16,99 +14,187 @@ const ObjectNode = ({
   isEditable,
   isClassMode = false,
   placeHolders = null,
-  // 새로운 드래그 관련 props
   onDragStart,
   onDragEnd,
   isDraggable = true,
-  parentInstanceId, // 어떤 instance에서 왔는지 추적
+  parentInstanceId,
+  compact = false,
+  dimensions,
 }) => {
-  // 기존 상태들...
   const [editValue, setEditValue] = useState(object.name);
   const [newAttributeValue, setNewAttributeValue] = useState("");
-  const [addingAttribute, setAddingAttribute] = useState(false);
   const [expanded, setExpanded] = useState(true);
-  const [editingAttributeIndex, setEditingAttributeIndex] = useState(null);
-  const [editingObjectValue, setEditingObjectValue] = useState("");
-  const [editingAttributeValue, setEditingAttributeValue] = useState("");
-  
+
+  // 🎯 편집 상태를 하나로 통합!
+  const [editingMode, setEditingMode] = useState(null);
+  const [editingValue, setEditingValue] = useState("");
+
   // 드래그 관련 상태
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [dragStarted, setDragStarted] = useState(false);
   const dragRef = useRef(null);
   const ghostRef = useRef(null);
+  const dragThreshold = 5;
 
-  // 드래그 시작
+  // 드래그 관련 함수들
   const handleMouseDown = (e) => {
-    if (!isDraggable || isEditing || editingAttributeIndex !== null || addingAttribute) {
-      return; // 편집 중일 때는 드래그 비활성화
+    if (!isDraggable || editingMode !== null) {
+      return;
     }
 
-    // ReactFlow 노드 드래그 방지를 위해 이벤트 전파 차단
-    e.preventDefault();
-    e.stopPropagation();
+    const target = e.target;
+    if (
+      target.tagName === "BUTTON" ||
+      target.tagName === "INPUT" ||
+      target.closest("button") ||
+      target.closest("input")
+    ) {
+      return;
+    }
 
     const rect = dragRef.current.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
-    
+
     setDragOffset({ x: offsetX, y: offsetY });
     setDragPosition({ x: e.clientX - offsetX, y: e.clientY - offsetY });
-    setIsDragging(true);
-    
-    onDragStart?.(object, parentInstanceId);
-    
-    // 전역 마우스 이벤트 리스너 추가
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    
-    // ReactFlow 드래그 방지
-    document.body.style.userSelect = 'none';
-    document.body.style.pointerEvents = 'none';
+    setDragStarted(false);
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
   };
 
   const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
+    if (!dragOffset) return;
+
     const newX = e.clientX - dragOffset.x;
     const newY = e.clientY - dragOffset.y;
-    
-    setDragPosition({ x: newX, y: newY });
+
+    if (!dragStarted) {
+      const deltaX = Math.abs(e.clientX - (dragPosition.x + dragOffset.x));
+      const deltaY = Math.abs(e.clientY - (dragPosition.y + dragOffset.y));
+
+      if (deltaX > dragThreshold || deltaY > dragThreshold) {
+        setDragStarted(true);
+        setIsDragging(true);
+        onDragStart?.(object, parentInstanceId);
+
+        document.body.style.userSelect = "none";
+        document.body.style.pointerEvents = "none";
+
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+
+    if (dragStarted) {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragPosition({ x: newX, y: newY });
+    }
   };
 
   const handleMouseUp = (e) => {
-    if (!isDragging) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    setIsDragging(false);
-    
-    // 드롭 위치 계산
-    const dropX = e.clientX;
-    const dropY = e.clientY;
-    
-    onDragEnd?.(object, parentInstanceId, { x: dropX, y: dropY });
-    
-    // 이벤트 리스너 제거 및 스타일 복원
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-    document.body.style.userSelect = '';
-    document.body.style.pointerEvents = '';
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+
+    if (dragStarted) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      setIsDragging(false);
+      setDragStarted(false);
+
+      const dropX = e.clientX;
+      const dropY = e.clientY;
+
+      onDragEnd?.(object, parentInstanceId, { x: dropX, y: dropY });
+
+      document.body.style.userSelect = "";
+      document.body.style.pointerEvents = "";
+    } else {
+      setDragStarted(false);
+      setIsDragging(false);
+    }
+
+    setDragOffset(null);
   };
 
-  // 컴포넌트 언마운트 시 이벤트 리스너 정리
   useEffect(() => {
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+      document.body.style.pointerEvents = "";
     };
   }, []);
 
-  // 기존 함수들은 그대로 유지...
+  // 편집 관련 함수들
+  const startEditing = (mode, initialValue = "") => {
+    setEditingMode(mode);
+    setEditingValue(initialValue);
+  };
+
+  const cancelEditing = () => {
+    setEditingMode(null);
+    setEditingValue("");
+    setNewAttributeValue("");
+  };
+
+  const saveEditing = () => {
+    if (!editingValue.trim()) {
+      cancelEditing();
+      return;
+    }
+
+    if (editingMode === "name") {
+      if (isClassMode) {
+        const { placeholderLabel, defaultValue } = parseClassInput(editingValue);
+        onEdit?.(object.id, `{${placeholderLabel}}`, object.attributes, {
+          [defaultValue]: placeholderLabel,
+        });
+      } else {
+        onEdit?.(object.id, editingValue);
+      }
+    } else if (editingMode === "adding") {
+      if (isClassMode) {
+        const { placeholderLabel, defaultValue } = parseClassInput(editingValue);
+        const updatedAttributes = [
+          ...(object.attributes || []),
+          `{${placeholderLabel}}`,
+        ];
+        onEdit?.(object.id, object.name, updatedAttributes, {
+          [defaultValue]: placeholderLabel,
+        });
+      } else {
+        onAddAttribute?.(object.id, editingValue);
+      }
+    } else if (editingMode?.startsWith("attribute-")) {
+      const index = parseInt(editingMode.replace("attribute-", ""));
+      if (isClassMode) {
+        const { placeholderLabel, defaultValue } = parseClassInput(editingValue);
+        const updated = [...object.attributes];
+        updated[index] = `{${placeholderLabel}}`;
+        onEdit?.(object.id, object.name, updated, {
+          [defaultValue]: placeholderLabel,
+        });
+      } else {
+        const updated = [...object.attributes];
+        updated[index] = editingValue;
+        onEdit?.(object.id, object.name, updated);
+      }
+    }
+
+    cancelEditing();
+  };
+
+  const handleDeleteAttribute = (index) => {
+    const updated = object.attributes.filter((_, i) => i !== index);
+    onEdit?.(object.id, object.name, updated);
+  };
+
   const parseClassInput = (input) => {
     const trimmed = input.trim();
     const spaceIndex = trimmed.indexOf(" ");
@@ -120,271 +206,268 @@ const ObjectNode = ({
     return { placeholderLabel: trimmed, defaultValue: "?" };
   };
 
-  const handleSaveName = (val) => {
-    if (!val || !val.trim()) {
-      setIsEditing(false);
-      setEditingObjectValue("");
-      return;
-    }
+  // 요소별 투명도 계산
+  const getElementOpacity = (elementType, elementIndex = null) => {
+    if (editingMode === null) return 1;
 
-    if (isClassMode) {
-      const { placeholderLabel, defaultValue } = parseClassInput(val);
-      onEdit?.(object.id, `{${placeholderLabel}}`, object.attributes, {
-        [defaultValue]: placeholderLabel,
-      });
-    } else {
-      onEdit?.(object.id, val);
-    }
-    setIsEditing(false);
-    setEditingObjectValue("");
+    if (elementType === "name" && editingMode === "name") return 1;
+    if (
+      elementType === "attribute" &&
+      editingMode === `attribute-${elementIndex}`
+    )
+      return 1;
+    if (elementType === "adding" && editingMode === "adding") return 1;
+    if (elementType === "controls") return 1;
+
+    return 0.3;
   };
 
-  const handleEditAttribute = (index, val) => {
-    if (!isEditable) return;
-
-    if (isClassMode) {
-      const { placeholderLabel, defaultValue } = parseClassInput(val);
-      const updated = [...object.attributes];
-      updated[index] = `{${placeholderLabel}}`;
-      onEdit?.(object.id, object.name, updated, {
-        [defaultValue]: placeholderLabel,
-      });
-    } else {
-      const updated = [...object.attributes];
-      updated[index] = val;
-      onEdit?.(object.id, object.name, updated);
-    }
-    setEditingAttributeIndex(null);
-    setEditingAttributeValue("");
+  // 동적 스타일 계산
+  const attributeCount = object.attributes?.length || 0;
+  const hasMultipleAttributes = attributeCount > 5;
+  
+  const nodeStyle = {
+    border: isClassMode ? "2px dashed #fca5a5" : "1px solid #fca5a5",
+    borderRadius: "6px",
+    padding: compact ? "4px" : "6px",
+    backgroundColor: isHovered ? "#fecaca" : "#fed7d7",
+    width: "100%",
+    height: "100%",
+    boxSizing: "border-box",
+    overflow: "hidden",
+    cursor:
+      isDraggable && editingMode === null
+        ? isDragging
+          ? "grabbing"
+          : "grab"
+        : "default",
+    userSelect: isDragging ? "none" : "auto",
+    transform: isDragging ? "scale(1.05)" : "scale(1)",
+    transition: isDragging ? "none" : "transform 0.2s ease",
+    opacity: isDragging ? 0.8 : 1,
+    zIndex: isDragging ? 1000 : 1,
+    boxShadow: isDragging
+      ? "0 8px 25px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(59, 130, 246, 0.3)"
+      : editingMode !== null
+      ? "0 0 0 2px rgba(59, 130, 246, 0.5)"
+      : "none",
+    display: "flex",
+    flexDirection: "column",
   };
 
-  const handleAddAttribute = () => {
-    if (newAttributeValue.trim()) {
-      if (isClassMode) {
-        const { placeholderLabel, defaultValue } = parseClassInput(
-          newAttributeValue.trim()
-        );
-        const updatedAttributes = [
-          ...(object.attributes || []),
-          `{${placeholderLabel}}`,
-        ];
-        onEdit?.(object.id, object.name, updatedAttributes, {
-          [defaultValue]: placeholderLabel,
-        });
-      } else {
-        onAddAttribute?.(object.id, newAttributeValue.trim());
-      }
+  // 렌더링 함수들
+  const renderAttribute = (attr, index) => {
+    const isEditing = editingMode === `attribute-${index}`;
+    const opacity = getElementOpacity("attribute", index);
 
-      setNewAttributeValue("");
-      setAddingAttribute(false);
-    }
-  };
-
-  const handleDeleteAttribute = (index) => {
-    const updated = object.attributes.filter((_, i) => i !== index);
-    onEdit?.(object.id, object.name, updated);
-  };
-
-  const handleSaveObjectName = () => {
-    handleSaveName(editingObjectValue);
-  };
-
-  const handleSaveAttribute = (index) => {
-    handleEditAttribute(index, editingAttributeValue);
-  };
-
-  // 렌더링 함수들은 기존과 동일...
-  const renderClassAttribute = (attr, index) => {
-    const cleanAttr = attr.replace(/[{}]/g, "");
-    const defaultValue = Object.keys(placeHolders || {}).find(
-      (key) => placeHolders[key] === cleanAttr
-    ) || "?";
-
-    if (editingAttributeIndex === index) {
+    if (isEditing) {
       return (
-        <input
+        <div
           key={index}
-          value={editingAttributeValue}
-          onChange={(e) => setEditingAttributeValue(e.target.value)}
-          onBlur={() => handleSaveAttribute(index)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleSaveAttribute(index);
-            if (e.key === "Escape") {
-              setEditingAttributeIndex(null);
-              setEditingAttributeValue("");
-            }
-          }}
-          autoFocus
           style={{
-            border: "2px solid #3b82f6",
-            backgroundColor: "#dbeafe",
-            color: "#1e40af",
-            borderRadius: "4px",
-            padding: "2px 6px",
-            fontSize: "11px",
-            fontWeight: 500,
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
             width: "100%",
-            maxWidth: "85px",
-            textAlign: "center",
-            marginBottom: "2px",
-            boxSizing: "border-box",
           }}
-          placeholder="label value"
-        />
+        >
+          <input
+            value={editingValue}
+            onChange={(e) => setEditingValue(e.target.value)}
+            onBlur={saveEditing}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveEditing();
+              if (e.key === "Escape") cancelEditing();
+            }}
+            autoFocus
+            style={{
+              border: "2px solid #3b82f6",
+              backgroundColor: "#dbeafe",
+              color: "#1e40af",
+              borderRadius: "4px",
+              padding: "2px 4px",
+              fontSize: compact ? "9px" : "10px",
+              fontWeight: 500,
+              flex: 1,
+              width: "20px",
+              textAlign: "center",
+              boxSizing: "border-box",
+              minHeight: compact ? "16px" : "18px",
+            }}
+            placeholder={isClassMode ? "label value" : "attribute"}
+          />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteAttribute(index);
+              cancelEditing();
+            }}
+            style={{
+              background: "#fecaca",
+              border: "1px solid #f87171",
+              borderRadius: "3px",
+              width: "16px",
+              height: "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "10px",
+              color: "#dc2626",
+              cursor: "pointer",
+              fontWeight: "bold",
+              flexShrink: 0,
+            }}
+            title="Delete Attribute"
+          >
+            ×
+          </button>
+        </div>
       );
     }
 
+    // Class mode rendering
+    if (isClassMode) {
+      const cleanAttr = attr.replace(/[{}]/g, "");
+      const defaultValue =
+        Object.keys(placeHolders || {}).find(
+          (key) => placeHolders[key] === cleanAttr
+        ) || "?";
+
+      return (
+        <div
+          key={index}
+          style={{
+            width: "100%",
+            opacity,
+            transition: "opacity 0.2s ease",
+            minHeight: compact ? "16px" : "18px",
+          }}
+        >
+          <div
+            style={{
+              border: "2px dashed #93c5fd",
+              backgroundColor: "#dbeafe",
+              color: "#1e40af",
+              borderRadius: "4px",
+              padding: compact ? "1px 3px" : "2px 4px",
+              fontSize: compact ? "8px" : "9px",
+              fontWeight: 500,
+              textAlign: "center",
+              cursor: isEditable ? "pointer" : "default",
+              boxSizing: "border-box",
+              minHeight: compact ? "14px" : "16px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            }}
+            onDoubleClick={() => {
+              if (isEditable && editingMode === null) {
+                startEditing(`attribute-${index}`, `${cleanAttr} ${defaultValue}`);
+              }
+            }}
+            title={`${cleanAttr}: ${defaultValue} (Double-click to edit)`}
+          >
+            <div
+              style={{
+                fontWeight: "600",
+                color: "#1d4ed8",
+                fontSize: compact ? "7px" : "8px",
+                lineHeight: "1.1",
+              }}
+            >
+              {cleanAttr}
+            </div>
+            <div
+              style={{
+                fontWeight: "400",
+                color: "#1e40af",
+                fontSize: compact ? "6px" : "7px",
+                lineHeight: "1.1",
+                opacity: 0.8,
+              }}
+            >
+              {defaultValue}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Instance mode rendering
     return (
       <div
         key={index}
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 6,
-          marginBottom: "2px",
           width: "100%",
+          opacity,
+          transition: "opacity 0.2s ease",
+          minHeight: compact ? "16px" : "18px",
         }}
       >
         <div
           style={{
-            border: "2px dashed #93c5fd",
-            backgroundColor: "#dbeafe",
-            color: "#1e40af",
-            borderRadius: "4px",
-            padding: "3px 6px",
-            fontSize: "11px",
-            fontWeight: 500,
-            minWidth: 0,
-            flex: 1,
-            maxWidth: "85px",
-            textAlign: "center",
-            cursor: isEditable ? "pointer" : "default",
-            boxSizing: "border-box",
-          }}
-          onDoubleClick={() => {
-            if (isEditable) {
-              setEditingAttributeIndex(index);
-              setEditingAttributeValue(`${cleanAttr} ${defaultValue}`);
-            }
-          }}
-          title={`${cleanAttr}: ${defaultValue}`}
-        >
-          <div
-            style={{
-              fontWeight: "600",
-              color: "#1d4ed8",
-              fontSize: "10px",
-              lineHeight: "1.1",
-              marginBottom: "1px",
-            }}
-          >
-            {cleanAttr}
-          </div>
-          <div
-            style={{
-              fontWeight: "400",
-              color: "#1e40af",
-              fontSize: "9px",
-              lineHeight: "1.1",
-              opacity: 0.8,
-            }}
-          >
-            {defaultValue}
-          </div>
-        </div>
-        {isHovered && isEditable && (
-          <DeleteButton
-            onClick={() => handleDeleteAttribute(index)}
-            size={10}
-            title="Delete Attribute"
-          />
-        )}
-      </div>
-    );
-  };
-
-  const renderInstanceAttribute = (attr, index) => (
-    <div
-      key={index}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 6,
-        marginBottom: "2px",
-        width: "100%",
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <EditableLabel
-          value={attr}
-          onSave={(val) => handleEditAttribute(index, val)}
-          textStyle={{
             border: "1px solid #93c5fd",
             backgroundColor: "#dbeafe",
             color: "#1e40af",
             borderRadius: "4px",
-            padding: "2px 6px",
-            fontSize: "11px",
+            padding: compact ? "1px 3px" : "2px 4px",
+            fontSize: compact ? "9px" : "10px",
             fontWeight: 500,
-            width: "100%",
-            maxWidth: "85px",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
             boxSizing: "border-box",
+            cursor: isEditable ? "pointer" : "default",
+            textAlign: "center",
+            minHeight: compact ? "14px" : "16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-          isEditable={isEditable}
-        />
+          onDoubleClick={() => {
+            if (isEditable && editingMode === null) {
+              startEditing(`attribute-${index}`, attr);
+            }
+          }}
+          title={`${attr} (Double-click to edit)`}
+        >
+          {attr}
+        </div>
       </div>
-      {isHovered && isEditable && (
-        <DeleteButton
-          onClick={() => handleDeleteAttribute(index)}
-          size={10}
-          title="Delete Attribute"
-        />
-      )}
-    </div>
-  );
+    );
+  };
 
   const renderObjectName = () => {
+    const isEditing = editingMode === "name";
+    const opacity = getElementOpacity("name");
+
     if (isEditing) {
-      if (isClassMode) {
-        return (
-          <input
-            value={editingObjectValue}
-            onChange={(e) => setEditingObjectValue(e.target.value)}
-            onBlur={() => handleSaveObjectName()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSaveObjectName();
-              if (e.key === "Escape") {
-                setIsEditing(false);
-                setEditingObjectValue("");
-              }
-            }}
-            autoFocus
-            style={{
-              border: "2px solid #dc2626",
-              backgroundColor: "#fed7d7",
-              borderRadius: "4px",
-              padding: "3px 6px",
-              fontSize: "11px",
-              textAlign: "center",
-              color: "#7f1d1d",
-              fontWeight: "500",
-              width: "100%",
-              maxWidth: "85px",
-              boxSizing: "border-box",
-            }}
-            placeholder="label value"
-          />
-        );
-      } else {
-        return (
-          <EditableLabel value={editValue} onSave={handleSaveName} autoFocus />
-        );
-      }
+      return (
+        <input
+          value={editingValue}
+          onChange={(e) => setEditingValue(e.target.value)}
+          onBlur={saveEditing}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") saveEditing();
+            if (e.key === "Escape") cancelEditing();
+          }}
+          autoFocus
+          style={{
+            border: "2px solid #dc2626",
+            backgroundColor: "#fed7d7",
+            borderRadius: "4px",
+            padding: compact ? "2px 4px" : "3px 6px",
+            fontSize: compact ? "10px" : "11px",
+            textAlign: "center",
+            color: "#7f1d1d",
+            fontWeight: "500",
+            width: "100%",
+            boxSizing: "border-box",
+            minHeight: compact ? "18px" : "22px",
+          }}
+          placeholder={isClassMode ? "label value" : "object name"}
+        />
+      );
     }
 
     if (isClassMode) {
@@ -400,16 +483,21 @@ const ObjectNode = ({
             border: "2px dashed #fca5a5",
             backgroundColor: "#fed7d7",
             borderRadius: "4px",
-            padding: "3px 6px",
-            fontSize: "11px",
+            padding: compact ? "2px 4px" : "3px 6px",
+            fontSize: compact ? "10px" : "11px",
             textAlign: "center",
             cursor: isEditable ? "pointer" : "default",
             boxSizing: "border-box",
+            opacity,
+            transition: "opacity 0.2s ease",
+            minHeight: compact ? "18px" : "22px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
           }}
           onDoubleClick={() => {
-            if (isEditable) {
-              setEditingObjectValue(`${cleanName} ${defaultValue}`);
-              setIsEditing(true);
+            if (isEditable && editingMode === null) {
+              startEditing("name", `${cleanName} ${defaultValue}`);
             }
           }}
           title={`${cleanName}: ${defaultValue}`}
@@ -418,9 +506,8 @@ const ObjectNode = ({
             style={{
               fontWeight: "600",
               color: "#991b1b",
-              fontSize: "10px",
+              fontSize: compact ? "9px" : "10px",
               lineHeight: "1.1",
-              marginBottom: "1px",
             }}
           >
             {cleanName}
@@ -429,7 +516,7 @@ const ObjectNode = ({
             style={{
               fontWeight: "400",
               color: "#7f1d1d",
-              fontSize: "9px",
+              fontSize: compact ? "8px" : "9px",
               lineHeight: "1.1",
               opacity: 0.8,
             }}
@@ -438,53 +525,40 @@ const ObjectNode = ({
           </div>
         </div>
       );
-    } else {
-      return (
-        <div
-          onDoubleClick={() => {
-            if (isEditable) setIsEditing(true);
-          }}
-          style={{
-            cursor: isEditable ? "pointer" : "default",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-          title={object.name}
-        >
-          {object.name}
-        </div>
-      );
     }
-  };
 
-  const nodeStyle = {
-    border: isClassMode ? "2px dashed #fca5a5" : "1px solid #fca5a5",
-    borderRadius: "6px",
-    padding: "5px",
-    backgroundColor: isHovered ? "#fecaca" : "#fed7d7",
-    marginBottom: "0px",
-    maxWidth: isClassMode ? "100px" : "90px",
-    minWidth: "80px",
-    boxSizing: "border-box",
-    overflow: "hidden",
-    cursor: isDraggable && !isEditing && !addingAttribute && editingAttributeIndex === null 
-      ? (isDragging ? "grabbing" : "grab") 
-      : "default",
-    userSelect: "none",
-    transform: isDragging ? "scale(1.05)" : "scale(1)",
-    transition: isDragging ? "none" : "transform 0.2s ease",
-    opacity: isDragging ? 0.8 : 1,
-    zIndex: isDragging ? 1000 : 1,
-    // 드래그 중일 때 강조 표시
-    boxShadow: isDragging 
-      ? "0 8px 25px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(59, 130, 246, 0.3)" 
-      : "none",
+    return (
+      <div
+        onDoubleClick={() => {
+          if (isEditable && editingMode === null) {
+            startEditing("name", object.name);
+          }
+        }}
+        style={{
+          cursor: isEditable ? "pointer" : "default",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          opacity,
+          transition: "opacity 0.2s ease",
+          fontSize: compact ? "10px" : "11px",
+          fontWeight: "500", 
+          color: "#7f1d1d",
+          textAlign: "center",
+          minHeight: compact ? "18px" : "22px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        title={object.name}
+      >
+        {object.name}
+      </div>
+    );
   };
 
   return (
     <>
-      {/* 메인 노드 */}
       <div
         ref={dragRef}
         style={nodeStyle}
@@ -492,41 +566,44 @@ const ObjectNode = ({
         onMouseLeave={() => setIsHovered(false)}
         onMouseDown={handleMouseDown}
       >
-        {/* Attributes */}
-        {expanded && (
-          <div style={{ marginBottom: "3px" }}>
-            {object.attributes?.map((attr, index) =>
-              isClassMode
-                ? renderClassAttribute(attr, index)
-                : renderInstanceAttribute(attr, index)
-            )}
+        {/* Attributes Section */}
+        {expanded && attributeCount > 0 && (
+          <div style={{ 
+            flex: 1, 
+            marginBottom: compact ? "2px" : "4px",
+            display: "flex",
+            flexDirection: "column",
+            gap: compact ? "1px" : "2px",
+          }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: hasMultipleAttributes ? "1fr 1fr" : "1fr",
+                gap: compact ? "1px" : "2px",
+                width: "100%",
+              }}
+            >
+              {object.attributes?.map((attr, index) =>
+                renderAttribute(attr, index)
+              )}
+            </div>
 
-            {addingAttribute && (
+            {/* Add Attribute Input */}
+            {editingMode === "adding" && (
               <input
-                value={newAttributeValue}
-                onChange={(e) => setNewAttributeValue(e.target.value)}
-                onBlur={() => {
-                  if (newAttributeValue.trim()) {
-                    handleAddAttribute();
-                  } else {
-                    setAddingAttribute(false);
-                  }
-                }}
+                value={editingValue}
+                onChange={(e) => setEditingValue(e.target.value)}
+                onBlur={saveEditing}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddAttribute();
-                  if (e.key === "Escape") {
-                    setAddingAttribute(false);
-                    setNewAttributeValue("");
-                  }
+                  if (e.key === "Enter") saveEditing();
+                  if (e.key === "Escape") cancelEditing();
                 }}
                 autoFocus
                 placeholder={isClassMode ? "new label" : "new attribute"}
                 style={{
-                  fontSize: "11px",
-                  padding: "1px 3px",
-                  border: isClassMode
-                    ? "2px dashed #3b82f6"
-                    : "1px solid #3b82f6",
+                  fontSize: compact ? "9px" : "10px",
+                  padding: compact ? "1px 2px" : "2px 3px",
+                  border: "2px solid #3b82f6",
                   borderRadius: "4px",
                   backgroundColor: "#ffffff",
                   color: "#1f2937",
@@ -534,68 +611,129 @@ const ObjectNode = ({
                   fontWeight: "500",
                   boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.1)",
                   textAlign: "center",
-                  marginBottom: "2px",
+                  width: "100%",
+                  boxSizing: "border-box",
+                  minHeight: compact ? "16px" : "18px",
                 }}
               />
             )}
           </div>
         )}
 
-        {/* Header */}
-        {isHovered && isEditable && (
-          <div style={{ display: "flex", gap: "2px", marginBottom: "3px" }}>
-            <button
-              onClick={() => setAddingAttribute(true)}
-              style={{
-                background: "#dbeafe",
-                border: isClassMode ? "2px dashed #93c5fd" : "1px solid #93c5fd",
-                borderRadius: "3px",
-                width: "18px",
-                height: "18px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "11px",
-                color: "#1e40af",
-              }}
-              title="Add Attribute"
-            >
-              A+
-            </button>
-            <DeleteButton
-              onClick={() => onDelete?.(object.id)}
-              title="Delete Object"
-            />
-          </div>
-        )}
-
-        {/* Object Name */}
+        {/* Object Name and Controls Section */}
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
             alignItems: "center",
+            justifyContent: "space-between",
+            gap: compact ? "2px" : "4px",
+            minHeight: compact ? "20px" : "24px",
           }}
         >
-          <div style={{ fontSize: "11px", fontWeight: "500", color: "#7f1d1d" }}>
+          <div style={{ flex: 1 }}>
             {renderObjectName()}
           </div>
+          
+          {/* Controls */}
+          {isEditable && editingMode === null && (
+            <div
+              style={{
+                display: "flex",
+                gap: "2px",
+                opacity: getElementOpacity("controls"),
+                flexShrink: 0,
+              }}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startEditing("adding");
+                }}
+                style={{
+                  background: "#dbeafe",
+                  border: "1px solid #93c5fd",
+                  borderRadius: "3px",
+                  width: compact ? "14px" : "16px",
+                  height: compact ? "14px" : "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: compact ? "10px" : "11px",
+                  color: "#1e40af",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  transition: "background-color 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#bfdbfe";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "#dbeafe";
+                }}
+                title="Add Attribute"
+              >
+                +
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.(object.id);
+                }}
+                style={{
+                  background: "#fecaca",
+                  border: "1px solid #f87171",
+                  borderRadius: "3px",
+                  width: compact ? "14px" : "16px",
+                  height: compact ? "14px" : "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: compact ? "9px" : "10px",
+                  color: "#dc2626",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  transition: "background-color 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#f87171";
+                  e.target.style.color = "white";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "#fecaca";
+                  e.target.style.color = "#dc2626";
+                }}
+                title="Delete Object"
+              >
+                ×
+              </button>
+            </div>
+          )}
+          
           <button
-            onClick={() => setExpanded(!expanded)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
             style={{
               background: "none",
               border: "none",
               cursor: "pointer",
               color: "#7f1d1d",
+              opacity: getElementOpacity("controls"),
+              padding: "2px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
             }}
             title={expanded ? "Collapse" : "Expand"}
           >
-            {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+            {expanded ? <ChevronDown size={compact ? 8 : 10} /> : <ChevronRight size={compact ? 8 : 10} />}
           </button>
         </div>
       </div>
 
-      {/* 드래그 중일 때 보여줄 고스트 이미지 */}
+      {/* Ghost Image */}
       {isDragging && (
         <div
           ref={ghostRef}
@@ -603,15 +741,25 @@ const ObjectNode = ({
             position: "fixed",
             top: dragPosition.y,
             left: dragPosition.x,
-            ...nodeStyle,
+            width: dimensions?.width || "auto",
+            height: dimensions?.height || "auto",
             opacity: 0.7,
             pointerEvents: "none",
             zIndex: 9999,
             transform: "scale(0.9)",
             boxShadow: "0 8px 25px rgba(0, 0, 0, 0.3)",
+            ...nodeStyle,
           }}
         >
-          <div style={{ fontSize: "11px", fontWeight: "500", color: "#7f1d1d" }}>
+          <div
+            style={{ 
+              fontSize: compact ? "10px" : "11px", 
+              fontWeight: "500", 
+              color: "#7f1d1d",
+              textAlign: "center",
+              padding: compact ? "4px" : "6px",
+            }}
+          >
             {object.name}
           </div>
         </div>
