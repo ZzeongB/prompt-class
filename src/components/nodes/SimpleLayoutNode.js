@@ -1,9 +1,15 @@
 // 2. SimpleLayoutNode.js - 레이아웃 보드용 간단한 노드
-import React from "react";
+import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { Link } from "lucide-react";
 
-export default function SimpleLayoutNode({ id, data, selected }) {
+function SimpleLayoutNode({ id, data, selected }) {
+  // // 클래스 연결 상태 디버깅
+  // console.log(`SimpleLayoutNode ${data.instanceLabel || 'unknown'}: isFromClass=${data.isFromClass}, parentClassName=${data.parentClassName}, all data:`, data);
+  
+  // if (data.isFromClass) {
+  //   console.log(`✅ Should show class link for ${data.instanceLabel}: parentClassName=${data.parentClassName}`);
+  // }
   return (
     <div
       style={{
@@ -37,20 +43,29 @@ export default function SimpleLayoutNode({ id, data, selected }) {
         }}
       >
         {data.instanceLabel}
-        {data.isFromClass && (
+        {data.isFromClass && data.parentClassName && (
           <span
             style={{
               marginLeft: "4px",
               fontSize: "9px",
               color: "#3b82f6",
               fontWeight: "500",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "2px",
             }}
+            title={`Linked to class: ${data.parentClassName}`}
           >
             <Link
               size={8}
-              style={{ display: "inline", verticalAlign: "middle" }}
+              style={{ display: "inline" }}
             />
             {data.parentClassName}
+          </span>
+        )}
+        {data.isFromClass && !data.parentClassName && (
+          <span style={{ color: "red", fontSize: "8px" }}>
+            [No parent class name]
           </span>
         )}
       </div>
@@ -61,7 +76,9 @@ export default function SimpleLayoutNode({ id, data, selected }) {
             fontSize: "8px",
             color: "#f59e0b",
             marginTop: "2px",
+            fontWeight: "500",
           }}
+          title="This instance has custom modifications"
         >
           Modified
         </div>
@@ -69,3 +86,21 @@ export default function SimpleLayoutNode({ id, data, selected }) {
     </div>
   );
 }
+
+// memo를 사용하여 props 변경 시 리렌더링 보장
+export default memo(SimpleLayoutNode, (prevProps, nextProps) => {
+  // props가 변경되었는지 확인
+  const isDifferent = 
+    prevProps.data.instanceLabel !== nextProps.data.instanceLabel ||
+    prevProps.data.isFromClass !== nextProps.data.isFromClass ||
+    prevProps.data.parentClassName !== nextProps.data.parentClassName ||
+    prevProps.data.hasOverrides !== nextProps.data.hasOverrides ||
+    prevProps.selected !== nextProps.selected;
+  
+  if (isDifferent) {
+    console.log('🔄 SimpleLayoutNode re-rendering due to prop changes');
+  }
+  
+  // false를 반환하면 리렌더링, true를 반환하면 리렌더링 스킵
+  return !isDifferent;
+});

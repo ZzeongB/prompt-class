@@ -63,7 +63,7 @@ export default function InstanceBoard({
   return (
     <div
       style={{
-        height: "100vh",
+        // height: "100vh",
         backgroundColor: "#f8fafc",
         borderLeft: "1px solid #e2e8f0",
         padding: "16px",

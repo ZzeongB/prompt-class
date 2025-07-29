@@ -51,7 +51,7 @@ export const generatePlaceholders = async (sceneGraph) => {
   }
 
   const systemPrompt = `
-다음 값들을 보고, 각각을 적절한 일반적인 카테고리로 변환해주세요.
+다음 값들을 보고, 각각을 적절한 일반적인 카테고리로 변환해주세요. 카테고리 이름은 겹치지 않게 해주세요.
 
 예시:
 - "apple" -> "fruit"

@@ -165,6 +165,7 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                 marginBottom: "12px",
                 width: "400px",
                 position: "relative",
+                // height: "576px"
               }}
             >
               <div

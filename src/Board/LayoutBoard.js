@@ -50,6 +50,7 @@ function LayoutBoard({
   const [ghostNode, setGhostNode] = useState(null);
   const [showImageOnly, setShowImageOnly] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [inlinePrompt, setInlinePrompt] = useState(null);
 
   const { image, setImage } = useImage();
   const { instances, classes, setInstances, updateInstance, deleteInstance } =
@@ -88,7 +89,9 @@ function LayoutBoard({
 
     syncFromClassContext.current = true;
 
-    setNodes((prevNodes) => {
+    // 타이머를 사용해서 다음 틱에 업데이트 (React 렌더링 사이클 보장)
+    setTimeout(() => {
+      setNodes((prevNodes) => {
       const updatedNodes = [...prevNodes];
 
       instances.forEach((instance) => {
@@ -116,15 +119,22 @@ function LayoutBoard({
               instance.overrides && Object.keys(instance.overrides).length > 0,
           };
 
+          // 클래스 연결 상태 로깅
+          if (instance.isFromClass) {
+            console.log(`Instance ${instance.instanceLabel} is linked to class: ${parentClass?.name}`);
+          }
+
           updatedNodes[nodeIndex] = {
             ...updatedNodes[nodeIndex],
-            data: updatedData,
+            data: { ...updatedData },
+            _updated: Date.now(), // 강제 리렌더링을 위한 키
           };
 
           if (resizableIndex !== -1) {
             updatedNodes[resizableIndex] = {
               ...updatedNodes[resizableIndex],
-              data: updatedData,
+              data: { ...updatedData },
+              _updated: Date.now(), // 강제 리렌더링을 위한 키
             };
           }
         } else {
@@ -171,6 +181,11 @@ function LayoutBoard({
             },
           };
 
+          // 새 인스턴스의 클래스 연결 상태 로깅
+          if (instance.isFromClass) {
+            console.log(`New instance ${instance.instanceLabel} created from class: ${parentClass?.name}`);
+          }
+
           updatedNodes.push(objNode, resizableNode);
         }
       });
@@ -183,8 +198,9 @@ function LayoutBoard({
         return instanceIds.has(instanceId);
       });
 
-      return filteredNodes;
-    });
+        return filteredNodes;
+      });
+    }, 0);
 
     syncFromClassContext.current = false;
   }, [instances, classes, setNodes]);
@@ -371,15 +387,23 @@ function LayoutBoard({
 
     const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
 
-    // 설명 입력 받기
-    const description = prompt("Describe what you want to create:");
-    if (!description || !description.trim()) {
-      setGhostNode(null);
+    // 인라인 프롬프트 입력창 표시
+    setInlinePrompt({
+      position: { x: e.clientX - LEFT_OFFSET, y: e.clientY - TOP_OFFSET },
+      flowPosition: position,
+    });
+    setGhostNode(null);
+  };
+
+  const handlePromptSubmit = async (description) => {
+    if (!description || !description.trim() || !inlinePrompt) {
+      setInlinePrompt(null);
       return;
     }
 
     const uniqueId = uuidv4();
     const sharedId = `instance-${uniqueId}`;
+    const position = inlinePrompt.flowPosition;
 
     try {
       // 임시 인스턴스를 먼저 생성 (로딩 상태)
@@ -424,7 +448,7 @@ function LayoutBoard({
       };
 
       setNodes((prev) => [...prev, resizableNode, objNode]);
-      setGhostNode(null);
+      setInlinePrompt(null);
 
       // AI 처리 (비동기)
       const { generateTextToGraph } = await import(
@@ -646,7 +670,11 @@ function LayoutBoard({
   const handlePaneClick = useCallback(() => {
     setSelectedNodeId(null);
     onNodeSelect?.(null);
-  }, [onNodeSelect]);
+    // 인라인 프롬프트도 닫기
+    if (inlinePrompt) {
+      setInlinePrompt(null);
+    }
+  }, [onNodeSelect, inlinePrompt]);
 
   return (
     <div
@@ -734,6 +762,82 @@ function LayoutBoard({
           }}
         >
           {ghostNode.data?.label}
+        </div>
+      )}
+
+      {inlinePrompt && (
+        <div
+          style={{
+            position: "absolute",
+            left: inlinePrompt.position.x,
+            top: inlinePrompt.position.y,
+            zIndex: 1000,
+            backgroundColor: "#ffffff",
+            border: "2px solid #3b82f6",
+            borderRadius: "8px",
+            padding: "12px",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+            minWidth: "200px",
+          }}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const input = e.target.elements.prompt;
+              handlePromptSubmit(input.value);
+            }}
+          >
+            <input
+              name="prompt"
+              type="text"
+              placeholder="Describe what you want to create..."
+              autoFocus
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                fontSize: "14px",
+                marginBottom: "8px",
+                outline: "none",
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setInlinePrompt(null);
+                }
+              }}
+            />
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setInlinePrompt(null)}
+                style={{
+                  padding: "6px 12px",
+                  backgroundColor: "#f3f4f6",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  padding: "6px 12px",
+                  backgroundColor: "#3b82f6",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                Create
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
