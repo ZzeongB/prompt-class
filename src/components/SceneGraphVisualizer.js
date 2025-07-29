@@ -16,6 +16,9 @@ export default function SceneGraphVisualizer({
   onObjectExtract,
   instanceId,
   compact = false,
+  highlightedTerm = null,
+  onNodeHover = () => {},
+  onNodeLeave = () => {},
 }) {
   const [hoveredObject, setHoveredObject] = useState(null);
   const [hoveredRelationship, setHoveredRelationship] = useState(null);
@@ -170,20 +173,29 @@ export default function SceneGraphVisualizer({
   const getNodeDimensions = (obj) => {
     const attributeCount = obj.attributes?.length || 0;
     const hasMultipleAttributes = attributeCount > 5;
-    
+
     let width, height;
-    
+
     if (compact) {
       width = hasMultipleAttributes ? 160 : 100;
-      height = 50 + Math.min(attributeCount, 5) * 12 + (hasMultipleAttributes ? Math.ceil((attributeCount - 5) / 2) * 12 : 0);
+      height =
+        50 +
+        Math.min(attributeCount, 5) * 12 +
+        (hasMultipleAttributes ? Math.ceil((attributeCount - 5) / 2) * 12 : 0);
     } else if (isClassMode) {
       width = hasMultipleAttributes ? 180 : 120;
-      height = 70 + Math.min(attributeCount, 5) * 16 + (hasMultipleAttributes ? Math.ceil((attributeCount - 5) / 2) * 16 : 0);
+      height =
+        70 +
+        Math.min(attributeCount, 5) * 16 +
+        (hasMultipleAttributes ? Math.ceil((attributeCount - 5) / 2) * 16 : 0);
     } else {
       width = hasMultipleAttributes ? 160 : 110;
-      height = 65 + Math.min(attributeCount, 5) * 14 + (hasMultipleAttributes ? Math.ceil((attributeCount - 5) / 2) * 14 : 0);
+      height =
+        65 +
+        Math.min(attributeCount, 5) * 14 +
+        (hasMultipleAttributes ? Math.ceil((attributeCount - 5) / 2) * 14 : 0);
     }
-    
+
     return { width, height };
   };
 
@@ -194,9 +206,13 @@ export default function SceneGraphVisualizer({
     if (objects.length === 0) return positions;
 
     // 노드 크기를 고려한 간격 계산
-    const maxNodeWidth = Math.max(...objects.map(obj => getNodeDimensions(obj).width));
-    const maxNodeHeight = Math.max(...objects.map(obj => getNodeDimensions(obj).height));
-    
+    const maxNodeWidth = Math.max(
+      ...objects.map((obj) => getNodeDimensions(obj).width)
+    );
+    const maxNodeHeight = Math.max(
+      ...objects.map((obj) => getNodeDimensions(obj).height)
+    );
+
     const gapX = maxNodeWidth + (compact ? 40 : 100);
     const gapY = maxNodeHeight + (compact ? 20 : 30);
 
@@ -270,8 +286,8 @@ export default function SceneGraphVisualizer({
       Object.entries(grouped).forEach(([levelStr, ids], levelIndex) => {
         const level = parseInt(levelStr);
         const levelNodeCount = ids.length;
-        const startY = -(levelNodeCount - 1) * gapY / 2;
-        
+        const startY = (-(levelNodeCount - 1) * gapY) / 2;
+
         ids.forEach((id, index) => {
           positions[id] = {
             x: level * gapX,
@@ -280,7 +296,10 @@ export default function SceneGraphVisualizer({
         });
       });
     } catch (error) {
-      console.warn("Failed to calculate DAG layout, falling back to grid:", error);
+      console.warn(
+        "Failed to calculate DAG layout, falling back to grid:",
+        error
+      );
       // 에러 시 그리드 레이아웃으로 폴백
       const cols = Math.ceil(Math.sqrt(objects.length));
       objects.forEach((obj, index) => {
@@ -297,7 +316,10 @@ export default function SceneGraphVisualizer({
   };
 
   const objectPositions = useMemo(() => {
-    return getObjectPositions(safeSceneGraph.objects, safeSceneGraph.relationships);
+    return getObjectPositions(
+      safeSceneGraph.objects,
+      safeSceneGraph.relationships
+    );
   }, [safeSceneGraph.objects, safeSceneGraph.relationships, compact]);
 
   const boundingSize = useMemo(() => {
@@ -305,13 +327,16 @@ export default function SceneGraphVisualizer({
       return { width: 200, height: 100, offsetX: 0, offsetY: 0 };
     }
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
 
     Object.entries(objectPositions).forEach(([objId, pos]) => {
       if (pos) {
-        const obj = safeSceneGraph.objects.find(o => o.id === objId);
+        const obj = safeSceneGraph.objects.find((o) => o.id === objId);
         const { width, height } = getNodeDimensions(obj);
-        
+
         minX = Math.min(minX, pos.x);
         minY = Math.min(minY, pos.y);
         maxX = Math.max(maxX, pos.x + width);
@@ -491,8 +516,12 @@ export default function SceneGraphVisualizer({
             const tgtPos = objectPositions[rel.target];
             if (!srcPos || !tgtPos) return null;
 
-            const srcObj = safeSceneGraph.objects.find(o => o.id === rel.source);
-            const tgtObj = safeSceneGraph.objects.find(o => o.id === rel.target);
+            const srcObj = safeSceneGraph.objects.find(
+              (o) => o.id === rel.source
+            );
+            const tgtObj = safeSceneGraph.objects.find(
+              (o) => o.id === rel.target
+            );
             const srcDim = getNodeDimensions(srcObj);
             const tgtDim = getNodeDimensions(tgtObj);
 
@@ -539,10 +568,26 @@ export default function SceneGraphVisualizer({
             >
               <div
                 style={{
-                  border: isSelected ? "2px solid #15803d" : "none",
+                  border: isSelected
+                    ? "2px solid #15803d"
+                    : highlightedTerm === obj.id
+                    ? "2px solid #f59e0b"
+                    : "none",
                   borderRadius: "8px",
-                  padding: isSelected ? "2px" : "0",
+                  // padding:
+                  // isSelected || highlightedTerm === obj.id ? "2px" : "0",
                   cursor: connectingMode ? "pointer" : "default",
+                  backgroundColor:
+                    highlightedTerm === obj.id ? "#fef3c7" : "transparent",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={() => {
+                  setHoveredObject(obj.id);
+                  onNodeHover(obj.id);
+                }}
+                onMouseLeave={() => {
+                  setHoveredObject(null);
+                  onNodeLeave();
                 }}
               >
                 <ObjectNode
@@ -551,7 +596,9 @@ export default function SceneGraphVisualizer({
                   onDelete={handleObjectDelete}
                   onAddAttribute={handleAddAttribute}
                   onExtract={onObjectExtract}
-                  isHovered={hoveredObject === obj.id}
+                  isHovered={
+                    hoveredObject === obj.id || highlightedTerm === obj.id
+                  }
                   setIsHovered={(hovered) =>
                     setHoveredObject(hovered ? obj.id : null)
                   }
@@ -581,15 +628,21 @@ export default function SceneGraphVisualizer({
           const tgtPos = objectPositions[rel.target];
           if (!srcPos || !tgtPos) return null;
 
-          const srcObj = safeSceneGraph.objects.find(o => o.id === rel.source);
-          const tgtObj = safeSceneGraph.objects.find(o => o.id === rel.target);
+          const srcObj = safeSceneGraph.objects.find(
+            (o) => o.id === rel.source
+          );
+          const tgtObj = safeSceneGraph.objects.find(
+            (o) => o.id === rel.target
+          );
           const srcDim = getNodeDimensions(srcObj);
           const tgtDim = getNodeDimensions(tgtObj);
 
           const srcCenterX = srcPos.x + boundingSize.offsetX + srcDim.width;
-          const srcCenterY = srcPos.y + boundingSize.offsetY + srcDim.height / 2;
+          const srcCenterY =
+            srcPos.y + boundingSize.offsetY + srcDim.height / 2;
           const tgtCenterX = tgtPos.x + boundingSize.offsetX;
-          const tgtCenterY = tgtPos.y + boundingSize.offsetY + tgtDim.height / 2;
+          const tgtCenterY =
+            tgtPos.y + boundingSize.offsetY + tgtDim.height / 2;
 
           const midX = (srcCenterX + tgtCenterX) / 2;
           const midY = (srcCenterY + tgtCenterY) / 2;
@@ -604,7 +657,21 @@ export default function SceneGraphVisualizer({
                 transform: "translate(-50%, -50%)",
                 pointerEvents: "auto",
                 zIndex: 10,
+                border:
+                  highlightedTerm === `rel_${i}` ? "2px solid #f59e0b" : "none",
+                backgroundColor:
+                  highlightedTerm === `rel_${i}` ? "#fef3c7" : "transparent",
+                transition: "all 0.2s ease",
+                borderRadius: "3px"
               }}
+              onMouseEnter={() => {
+                  setHoveredObject(`rel_${i}`);
+                  onNodeHover(`rel_${i}`);
+                }}
+                onMouseLeave={() => {
+                  setHoveredObject(null);
+                  onNodeLeave();
+                }}
             >
               <RelationshipNode
                 relationship={rel}
@@ -613,7 +680,8 @@ export default function SceneGraphVisualizer({
                 onDelete={handleRelationshipDelete}
                 isEditable={isEditable}
                 isHovered={
-                  hoveredRelationship === `${rel.source}-${rel.target}-${i}`
+                  hoveredRelationship === `${rel.source}-${rel.target}-${i}` ||
+                  highlightedTerm === `rel_${i}`
                 }
                 setIsHovered={(hovered) =>
                   setHoveredRelationship(

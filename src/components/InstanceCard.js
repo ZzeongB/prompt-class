@@ -24,7 +24,8 @@ export default function InstanceCard({
   isSelected,
   onSelect,
 }) {
-  const { updateInstance, deleteInstance, extractObjectFromInstance } = useClassContext();
+  const { updateInstance, deleteInstance, extractObjectFromInstance } =
+    useClassContext();
   const { handleCreateClass } = useInstanceActions();
 
   const [isExpanded, setIsExpanded] = useState(isSelected);
@@ -35,6 +36,163 @@ export default function InstanceCard({
   );
   const [editedSceneGraph, setEditedSceneGraph] = useState(instance.sceneGraph);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [highlightedTerm, setHighlightedTerm] = useState(null);
+
+  const preprocessWords = (text) => {
+    return text
+      .toLowerCase()
+      .replace(/[.,!?;:()"]/g, "") // 구두점 제거
+      .split(/\s+/)
+      .filter(Boolean); // 빈 문자열 제거
+  };
+
+  const getRelationshipToWordMapping = (text, sceneGraph) => {
+    if (!text || !sceneGraph?.relationships) return {};
+
+    const words = preprocessWords(text);
+    const mapping = {};
+
+    sceneGraph.relationships.forEach((rel, i) => {
+      const relation = rel.relation?.toLowerCase();
+      if (!relation) return;
+
+      words.forEach((word, index) => {
+        if (word === relation) {
+          const relId = `rel_${i}`;
+          if (!mapping[relId]) mapping[relId] = [];
+          mapping[relId].push(index);
+        }
+      });
+    });
+
+    return mapping;
+  };
+
+  // Node & Relationship → Word 매핑
+  const getNodeToWordMapping = (text, sceneGraph) => {
+    if (!text || !sceneGraph) return {};
+
+    const words = preprocessWords(text);
+    const mapping = {};
+
+    sceneGraph.objects?.forEach((obj) => {
+      const label = obj.name.toLowerCase();
+      const attributes = (obj.attributes || []).map((attr) =>
+        attr.toLowerCase()
+      );
+
+      words.forEach((word, index) => {
+        if (word === label || attributes.includes(word)) {
+          if (!mapping[obj.id]) mapping[obj.id] = [];
+          mapping[obj.id].push(index);
+        }
+      });
+    });
+
+    sceneGraph.relationships.forEach((rel, i) => {
+      const relation = rel.relation?.toLowerCase();
+      if (!relation) return;
+
+      words.forEach((word, index) => {
+        if (word === relation) {
+          const relId = `rel_${i}`;
+          if (!mapping[relId]) mapping[relId] = [];
+          mapping[relId].push(index);
+        }
+      });
+    });
+
+    return mapping;
+  };
+
+  const getWordToNodeMapping = (text, sceneGraph) => {
+    if (!text || !sceneGraph) return {};
+
+    const words = preprocessWords(text);
+    const mapping = {};
+
+    // Object + Attribute 매핑
+    sceneGraph.objects?.forEach((obj) => {
+      const label = obj.name.toLowerCase();
+      const attributes = (obj.attributes || []).map((attr) =>
+        attr.toLowerCase()
+      );
+
+      words.forEach((word, index) => {
+        if (word === label || attributes.includes(word)) {
+          if (!mapping[obj.id]) mapping[obj.id] = [];
+          mapping[obj.id].push(index);
+        }
+      });
+    });
+
+    // Relationship 매핑
+    sceneGraph.relationships?.forEach((rel, i) => {
+      const relation = rel.relation?.toLowerCase();
+      if (!relation) return;
+
+      words.forEach((word, index) => {
+        if (word === relation) {
+          const relId = `rel_${i}`;
+          if (!mapping[relId]) mapping[relId] = [];
+          mapping[relId].push(index);
+        }
+      });
+    });
+
+    return mapping;
+  };
+
+  // 하이라이트된 텍스트 렌더링 컴포넌트
+  const HighlightedText = ({
+    text,
+    highlightedTerm,
+    onWordHover,
+    onWordLeave,
+    sceneGraph,
+  }) => {
+    if (!text) return null;
+    const words = text.split(/\s+/);
+    const wordToNodeMapping = getWordToNodeMapping(text, sceneGraph);
+    const nodeToWordMapping = getNodeToWordMapping(text, sceneGraph);
+
+    return (
+      <span>
+        {words.map((word, index) => {
+          const isHighlighted =
+            highlightedTerm &&
+            nodeToWordMapping[highlightedTerm]?.includes(index);
+
+          return (
+            <span
+              key={index}
+              style={{
+                backgroundColor: isHighlighted ? "#fef3c7" : "transparent",
+                // padding: isHighlighted ? "1px 2px" : "0",
+                // borderRadius: "2px",
+                cursor: "pointer",
+                transition: "background-color 0.2s ease",
+              }}
+              onMouseEnter={() => {
+                // 해당 단어와 매칭되는 노드 ID를 찾아 하이라이트
+                Object.entries(wordToNodeMapping).forEach(
+                  ([nodeId, wordIndices]) => {
+                    if (wordIndices.includes(index)) {
+                      onWordHover(nodeId);
+                    }
+                  }
+                );
+              }}
+              onMouseLeave={() => onWordLeave()}
+            >
+              {word}
+              {index < words.length - 1 ? " " : ""}
+            </span>
+          );
+        })}
+      </span>
+    );
+  };
 
   // tempDescription 동기화
   useEffect(() => {
@@ -249,10 +407,16 @@ export default function InstanceCard({
                 color: "#64748b",
                 marginTop: "2px",
                 lineHeight: "1.4",
-                marginRight: "120px"
+                marginRight: "120px",
               }}
             >
-              {instance.textDescription}
+              <HighlightedText
+                text={instance.textDescription}
+                highlightedTerm={highlightedTerm}
+                onWordHover={setHighlightedTerm}
+                onWordLeave={() => setHighlightedTerm(null)}
+                sceneGraph={editedSceneGraph}
+              />
             </div>
           )}
         </div>
@@ -305,6 +469,9 @@ export default function InstanceCard({
             onObjectExtract={handleObjectExtract}
             instanceId={instance.id}
             isEditable={isEditingGraph}
+            highlightedTerm={highlightedTerm}
+            onNodeHover={setHighlightedTerm}
+            onNodeLeave={() => setHighlightedTerm(null)}
             // compact
           />
         </div>
