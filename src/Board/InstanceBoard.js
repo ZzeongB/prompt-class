@@ -15,6 +15,20 @@ export default function InstanceBoard({
   const [sortBy, setSortBy] = useState("recent"); // recent, name, type
   const [viewMode, setViewMode] = useState("grid"); // grid, list
 
+  // 선택된 인스턴스로 스크롤
+  useEffect(() => {
+    if (selectedInstanceId) {
+      const element = document.getElementById(`instance-card-${selectedInstanceId}`);
+      if (element) {
+        element.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'nearest',
+          inline: 'nearest'
+        });
+      }
+    }
+  }, [selectedInstanceId]);
+
   const filteredAndSortedInstances = instances
     .filter((instance) => {
       // 검색 필터
@@ -57,9 +71,15 @@ export default function InstanceBoard({
         display: "flex",
         flexDirection: "column",
       }}
+      onClick={(e) => {
+        // 배경 클릭 시 선택 해제 (이벤트 버블링 방지)
+        if (e.target === e.currentTarget) {
+          onInstanceSelect?.(null);
+        }
+      }}
     >
       {/* 헤더 및 컨트롤 */}
-      <div
+      {/* <div
         style={{
           fontSize: "18px",
           fontWeight: "700",
@@ -71,7 +91,7 @@ export default function InstanceBoard({
         }}
       >
         Instance Library
-      </div>
+      </div> */}
 
       {/* 인스턴스 카드들 */}
       <div
@@ -86,16 +106,23 @@ export default function InstanceBoard({
           gap: "16px",
           paddingRight: "8px", // 스크롤바 공간
         }}
+        onClick={(e) => {
+          // 빈 공간 클릭 시 선택 해제
+          if (e.target === e.currentTarget) {
+            onInstanceSelect?.(null);
+          }
+        }}
       >
         {filteredAndSortedInstances.map((instance) => (
-          <InstanceCard
-            key={instance.id}
-            instance={instance}
-            classes={classes}
-            isSelected={selectedInstanceId === instance.id}
-            onSelect={() => onInstanceSelect(instance.id)}
-            viewMode={viewMode}
-          />
+          <div key={instance.id} id={`instance-card-${instance.id}`}>
+            <InstanceCard
+              instance={instance}
+              classes={classes}
+              isSelected={selectedInstanceId === instance.id}
+              onSelect={() => onInstanceSelect?.(instance.id)}
+              viewMode={viewMode}
+            />
+          </div>
         ))}
 
         {filteredAndSortedInstances.length === 0 && (

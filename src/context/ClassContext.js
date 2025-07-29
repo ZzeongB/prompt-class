@@ -709,6 +709,106 @@ export const ClassProvider = ({ children }) => {
     );
   };
 
+  const extractObjectFromInstance = (objectId, instanceId) => {
+    const sourceInstance = instances.find(inst => inst.id === instanceId);
+    if (!sourceInstance || !sourceInstance.sceneGraph || !sourceInstance.sceneGraph.objects) {
+      console.error("Source instance or sceneGraph not found");
+      return;
+    }
+
+    const objectToExtract = sourceInstance.sceneGraph.objects.find(obj => obj.id === objectId);
+    if (!objectToExtract) {
+      console.error("Object to extract not found");
+      return;
+    }
+
+    // 1. 새 인스턴스 생성 (분리된 object만 포함)
+    const newInstanceId = `instance-${uuidv4()}`;
+    const extractedObjectWithNewId = {
+      ...objectToExtract,
+      id: `object-${uuidv4()}`
+    };
+    const newInstanceSceneGraph = {
+      objects: [extractedObjectWithNewId],
+      relationships: []
+    };
+
+    const newInstance = {
+      id: newInstanceId,
+      instanceLabel: `${objectToExtract.name}`,
+      textDescription: `${objectToExtract.name}`,
+      sceneGraph: newInstanceSceneGraph,
+      isFromClass: false,
+      classId: null,
+      overrides: {},
+      createdAt: new Date().toISOString(),
+      originalSceneGraph: newInstanceSceneGraph,
+    };
+
+    // 2. 원본 인스턴스에서 해당 object 제거
+    const updatedSourceSceneGraph = {
+      ...sourceInstance.sceneGraph,
+      objects: sourceInstance.sceneGraph.objects.filter(obj => obj.id !== objectId),
+      relationships: sourceInstance.sceneGraph.relationships.filter(rel => 
+        rel.source !== objectId && rel.target !== objectId
+      )
+    };
+
+    // 3. 기존 relationship을 두 인스턴스 간 관계로 변환
+    const extractedRelationships = sourceInstance.sceneGraph.relationships.filter(rel => 
+      rel.source === objectId || rel.target === objectId
+    );
+
+    // 3-1. 분리된 object와 연결된 relationship이 있다면 인스턴스 간 관계로 변환
+    const interInstanceRelationships = [];
+    extractedRelationships.forEach(rel => {
+      if (rel.source === objectId) {
+        // 분리된 object가 source인 경우
+        const targetObjectInSource = updatedSourceSceneGraph.objects.find(obj => obj.id === rel.target);
+        if (targetObjectInSource) {
+          // 새 인스턴스 -> 원본 인스턴스 관계 생성
+          interInstanceRelationships.push({
+            source: newInstanceId,
+            target: instanceId,
+            relation: rel.relation || "related_to"
+          });
+        }
+      } else if (rel.target === objectId) {
+        // 분리된 object가 target인 경우
+        const sourceObjectInSource = updatedSourceSceneGraph.objects.find(obj => obj.id === rel.source);
+        if (sourceObjectInSource) {
+          // 원본 인스턴스 -> 새 인스턴스 관계 생성
+          interInstanceRelationships.push({
+            source: instanceId,
+            target: newInstanceId,
+            relation: rel.relation || "related_to"
+          });
+        }
+      }
+    });
+
+    // 3-2. 새 인스턴스에 inter-instance relationship 정보 추가 (향후 edge 생성용)
+    const newInstanceWithRelationships = {
+      ...newInstance,
+      interInstanceRelationships
+    };
+
+    // 4. 인스턴스들 업데이트
+    setInstances((prev) => [
+      ...prev.filter(inst => inst.id !== instanceId),
+      {
+        ...sourceInstance,
+        sceneGraph: updatedSourceSceneGraph,
+      },
+      newInstanceWithRelationships
+    ]);
+
+    console.log(`Extracted object "${objectToExtract.name}" from instance "${sourceInstance.instanceLabel}"`);
+    console.log(`Created new instance: "${newInstance.instanceLabel}"`);
+    
+    return newInstance;
+  };
+
   const deleteInstance = (instanceId) => {
     setInstances((prev) => prev.filter((i) => i.id !== instanceId));
   };
@@ -723,8 +823,10 @@ export const ClassProvider = ({ children }) => {
     updateInstance,
     resetInstanceToClass,
     duplicateInstance,
+    extractObjectFromInstance,
     deleteInstance,
     setInstances,
+    onInstanceExtracted: null, // 콜백을 위한 플레이스홀더
   };
 
   return (

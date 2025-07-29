@@ -13,6 +13,7 @@ export default function SceneGraphVisualizer({
   placeHolders = null,
   onObjectDragStart,
   onObjectDragEnd,
+  onObjectExtract,
   instanceId,
   compact = false,
 }) {
@@ -23,10 +24,10 @@ export default function SceneGraphVisualizer({
   const [connectingMode, setConnectingMode] = useState(false);
   const [selectedSourceObject, setSelectedSourceObject] = useState(null);
 
-  // 안전한 데이터 확인
-  const safeSceneGraph = {
-    objects: sceneGraph?.objects || [],
-    relationships: sceneGraph?.relationships || [],
+  // 안전한 데이터 확인 - 하지만 sceneGraph가 있으면 우선 사용
+  const safeSceneGraph = sceneGraph || {
+    objects: [],
+    relationships: [],
   };
 
   // 편집 함수들
@@ -196,7 +197,7 @@ export default function SceneGraphVisualizer({
     const maxNodeWidth = Math.max(...objects.map(obj => getNodeDimensions(obj).width));
     const maxNodeHeight = Math.max(...objects.map(obj => getNodeDimensions(obj).height));
     
-    const gapX = maxNodeWidth + (compact ? 40 : 60);
+    const gapX = maxNodeWidth + (compact ? 40 : 100);
     const gapY = maxNodeHeight + (compact ? 20 : 30);
 
     // 관계가 없거나 간단한 경우 그리드 레이아웃
@@ -339,10 +340,10 @@ export default function SceneGraphVisualizer({
           alignItems: "center",
           justifyContent: "center",
           color: "#6b7280",
-          fontSize: "11px",
+          fontSize: "12px",
           backgroundColor: "#fffffff",
-          borderRadius: "6px",
-          border: "1px solid #e5e7eb",
+          // borderRadius: "6px",
+          // border: "1px solid #e5e7eb",
         }}
       >
         No objects in scene graph
@@ -359,9 +360,9 @@ export default function SceneGraphVisualizer({
         maxWidth: "100%",
         maxHeight: "100%",
         overflow: "auto", // 스크롤바 추가
-        background: "#ffffff",
-        borderRadius: "6px",
-        border: "1px solid transparent",
+        // background: "#ffffff",
+        // borderRadius: "6px",
+        // border: "1px solid",
       }}
     >
       {/* Add Object 버튼 */}
@@ -377,7 +378,7 @@ export default function SceneGraphVisualizer({
             border: "none",
             borderRadius: "4px",
             padding: "4px 6px",
-            fontSize: "10px",
+            fontSize: "11px",
             fontWeight: "400",
             cursor: "pointer",
             display: "flex",
@@ -412,7 +413,7 @@ export default function SceneGraphVisualizer({
             border: connectingMode ? "1px solid #86efac" : "none",
             borderRadius: "4px",
             padding: "4px 6px",
-            fontSize: "10px",
+            fontSize: "11px",
             fontWeight: "400",
             cursor: "pointer",
             opacity: connectingMode ? "1" : "0.7",
@@ -439,7 +440,7 @@ export default function SceneGraphVisualizer({
             top: "40px",
             left: "50%",
             transform: "translateX(-50%)",
-            fontSize: "11px",
+            fontSize: "12px",
             color: "#15803d",
             backgroundColor: "#dcfce7",
             padding: "4px 8px",
@@ -549,6 +550,7 @@ export default function SceneGraphVisualizer({
                   onEdit={handleObjectEdit}
                   onDelete={handleObjectDelete}
                   onAddAttribute={handleAddAttribute}
+                  onExtract={onObjectExtract}
                   isHovered={hoveredObject === obj.id}
                   setIsHovered={(hovered) =>
                     setHoveredObject(hovered ? obj.id : null)
@@ -566,6 +568,7 @@ export default function SceneGraphVisualizer({
                   parentInstanceId={instanceId}
                   compact={compact}
                   dimensions={getNodeDimensions(obj)}
+                  canExtract={!isClassMode && safeSceneGraph.objects.length > 1}
                 />
               </div>
             </div>

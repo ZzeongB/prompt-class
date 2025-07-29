@@ -1,12 +1,13 @@
 // ObjectNode.js - 편집 상태 개선 버전
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronRight, ChevronDown, X, Plus } from "lucide-react";
+import { ChevronRight, ChevronDown, X, Plus, ExternalLink } from "lucide-react";
 
 const ObjectNode = ({
   object,
   onEdit,
   onDelete,
   onAddAttribute,
+  onExtract,
   isHovered,
   setIsHovered,
   isEditing,
@@ -20,6 +21,7 @@ const ObjectNode = ({
   parentInstanceId,
   compact = false,
   dimensions,
+  canExtract = false,
 }) => {
   const [editValue, setEditValue] = useState(object.name);
   const [newAttributeValue, setNewAttributeValue] = useState("");
@@ -195,6 +197,14 @@ const ObjectNode = ({
     onEdit?.(object.id, object.name, updated);
   };
 
+  const handleExtract = () => {
+    if (window.confirm(
+      `Extract "${object.name}" as a separate instance?\n\nThis will:\n• Create a new independent instance with this object\n• Connect it to the original instance via existing relationships`
+    )) {
+      onExtract?.(object.id, parentInstanceId);
+    }
+  };
+
   const parseClassInput = (input) => {
     const trimmed = input.trim();
     const spaceIndex = trimmed.indexOf(" ");
@@ -286,7 +296,7 @@ const ObjectNode = ({
               color: "#1e40af",
               borderRadius: "4px",
               padding: "2px 4px",
-              fontSize: compact ? "9px" : "10px",
+              fontSize: compact ? "11px" : "11px",
               fontWeight: 500,
               flex: 1,
               width: "20px",
@@ -311,7 +321,7 @@ const ObjectNode = ({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "10px",
+              fontSize: "11px",
               color: "#dc2626",
               cursor: "pointer",
               fontWeight: "bold",
@@ -350,7 +360,7 @@ const ObjectNode = ({
               color: "#1e40af",
               borderRadius: "4px",
               padding: compact ? "1px 3px" : "2px 4px",
-              fontSize: compact ? "8px" : "9px",
+              fontSize: compact ? "9px" : "10px",
               fontWeight: 500,
               textAlign: "center",
               cursor: isEditable ? "pointer" : "default",
@@ -371,7 +381,7 @@ const ObjectNode = ({
               style={{
                 fontWeight: "600",
                 color: "#1d4ed8",
-                fontSize: compact ? "7px" : "8px",
+                fontSize: compact ? "9px" : "11px",
                 lineHeight: "1.1",
               }}
             >
@@ -381,7 +391,7 @@ const ObjectNode = ({
               style={{
                 fontWeight: "400",
                 color: "#1e40af",
-                fontSize: compact ? "6px" : "7px",
+                fontSize: compact ? "8px" : "10px",
                 lineHeight: "1.1",
                 opacity: 0.8,
               }}
@@ -402,6 +412,9 @@ const ObjectNode = ({
           opacity,
           transition: "opacity 0.2s ease",
           minHeight: compact ? "16px" : "18px",
+          display: "flex",
+          alignItems: "center",
+          gap: "2px",
         }}
       >
         <div
@@ -411,7 +424,7 @@ const ObjectNode = ({
             color: "#1e40af",
             borderRadius: "4px",
             padding: compact ? "1px 3px" : "2px 4px",
-            fontSize: compact ? "9px" : "10px",
+            fontSize: compact ? "10px" : "11px",
             fontWeight: 500,
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -423,6 +436,7 @@ const ObjectNode = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            flex: 1,
           }}
           onDoubleClick={() => {
             if (isEditable && editingMode === null) {
@@ -433,6 +447,39 @@ const ObjectNode = ({
         >
           {attr}
         </div>
+        {isEditable && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteAttribute(index);
+            }}
+            style={{
+              background: "#fecaca",
+              border: "1px solid #f87171",
+              borderRadius: "3px",
+              width: compact ? "14px" : "16px",
+              height: compact ? "14px" : "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              fontSize: compact ? "8px" : "10px",
+              color: "#dc2626",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = "#f87171";
+              e.target.style.color = "#fff";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = "#fecaca";
+              e.target.style.color = "#dc2626";
+            }}
+            title="Delete Attribute"
+          >
+            ×
+          </button>
+        )}
       </div>
     );
   };
@@ -457,7 +504,7 @@ const ObjectNode = ({
             backgroundColor: "#fed7d7",
             borderRadius: "4px",
             padding: compact ? "2px 4px" : "3px 6px",
-            fontSize: compact ? "10px" : "11px",
+            fontSize: compact ? "11px" : "12px",
             textAlign: "center",
             color: "#7f1d1d",
             fontWeight: "500",
@@ -484,7 +531,7 @@ const ObjectNode = ({
             backgroundColor: "#fed7d7",
             borderRadius: "4px",
             padding: compact ? "2px 4px" : "3px 6px",
-            fontSize: compact ? "10px" : "11px",
+            fontSize: compact ? "11px" : "12px",
             textAlign: "center",
             cursor: isEditable ? "pointer" : "default",
             boxSizing: "border-box",
@@ -506,7 +553,7 @@ const ObjectNode = ({
             style={{
               fontWeight: "600",
               color: "#991b1b",
-              fontSize: compact ? "9px" : "10px",
+              fontSize: compact ? "10px" : "11px",
               lineHeight: "1.1",
             }}
           >
@@ -516,7 +563,7 @@ const ObjectNode = ({
             style={{
               fontWeight: "400",
               color: "#7f1d1d",
-              fontSize: compact ? "8px" : "9px",
+              fontSize: compact ? "10px" : "11px",
               lineHeight: "1.1",
               opacity: 0.8,
             }}
@@ -541,7 +588,7 @@ const ObjectNode = ({
           whiteSpace: "nowrap",
           opacity,
           transition: "opacity 0.2s ease",
-          fontSize: compact ? "10px" : "11px",
+          fontSize: compact ? "11px" : "12px",
           fontWeight: "500", 
           color: "#7f1d1d",
           textAlign: "center",
@@ -601,7 +648,7 @@ const ObjectNode = ({
                 autoFocus
                 placeholder={isClassMode ? "new label" : "new attribute"}
                 style={{
-                  fontSize: compact ? "9px" : "10px",
+                  fontSize: compact ? "10px" : "11px",
                   padding: compact ? "1px 2px" : "2px 3px",
                   border: "2px solid #3b82f6",
                   borderRadius: "4px",
@@ -658,7 +705,7 @@ const ObjectNode = ({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: compact ? "10px" : "11px",
+                  fontSize: compact ? "11px" : "12px",
                   color: "#1e40af",
                   cursor: "pointer",
                   fontWeight: "bold",
@@ -674,6 +721,37 @@ const ObjectNode = ({
               >
                 +
               </button>
+              {canExtract && !isClassMode && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExtract();
+                  }}
+                  style={{
+                    background: "#f0f9ff",
+                    border: "1px solid #0ea5e9",
+                    borderRadius: "3px",
+                    width: compact ? "14px" : "16px",
+                    height: compact ? "14px" : "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: compact ? "8px" : "9px",
+                    color: "#0369a1",
+                    cursor: "pointer",
+                    transition: "background-color 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = "#e0f2fe";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = "#f0f9ff";
+                  }}
+                  title="Extract as Separate Instance"
+                >
+                  <ExternalLink size={compact ? 8 : 9} />
+                </button>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -688,7 +766,7 @@ const ObjectNode = ({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: compact ? "9px" : "10px",
+                  fontSize: compact ? "10px" : "11px",
                   color: "#dc2626",
                   cursor: "pointer",
                   fontWeight: "bold",
@@ -753,7 +831,7 @@ const ObjectNode = ({
         >
           <div
             style={{ 
-              fontSize: compact ? "10px" : "11px", 
+              fontSize: compact ? "11px" : "12px", 
               fontWeight: "500", 
               color: "#7f1d1d",
               textAlign: "center",

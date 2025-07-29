@@ -24,7 +24,7 @@ export default function InstanceCard({
   isSelected,
   onSelect,
 }) {
-  const { updateInstance, deleteInstance } = useClassContext();
+  const { updateInstance, deleteInstance, extractObjectFromInstance } = useClassContext();
   const { handleCreateClass } = useInstanceActions();
 
   const [isExpanded, setIsExpanded] = useState(isSelected);
@@ -52,6 +52,10 @@ export default function InstanceCard({
   const parentClass = instance.isFromClass
     ? classes.find((cls) => cls.id === instance.classId)
     : null;
+
+  const handleObjectExtract = (objectId, instanceId) => {
+    extractObjectFromInstance(objectId, instanceId);
+  };
 
   const isEditing = isEditingText || isEditingGraph;
 
@@ -178,7 +182,7 @@ export default function InstanceCard({
         <div style={{ flex: 1 }}>
           <div
             style={{
-              fontSize: "12px",
+              fontSize: "14px",
               fontWeight: "600",
               color: isEditing ? "#1d4ed8" : "#1e293b",
               display: "flex",
@@ -186,12 +190,12 @@ export default function InstanceCard({
               gap: "6px",
             }}
           >
-            {isEditing && <Edit2 size={12} />}
+            {isEditing && <Edit2 size={14} />}
             {instance.instanceLabel}
             {instance.isFromClass && parentClass && (
               <span
                 style={{
-                  fontSize: "10px",
+                  fontSize: "12px",
                   backgroundColor: "#dbeafe",
                   color: "#3b82f6",
                   padding: "2px 6px",
@@ -201,14 +205,14 @@ export default function InstanceCard({
                   gap: "4px",
                 }}
               >
-                <Link size={10} />
+                <Link size={12} />
                 {parentClass.name}
               </span>
             )}
             {isEditing && (
               <span
                 style={{
-                  fontSize: "10px",
+                  fontSize: "12px",
                   backgroundColor: "#3b82f6",
                   color: "white",
                   padding: "2px 6px",
@@ -227,8 +231,8 @@ export default function InstanceCard({
               onClick={(e) => e.stopPropagation()}
               autoFocus
               style={{
-                width: "200px",
-                fontSize: "11px",
+                // width: "200px",
+                fontSize: "12px",
                 marginTop: "4px",
                 padding: "6px",
                 border: "1px solid #3b82f6",
@@ -241,11 +245,11 @@ export default function InstanceCard({
           ) : (
             <div
               style={{
-                fontSize: "10px",
+                fontSize: "12px",
                 color: "#64748b",
                 marginTop: "2px",
                 lineHeight: "1.4",
-                width: "215px",
+                marginRight: "120px"
               }}
             >
               {instance.textDescription}
@@ -268,13 +272,13 @@ export default function InstanceCard({
             zIndex: 10,
           }}
         >
-          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
 
         {isUpdating && (
           <div
             style={{
-              fontSize: "10px",
+              fontSize: "12px",
               color: "#6b7280",
               fontStyle: "italic",
               marginLeft: "8px",
@@ -292,14 +296,13 @@ export default function InstanceCard({
             width: "100%",
             height: "400px", // 고정 높이 설정
             maxHeight: "80vh", // 뷰포트 높이의 80%를 넘지 않도록
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
             overflow: "hidden", // 상위에서도 넘침 방지
           }}
         >
           <SceneGraphVisualizer
             sceneGraph={editedSceneGraph}
             onSceneGraphChange={(newGraph) => setEditedSceneGraph(newGraph)}
+            onObjectExtract={handleObjectExtract}
             instanceId={instance.id}
             isEditable={isEditingGraph}
             // compact
@@ -387,7 +390,7 @@ export default function InstanceCard({
             position: "absolute",
             bottom: "8px",
             left: "12px",
-            fontSize: "10px",
+            fontSize: "12px",
             color: "#3b82f6",
             fontWeight: "500",
             display: "flex",
@@ -427,7 +430,7 @@ export default function InstanceCard({
               color: "#fff",
               padding: "4px 12px",
               borderRadius: "6px",
-              fontSize: "12px",
+              fontSize: "14px",
             }}
           >
             Updating...

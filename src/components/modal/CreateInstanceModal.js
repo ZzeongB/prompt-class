@@ -111,7 +111,11 @@ export const CreateInstanceModal = ({
       setValues(defaultValues);
       
       // 미리보기용 sceneGraph 생성
-      setPreviewSceneGraph(createUpdatedSceneGraph(classData.template.sceneGraph, defaultValues));
+      const initialPreview = createUpdatedSceneGraph(classData.template.sceneGraph, defaultValues);
+      console.log('Initial Preview SceneGraph:', initialPreview);
+      console.log('ClassData template:', classData.template);
+      console.log('Default values:', defaultValues);
+      setPreviewSceneGraph(initialPreview);
       
       if (placeholders.length > 0) {
         // placeholder들에 대한 제안 가져오기
@@ -127,13 +131,20 @@ export const CreateInstanceModal = ({
       } else {
         setIsLoading(false);
       }
+    } else if (isOpen && classData) {
+      // classData는 있지만 template.sceneGraph가 없는 경우
+      console.log('ClassData exists but no template.sceneGraph:', classData);
+      setIsLoading(false);
+      setPreviewSceneGraph(null);
     }
   }, [isOpen, classData]);
 
   // values가 변경될 때마다 미리보기 업데이트
   useEffect(() => {
     if (classData?.template?.sceneGraph && Object.keys(values).length > 0) {
-      setPreviewSceneGraph(createUpdatedSceneGraph(classData.template.sceneGraph, values));
+      const updatedGraph = createUpdatedSceneGraph(classData.template.sceneGraph, values);
+      console.log('Preview SceneGraph:', updatedGraph);
+      setPreviewSceneGraph(updatedGraph);
     }
   }, [values, classData]);
 
@@ -350,8 +361,12 @@ export const CreateInstanceModal = ({
   };
 
   const objectPositions = useMemo(() => {
-    if (!previewSceneGraph?.objects) return {};
+    if (!previewSceneGraph?.objects) {
+      console.log('No preview objects found');
+      return {};
+    }
     
+    console.log('Calculating positions for objects:', previewSceneGraph.objects);
     const levels = getNodeLevels(previewSceneGraph.objects, previewSceneGraph.relationships || []);
     const grouped = {};
     for (const [id, level] of Object.entries(levels)) {
@@ -458,7 +473,20 @@ export const CreateInstanceModal = ({
                   )}
 
                   {/* 객체 노드들 */}
-                  {previewSceneGraph?.objects?.map((obj) => {
+                  {console.log('Rendering objects:', previewSceneGraph?.objects)}
+                  {!previewSceneGraph?.objects?.length ? (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '180px',
+                      color: '#64748b',
+                      fontSize: '14px'
+                    }}>
+                      No preview available
+                    </div>
+                  ) : (
+                    previewSceneGraph.objects.map((obj) => {
                     const pos = objectPositions[obj.id];
                     if (!pos) return null;
                     
@@ -481,7 +509,9 @@ export const CreateInstanceModal = ({
                         />
                       </div>
                     );
-                  })}
+                  }))}
+                  
+                  {/* Closing the conditional rendering */}
 
                   {/* RelationshipNode들 중간에 배치 */}
                   {previewSceneGraph?.relationships?.map((rel, i) => {

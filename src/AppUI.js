@@ -18,8 +18,9 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
   const [showHelp, setShowHelp] = useState(false);
   const [newInstanceToAdd, setNewInstanceToAdd] = useState(null);
   const [selectedInstanceId, setSelectedInstanceId] = useState(null);
-  const onInstanceSelect = () => {
-    console.log("onInstanceSelect");
+  const [isClassLibraryExpanded, setIsClassLibraryExpanded] = useState(false);
+  const onInstanceSelect = (instanceId) => {
+    setSelectedInstanceId(instanceId);
   };
 
   useEffect(() => {
@@ -63,6 +64,10 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
 
   const handleInstanceAdded = () => {
     setNewInstanceToAdd(null); // 처리 완료 후 초기화
+  };
+
+  const handleClassLibraryExpandChange = (isExpanded) => {
+    setIsClassLibraryExpanded(isExpanded);
   };
 
   return (
@@ -139,7 +144,7 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                     onImageGenerated={setImageSrc}
                     newInstanceToAdd={newInstanceToAdd}
                     onInstanceAdded={handleInstanceAdded}
-                    setSelectedInstanceId={setSelectedInstanceId}
+                    onNodeSelect={onInstanceSelect}
                   />
                 )}
               </div>
@@ -149,7 +154,7 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                 flexGrow: 1,
                 marginLeft: "10px",
                 overflowY: "auto",
-                background: "#FEFEFE",
+                backgroundColor: "#f8fafc",
                 borderRadius: "8px",
                 boxShadow: "-1px 0 4px rgba(0,0,0,0.04)",
                 display: "flex",
@@ -159,34 +164,30 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                 marginRight: "12px",
                 marginBottom: "12px",
                 width: "400px",
+                position: "relative",
               }}
             >
-              <InstanceBoard
-                selectedInstanceId={selectedInstanceId}
-                onInstanceSelect={onInstanceSelect}
+              <div
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  marginRight: isClassLibraryExpanded ? "300px" : "40px",
+                  transition: "margin-right 0.3s ease-in-out",
+                }}
+              >
+                <InstanceBoard
+                  selectedInstanceId={selectedInstanceId}
+                  onInstanceSelect={onInstanceSelect}
+                />
+              </div>
+
+              <ClassTreeBoard
+                onAddInstance={handleAddInstance}
+                onExpandChange={handleClassLibraryExpandChange}
               />
             </div>
-            <div
-              style={{
-                flexGrow: 1,
-                marginLeft: "10px",
-                overflowY: "auto",
-                background: "#FEFEFE",
-                borderRadius: "8px",
-                boxShadow: "-1px 0 4px rgba(0,0,0,0.04)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-                marginTop: "12px",
-                marginRight: "12px",
-                marginBottom: "12px",
-                width: "400px",
-              }}
-            >
-              <ClassTreeBoard onAddInstance={handleAddInstance} />
-            </div>
 
-            <CustomButton
+            {/* <CustomButton
               color="grey"
               size="sm"
               onClick={() => setShowHelp(true)}
@@ -210,10 +211,10 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
               title="도움말 보기"
             >
               <HelpCircle size={20} />
-            </CustomButton>
+            </CustomButton> */}
           </div>
 
-          <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+          {/* <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} /> */}
 
           <>
             {isBaseline ? (

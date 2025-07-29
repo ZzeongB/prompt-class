@@ -40,13 +40,13 @@ const RelationshipNode = ({
           display: "flex",
           alignItems: "center",
           gap: compact ? "3px" : "4px",
-          backgroundColor: "rgba(255, 255, 255, 0.9)",
+          // backgroundColor: "rgba(255, 255, 255, 0.9)",
           borderRadius: "4px",
           padding: compact ? "1px 2px" : "2px 3px",
-          boxShadow: isHovered
-            ? "0 2px 8px rgba(0, 0, 0, 0.15)"
-            : "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: "1px solid rgba(255, 255, 255, 0.8)",
+          // boxShadow: isHovered
+          //   ? "0 2px 8px rgba(0, 0, 0, 0.15)"
+          //   : "0 1px 3px rgba(0, 0, 0, 0.1)",
+          // border: "1px solid rgba(255, 255, 255, 0.8)",
           backdropFilter: "blur(2px)",
         }}
       >
@@ -58,7 +58,7 @@ const RelationshipNode = ({
               border: "1px solid #86efac",
               backgroundColor: isHovered ? "#bbf7d0" : "#dcfce7",
               color: "#15803d",
-              fontSize: compact ? "9px" : "10px",
+              fontSize: compact ? "10px" : "11px",
               padding: compact ? "1px 3px" : "2px 4px",
               fontWeight: 500,
               borderRadius: "3px",
@@ -71,7 +71,7 @@ const RelationshipNode = ({
               border: "2px solid #16a34a",
               backgroundColor: "#f0fdf4",
               color: "#15803d",
-              fontSize: compact ? "9px" : "10px",
+              fontSize: compact ? "10px" : "11px",
               padding: compact ? "1px 3px" : "2px 4px",
               fontWeight: 500,
               borderRadius: "3px",
@@ -85,7 +85,7 @@ const RelationshipNode = ({
               border: "1px solid #86efac",
               backgroundColor: isHovered ? "#bbf7d0" : "#dcfce7",
               color: "#15803d",
-              fontSize: compact ? "9px" : "10px",
+              fontSize: compact ? "10px" : "11px",
               padding: compact ? "1px 3px" : "2px 4px",
               fontWeight: 500,
               borderRadius: "3px",
@@ -98,7 +98,7 @@ const RelationshipNode = ({
           </div>
         )}
 
-        {isEditable && (
+        {isEditable && isHovered && (
           <button
             onClick={handleDelete}
             style={{
@@ -110,11 +110,13 @@ const RelationshipNode = ({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: compact ? "9px" : "10px",
+              fontSize: compact ? "10px" : "11px",
               color: "#dc2626",
               cursor: "pointer",
               fontWeight: "bold",
-              transition: "background-color 0.2s ease",
+              transition: "all 0.2s ease",
+              opacity: isHovered ? 1 : 0,
+              transform: isHovered ? "scale(1)" : "scale(0.8)",
             }}
             onMouseEnter={(e) => {
               e.target.style.backgroundColor = "#f87171";
