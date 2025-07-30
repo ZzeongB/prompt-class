@@ -12,3 +12,4 @@ beautifulsoup4
 gradio
 openai
 dotenv
+ultralytics

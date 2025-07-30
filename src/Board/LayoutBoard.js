@@ -12,6 +12,10 @@ import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
 import SimpleLayoutNode from "../components/nodes/SimpleLayoutNode";
 import ResizableNode from "../components/nodes/ResizableNode";
 import { generateImageFromInstanceData } from "../api/generateImage";
+import { detectObjects } from "../api/detectObjects";
+import { generateDescription } from "../api/generateDescription";
+import { generateTextToGraph, generateInstanceLabelFromDescription } from "../api/generateTextToGraph";
+import { switchModel, getCurrentModel } from "../api/modelSwitch";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
@@ -51,13 +55,32 @@ function LayoutBoard({
   const [showImageOnly, setShowImageOnly] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [inlinePrompt, setInlinePrompt] = useState(null);
+  const [detectedObjects, setDetectedObjects] = useState([]);
+  const [showBoundingBoxes, setShowBoundingBoxes] = useState(false);
+  const [hoveredObject, setHoveredObject] = useState(null);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [currentModel, setCurrentModel] = useState("sd3");
+  const [isSwitchingModel, setIsSwitchingModel] = useState(false);
 
   const { image, setImage } = useImage();
-  const { instances, classes, setInstances, updateInstance, deleteInstance } =
+  const { instances, classes, setInstances, updateInstance, deleteInstance, addInstance } =
     useClassContext();
 
   const syncFromReactFlow = useRef(false);
   const syncFromClassContext = useRef(false);
+
+  // Load current model on component mount
+  useEffect(() => {
+    const loadCurrentModel = async () => {
+      try {
+        const modelInfo = await getCurrentModel();
+        setCurrentModel(modelInfo.current_model);
+      } catch (error) {
+        console.error("Failed to get current model:", error);
+      }
+    };
+    loadCurrentModel();
+  }, []);
 
   // 진행률 모니터링
   useEffect(() => {
@@ -598,6 +621,9 @@ function LayoutBoard({
         setImage(response.image);
         setImageBoard(response.image);
         setGlobalCaption(response.globalCaption || "");
+        
+        // Automatically detect objects in the generated image
+        handleObjectDetection(response.image);
       } catch (err) {
         const message =
           err?.response?.data?.message ||
@@ -611,7 +637,127 @@ function LayoutBoard({
     }, 200);
   };
 
-  const onNodeDragStop = (event, node) => {
+  const handleObjectDetection = async (imageBase64) => {
+    try {
+      setIsDetecting(true);
+      setDetectedObjects([]);
+      
+      const objects = await detectObjects(imageBase64);
+      setDetectedObjects(objects);
+      
+      logEvent("object_detection_completed", {
+        objectsCount: objects.length,
+        objects: objects.map(obj => ({ label: obj.label, confidence: obj.confidence }))
+      });
+    } catch (error) {
+      console.error("Object detection failed:", error);
+      logEvent("object_detection_failed", { error: error.message });
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
+  const handleObjectClick = async (obj) => {
+    logEvent("object_clicked", {
+      label: obj.label,
+      confidence: obj.confidence,
+      bbox: obj.bbox
+    });
+
+    try {
+      // 1. Generate description for the clicked object
+      console.log("Generating description for object:", obj.label);
+      const descriptionResult = await generateDescription(
+        imageBoard,
+        obj.bbox,
+        globalCaption
+      );
+
+      logEvent("object_description_generated", {
+        label: descriptionResult.label,
+        description: descriptionResult.description
+      });
+
+      // 2. Convert description to scene graph
+      console.log("Converting description to scene graph:", descriptionResult.description);
+      const sceneGraph = await generateTextToGraph({
+        newTextDescription: descriptionResult.description
+      });
+
+      logEvent("scene_graph_generated", {
+        objects_count: sceneGraph.objects?.length || 0,
+        relationships_count: sceneGraph.relationships?.length || 0
+      });
+
+      // 3. Generate instance label
+      const instanceLabel = await generateInstanceLabelFromDescription(descriptionResult.description);
+
+      // 4. Create new instance
+      const newInstance = {
+        id: uuidv4(),
+        label: instanceLabel,
+        description: descriptionResult.description,
+        sceneGraph: sceneGraph,
+        detectedObject: obj,
+        isFromObjectDetection: true,
+        createdAt: new Date().toISOString()
+      };
+
+      // 5. Add instance to context
+      addInstance(newInstance);
+
+      logEvent("instance_created_from_detection", {
+        instanceId: newInstance.id,
+        label: instanceLabel,
+        originalObjectLabel: obj.label
+      });
+
+      console.log("Successfully created instance from detected object:", newInstance);
+      
+    } catch (error) {
+      console.error("Failed to process object click:", error);
+      logEvent("object_click_processing_failed", {
+        error: error.message,
+        objectLabel: obj.label
+      });
+      
+      // Show user-friendly error message
+      alert(`Failed to process object: ${error.message}`);
+    }
+  };
+
+  const handleModelSwitch = async (newModelType) => {
+    try {
+      setIsSwitchingModel(true);
+      
+      logEvent("model_switch_requested", {
+        from_model: currentModel,
+        to_model: newModelType
+      });
+
+      const result = await switchModel(newModelType);
+      setCurrentModel(newModelType);
+      
+      logEvent("model_switch_completed", {
+        new_model: newModelType,
+        message: result.message
+      });
+
+      console.log("Model switched successfully:", result.message);
+      
+    } catch (error) {
+      console.error("Failed to switch model:", error);
+      logEvent("model_switch_failed", {
+        error: error.message,
+        attempted_model: newModelType
+      });
+      alert(`Failed to switch model: ${error.message}`);
+    } finally {
+      setIsSwitchingModel(false);
+    }
+  };
+
+  const onNodeDragStop = (_, node) => {
     logEvent("layout.node.moved", {
       nodeId: node.id,
       newPos: node.position,
@@ -657,7 +803,7 @@ function LayoutBoard({
 
   // 노드 선택 핸들러
   const handleNodeClick = useCallback(
-    (event, node) => {
+    (_, node) => {
       if (node.type !== "resizable") {
         setSelectedNodeId(node.data?.instanceId);
         onNodeSelect?.(node.data?.instanceId);
@@ -720,6 +866,30 @@ function LayoutBoard({
             {showImageOnly ? "Show Layout" : "Show Image Only"}
           </span>
         </CustomButton>
+
+        {/* Model Selection Buttons */}
+        <div style={{ display: "flex", gap: "4px" }}>
+          <CustomButton
+            color={currentModel === "sd3" ? "purpleBlue" : "grey"}
+            size="sm"
+            onClick={() => handleModelSwitch("sd3")}
+            disabled={isSwitchingModel}
+          >
+            <span style={{ fontSize: "12px", fontWeight: "bold" }}>
+              SD3 {currentModel === "sd3" ? "✓" : ""}
+            </span>
+          </CustomButton>
+          <CustomButton
+            color={currentModel === "flux" ? "purpleBlue" : "grey"}
+            size="sm"
+            onClick={() => handleModelSwitch("flux")}
+            disabled={isSwitchingModel}
+          >
+            <span style={{ fontSize: "12px", fontWeight: "bold" }}>
+              FLUX {currentModel === "flux" ? "✓" : ""}
+            </span>
+          </CustomButton>
+        </div>
 
         <div
           style={{
@@ -880,6 +1050,12 @@ function LayoutBoard({
             justifyContent: "center",
             alignItems: "center",
             height: "512px",
+            position: "relative"
+          }}
+          onMouseEnter={() => setShowBoundingBoxes(true)}
+          onMouseLeave={() => {
+            setShowBoundingBoxes(false);
+            setHoveredObject(null);
           }}
         >
           <img
@@ -895,6 +1071,103 @@ function LayoutBoard({
               objectFit: "contain",
             }}
           />
+          
+          {/* Bounding boxes overlay */}
+          {showBoundingBoxes && detectedObjects.map((obj, index) => (
+            <div
+              key={index}
+              style={{
+                position: "absolute",
+                left: `${(obj.bbox[0] / 512) * 100}%`,
+                top: `${(obj.bbox[1] / 512) * 100}%`,
+                width: `${((obj.bbox[2] - obj.bbox[0]) / 512) * 100}%`,
+                height: `${((obj.bbox[3] - obj.bbox[1]) / 512) * 100}%`,
+                border: hoveredObject === index ? "3px solid #ff6b6b" : "2px solid #4dabf7",
+                backgroundColor: hoveredObject === index ? "rgba(255, 107, 107, 0.1)" : "rgba(77, 171, 247, 0.1)",
+                cursor: "pointer",
+                zIndex: 10,
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={() => setHoveredObject(index)}
+              onMouseLeave={() => setHoveredObject(null)}
+              onClick={() => handleObjectClick(obj)}
+              title={`${obj.label} (${(obj.confidence * 100).toFixed(1)}%)`}
+            >
+              {hoveredObject === index && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-25px",
+                    left: "0",
+                    backgroundColor: "#333",
+                    color: "white",
+                    padding: "2px 6px",
+                    borderRadius: "3px",
+                    fontSize: "12px",
+                    whiteSpace: "nowrap",
+                    zIndex: 20
+                  }}
+                >
+                  {obj.label} ({(obj.confidence * 100).toFixed(1)}%)
+                </div>
+              )}
+            </div>
+          ))}
+          
+          {/* Detection status indicator */}
+          {isDetecting && (
+            <div
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                backgroundColor: "rgba(0,0,0,0.7)",
+                color: "white",
+                padding: "5px 10px",
+                borderRadius: "15px",
+                fontSize: "12px",
+                zIndex: 15
+              }}
+            >
+              Detecting objects...
+            </div>
+          )}
+          
+          {/* Model switching indicator */}
+          {isSwitchingModel && (
+            <div
+              style={{
+                position: "absolute",
+                top: "40px",
+                right: "10px",
+                backgroundColor: "rgba(0,0,0,0.7)",
+                color: "white",
+                padding: "5px 10px",
+                borderRadius: "15px",
+                fontSize: "12px",
+                zIndex: 15
+              }}
+            >
+              Switching model...
+            </div>
+          )}
+          
+          {/* Current model indicator */}
+          <div
+            style={{
+              position: "absolute",
+              top: "10px",
+              left: "10px",
+              backgroundColor: "rgba(0,0,0,0.5)",
+              color: "white",
+              padding: "3px 8px",
+              borderRadius: "10px",
+              fontSize: "11px",
+              zIndex: 15
+            }}
+          >
+            {currentModel.toUpperCase()}
+          </div>
         </div>
       )}
     </div>

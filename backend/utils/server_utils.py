@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from src.models.transformer_flux_SiamLayout import FluxTransformer2DModel
 from src.pipeline.pipeline_flux_CreatiLayout import CreatiLayoutFluxPipeline
+from src.models.transformer_sd3_SiamLayout import SiamLayoutSD3Transformer2DModel
+from src.pipeline.pipeline_sd3_CreatiLayout import CreatiLayoutSD3Pipeline
 
 from utils.prompt import caption_prompt, description_prompt
 
@@ -20,44 +22,59 @@ now = datetime.now()
 timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
 
-def load_model(device):
-    # # STABLE DIFFUSION 3
-    # model_path = "stabilityai/stable-diffusion-3-medium-diffusers"
-    # ckpt_path = "HuiZhang0812/CreatiLayout"
-    # transformer_additional_kwargs = dict(attention_type="layout", strict=True)
-    # transformer = SiamLayoutSD3Transformer2DModel.from_pretrained(
-    #     ckpt_path,
-    #     subfolder="SiamLayout_SD3",
-    #     torch_dtype=torch.float16,
-    #     **transformer_additional_kwargs,
-    # )
-    # pipe = CreatiLayoutSD3Pipeline.from_pretrained(
-    #     model_path, transformer=transformer, torch_dtype=torch.float16
-    # )
-
-    # FLUX
-    model_path = "/data/FLUX.1-dev"  # "black-forest-labs/FLUX.1-dev"
-    ckpt_path = "/data/CreatiLayout"  # "HuiZhang0812/CreatiLayout"
-    transformer_additional_kwargs = dict(
-        attention_type="layout",
-        double_blocks_index=[i for i in range(0, 19, 1)],
-        single_blocks_index=[i for i in range(0, 38, 1)],
-        is_add=True,
-        max_boxes_token_length=30,
-        fix_bbox_ids=True,
-        strict=True,
-    )
-    transformer = FluxTransformer2DModel.from_pretrained(
-        ckpt_path,
-        subfolder="SiamLayout_FLUX",
-        torch_dtype=torch.bfloat16,
-        **transformer_additional_kwargs,
-    )
-    pipe = CreatiLayoutFluxPipeline.from_pretrained(
-        model_path, transformer=transformer, torch_dtype=torch.bfloat16
-    )
-    pipe = pipe.to(device)
-    return pipe
+def load_model(device, model_type="flux"):
+    """
+    Load CreatiLayout model based on model_type
+    Args:
+        device: torch device
+        model_type: "flux" or "sd3"
+    """
+    if model_type.lower() == "sd3":
+        # STABLE DIFFUSION 3
+        model_path = "stabilityai/stable-diffusion-3-medium-diffusers"
+        ckpt_path = "HuiZhang0812/CreatiLayout"
+        transformer_additional_kwargs = dict(attention_type="layout", strict=True)
+        transformer = SiamLayoutSD3Transformer2DModel.from_pretrained(
+            ckpt_path,
+            subfolder="SiamLayout_SD3",
+            torch_dtype=torch.float16,
+            **transformer_additional_kwargs,
+        )
+        pipe = CreatiLayoutSD3Pipeline.from_pretrained(
+            model_path, transformer=transformer, torch_dtype=torch.float16
+        )
+        pipe = pipe.to(device)
+        print(f"✅ Loaded Stable Diffusion 3 model")
+        return pipe
+    
+    elif model_type.lower() == "flux":
+        # FLUX
+        model_path = "/data/FLUX.1-dev"  # "black-forest-labs/FLUX.1-dev"
+        ckpt_path = "/data/CreatiLayout"  # "HuiZhang0812/CreatiLayout"
+        transformer_additional_kwargs = dict(
+            attention_type="layout",
+            double_blocks_index=[i for i in range(0, 19, 1)],
+            single_blocks_index=[i for i in range(0, 38, 1)],
+            is_add=True,
+            max_boxes_token_length=30,
+            fix_bbox_ids=True,
+            strict=True,
+        )
+        transformer = FluxTransformer2DModel.from_pretrained(
+            ckpt_path,
+            subfolder="SiamLayout_FLUX",
+            torch_dtype=torch.bfloat16,
+            **transformer_additional_kwargs,
+        )
+        pipe = CreatiLayoutFluxPipeline.from_pretrained(
+            model_path, transformer=transformer, torch_dtype=torch.bfloat16
+        )
+        pipe = pipe.to(device)
+        print(f"✅ Loaded FLUX model")
+        return pipe
+    
+    else:
+        raise ValueError(f"Unsupported model type: {model_type}. Use 'flux' or 'sd3'")
 
 
 def encode_image(image):

@@ -23,6 +23,16 @@ from datetime import datetime
 from typing import Optional, Callable, Dict
 from threading import Lock
 
+# Object detection imports
+try:
+    from ultralytics import YOLO
+    import cv2
+    import numpy as np
+    OBJECT_DETECTION_AVAILABLE = True
+except ImportError:
+    OBJECT_DETECTION_AVAILABLE = False
+    print("Warning: ultralytics not installed. Object detection features will be disabled.")
+
 now = datetime.now()
 timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 filename = timestamp
@@ -53,7 +63,19 @@ width = 512
 
 save_root = "output"
 
-pipe = load_model(device)
+# Model configuration
+current_model_type = "sd3"  # Default to SD3, can be "flux" or "sd3"
+pipe = load_model(device, current_model_type)
+
+# Load YOLO model for object detection
+yolo_model = None
+if OBJECT_DETECTION_AVAILABLE:
+    try:
+        yolo_model = YOLO("yolo12n.pt")  # or yolov8s.pt
+        print("YOLO model loaded successfully")
+    except Exception as e:
+        print(f"Failed to load YOLO model: {e}")
+        OBJECT_DETECTION_AVAILABLE = False
 
 progress_status = {
     "progress": 0
@@ -250,6 +272,115 @@ def describe_region():
     })
 
     return jsonify({"label": noun_phrase, "description": description})
+
+@app.route("/detect-objects", methods=["POST"])
+def detect_objects():
+    if not OBJECT_DETECTION_AVAILABLE or yolo_model is None:
+        return jsonify({"error": "Object detection not available"}), 500
+    
+    data = request.get_json()
+    base64_image = data.get("image", "")
+    
+    if not base64_image:
+        return jsonify({"error": "No image provided"}), 400
+    
+    log_event("object_detection_requested", {})
+    
+    try:
+        # Convert base64 to image
+        image_bytes = base64.b64decode(base64_image)
+        image = Image.open(BytesIO(image_bytes)).convert("RGB")
+        
+        # Convert PIL to OpenCV format
+        image_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        
+        # Run object detection
+        results = yolo_model(image_cv)
+        boxes = results[0].boxes
+        names = yolo_model.names
+        
+        # Extract bounding boxes and labels
+        detected_objects = []
+        for box in boxes:
+            cls_id = int(box.cls)
+            label = names[cls_id]
+            conf = box.conf.item()
+            x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+            
+            detected_objects.append({
+                "label": label,
+                "confidence": conf,
+                "bbox": [x1, y1, x2, y2]
+            })
+        
+        log_event("object_detection_completed", {
+            "objects_count": len(detected_objects)
+        })
+        
+        return jsonify({"objects": detected_objects})
+        
+    except Exception as e:
+        log_event("object_detection_failed", {
+            "error": str(e)
+        }, level="ERROR")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/switch-model", methods=["POST"])
+def switch_model():
+    global pipe, current_model_type
+    
+    data = request.get_json()
+    new_model_type = data.get("model_type", "").lower()
+    
+    if new_model_type not in ["flux", "sd3"]:
+        return jsonify({"error": "Invalid model type. Use 'flux' or 'sd3'"}), 400
+    
+    if new_model_type == current_model_type:
+        return jsonify({
+            "message": f"Already using {current_model_type.upper()} model",
+            "current_model": current_model_type
+        })
+    
+    try:
+        log_event("model_switch_requested", {
+            "from_model": current_model_type,
+            "to_model": new_model_type
+        })
+        
+        print(f"🔄 Switching from {current_model_type.upper()} to {new_model_type.upper()}...")
+        
+        # Clear GPU memory
+        if pipe is not None:
+            del pipe
+            torch.cuda.empty_cache()
+        
+        # Load new model
+        pipe = load_model(device, new_model_type)
+        current_model_type = new_model_type
+        
+        log_event("model_switch_completed", {
+            "new_model": current_model_type
+        })
+        
+        return jsonify({
+            "message": f"Successfully switched to {current_model_type.upper()} model",
+            "current_model": current_model_type
+        })
+        
+    except Exception as e:
+        log_event("model_switch_failed", {
+            "error": str(e),
+            "attempted_model": new_model_type
+        }, level="ERROR")
+        
+        return jsonify({"error": f"Failed to switch model: {str(e)}"}), 500
+
+@app.route("/current-model", methods=["GET"])
+def get_current_model():
+    return jsonify({
+        "current_model": current_model_type,
+        "available_models": ["flux", "sd3"]
+    })
 
 @app.route("/api/log", methods=["POST"])
 def log_from_frontend():
