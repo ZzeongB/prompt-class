@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useClassContext } from "../context/ClassContext";
 import ClassDetailModal from "../components/modal/ClassDetailModal";
+import { logEvent } from "../api/logEvent";
 
 // Compact Floating Class Library
 export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
@@ -25,6 +26,11 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
     const newExpanded = !isExpanded;
     setIsExpanded(newExpanded);
     onExpandChange?.(newExpanded);
+    
+    logEvent("class_library_toggle", {
+      expanded: newExpanded,
+      class_count: classes.length
+    });
   };
 
   const handleCreateInstance = (newInstance) => {
@@ -34,6 +40,12 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
   const handleClassClick = (classData) => {
     setSelectedClass(classData);
     setIsModalOpen(true);
+    
+    logEvent("class_detail_opened", {
+      class_id: classData.id,
+      class_name: classData.name,
+      instance_count: instances.filter(i => i.classId === classData.id).length
+    });
   };
 
   const handleCloseModal = () => {
@@ -54,8 +66,21 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
           instanceCount !== 1 ? "s" : ""
         } but won't delete them.`
       );
-      if (!confirm) return;
+      if (!confirm) {
+        logEvent("class_delete_cancelled", {
+          class_id: classId,
+          class_name: className,
+          instance_count: instanceCount
+        });
+        return;
+      }
     }
+
+    logEvent("class_deleted", {
+      class_id: classId,
+      class_name: className,
+      instance_count: instanceCount
+    });
 
     deleteClass(classId);
     handleCloseModal();
@@ -69,6 +94,13 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
     const classInstances = instances.filter(
       (instance) => instance.classId === classId
     );
+    
+    logEvent("class_instances_reset", {
+      class_id: classId,
+      instance_count: classInstances.length,
+      class_name: classes.find(c => c.id === classId)?.name
+    });
+    
     classInstances.forEach((instance) => {
       resetInstanceToClass(instance.id);
     });

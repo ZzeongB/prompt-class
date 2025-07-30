@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { generatePlaceholders } from "../api/generatePlaceholders";
+import { logEvent } from "../api/logEvent";
 
 const ClassContext = createContext();
 
@@ -114,6 +115,13 @@ export const ClassProvider = ({ children }) => {
 
   const createClass = async (instanceData) => {
     try {
+      logEvent("class.create.started", {
+        instance_id: instanceData.id,
+        instance_label: instanceData.instanceLabel,
+        has_scene_graph: !!instanceData.sceneGraph,
+        object_count: instanceData.sceneGraph?.objects?.length || 0
+      });
+
       const placeholders = await generatePlaceholders(instanceData.sceneGraph);
       const processedSceneGraph = replaceWithSceneGraphPlaceholders(
         instanceData.sceneGraph,
@@ -140,6 +148,13 @@ export const ClassProvider = ({ children }) => {
       };
 
       setClasses((prev) => [...prev, newClass]);
+      
+      logEvent("class.created", {
+        class_id: newClass.id,
+        class_name: newClass.name,
+        placeholder_count: Object.keys(placeholders || {}).length,
+        created_from: instanceData.instanceLabel
+      });
 
       // 원본 인스턴스를 클래스의 인스턴스로 변환
       setInstances((prev) =>
@@ -160,6 +175,12 @@ export const ClassProvider = ({ children }) => {
 
       return newClass;
     } catch (error) {
+      logEvent("class.create.error", {
+        instance_id: instanceData.id,
+        error_message: error.message,
+        using_fallback: true
+      });
+
       // 폴백 클래스 생성
       const fallbackClass = {
         id: `class-${uuidv4()}`,
@@ -179,6 +200,11 @@ export const ClassProvider = ({ children }) => {
       };
 
       setClasses((prev) => [...prev, fallbackClass]);
+      
+      logEvent("class.created.fallback", {
+        class_id: fallbackClass.id,
+        class_name: fallbackClass.name
+      });
 
       // 원본 인스턴스를 클래스의 인스턴스로 변환
       setInstances((prev) =>
@@ -202,9 +228,15 @@ export const ClassProvider = ({ children }) => {
   };
 
   const createInstanceFromClass = async (classData, newValues = {}) => {
+    logEvent("instance.create_from_class.started", {
+      class_id: classData.id,
+      class_name: classData.name,
+      value_count: Object.keys(newValues).length
+    });
+
     const sceneGraph = deepCloneSceneGraph(classData.template.sceneGraph);
 
-    sceneGraph.objects.forEach((obj, objIndex) => {
+    sceneGraph.objects.forEach((obj) => {
       // 객체 이름 처리
       if (obj.name && obj.name.includes("{") && obj.name.includes("}")) {
         const key = obj.name.replace(/[{}]/g, "");
@@ -273,6 +305,14 @@ export const ClassProvider = ({ children }) => {
     };
 
     setInstances((prev) => [...prev, newInstance]);
+    
+    logEvent("instance.created_from_class", {
+      instance_id: newInstance.id,
+      class_id: classData.id,
+      instance_label: newInstance.instanceLabel,
+      has_text_description: !!textDescription
+    });
+    
     return newInstance;
   };
   // 클래스 업데이트 시 연결된 인스턴스들도 업데이트

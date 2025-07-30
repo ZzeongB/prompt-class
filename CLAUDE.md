@@ -4,70 +4,93 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Architecture
 
-This is a React-based web application for prompt-class generation with a Python Flask backend. The application enables users to create and manage visual layouts with AI-generated content.
+This is a React-based web application for prompt-class generation with a Python Flask backend implementing CreatiLayout, a layout-to-image framework using diffusion transformers. The application enables users to create and manage visual layouts with AI-generated content through a dual-system interface.
 
 ### Frontend Architecture (React)
 
-- **Main Components**: 
-  - `App.js`: Root component handling session state and routing between landing page and main UI
-  - `AppUI.js`: Main application interface with three-board layout system
-  - `LandingPage.js`: Initial user onboarding and condition selection
+**Core Application Flow**:
+- `App.js`: Root component managing session state and routing between landing page and main UI
+- `AppUI.js`: Main application interface with dual-system toggle (System 1/baseline vs System 2/advanced)
+- `LandingPage.js`: Initial condition selection for baseline/advanced mode
 
-- **Board System**: The core UI consists of three interactive boards:
-  - `LayoutBoard.js`: Main canvas for visual layout creation and editing using ReactFlow
-  - `BaselineLayoutBoard.js`: Simplified baseline version of the layout system  
-  - `ClassTreeBoard.js`: Manages class hierarchy and instance creation
-  - `InstanceBoard.js`: Displays and manages individual instances
+**Board System**: Three-board layout with synchronized state:
+- `LayoutBoard.js`: Advanced ReactFlow-based canvas with class-instance pattern
+- `BaselineLayoutBoard.js`: Simplified version for baseline interactions
+- `ClassTreeBoard.js`: Class hierarchy management with expandable library
+- `InstanceBoard.js`: Instance display and selection interface
 
-- **Context Management**:
-  - `ImageContext.js`: Global state for images and captions
-  - `ClassContext.js`: Complex state management for classes, instances, placeholders, and inheritance relationships
+**Context Management**:
+- `ImageContext.js`: Global image and caption state
+- `ClassContext.js`: Complex state for classes, instances, placeholders, inheritance, and scene graphs
 
-- **API Integration**: All API calls are in `src/api/` directory:
-  - `generateImage.js`: Communicates with backend for AI image generation
-  - `generateDescription.js`: Generates descriptions for regions
-  - `generatePlaceholders.js`: Creates template placeholders
-  - `generateTextToGraph.js`: Converts text to scene graph structures
-  - `logEvent.js`: Frontend event logging
+**API Layer** (`src/api/`):
+- `generateImage.js`: Backend integration for AI image generation
+- `generateDescription.js`: Region description generation
+- `generatePlaceholders.js`: Template placeholder creation
+- `generateTextToGraph.js`: Text-to-scene-graph conversion
+- `logEvent.js`: Frontend event logging
 
 ### Backend Architecture (Python/Flask)
 
-- **Server**: `backend/server.py` - Flask server with CORS enabled
-- **Key Endpoints**:
-  - `/generate`: AI image generation using diffusion models
-  - `/generate-caption`: Caption generation and refinement
-  - `/describe`: Region description from cropped images
-  - `/progress`: Real-time generation progress tracking
-  - `/api/log`: Event logging from frontend
+**Core Server** (`backend/server.py`):
+- Flask server with CORS, serving both API and React build
+- Real-time progress tracking with threading locks
+- Timestamped output directory structure
 
-- **AI Models**: Located in `backend/src/`:
-  - Custom diffusion pipeline implementations (Flux, SD3)
-  - Attention processors with SiamLayout architecture
-  - Transformer models for layout-aware generation
+**Key Endpoints**:
+- `/generate`: CreatiLayout diffusion model inference
+- `/generate-caption`: OpenAI-powered caption generation and refinement
+- `/describe`: Region description from cropped images
+- `/progress`: Real-time generation progress
+- `/api/log`: Event logging from frontend
 
-- **Dependencies**: Uses PyTorch, Diffusers, Transformers, OpenAI API, and Flask
+**CreatiLayout Integration** (`backend/CreatiLayout/`):
+- SiamLayout diffusion transformer implementation
+- Multiple model variants: SD3, SD3-LoRA, FLUX
+- Custom attention processors and pipelines in `backend/src/`
 
-### Key Features
+**Model Architecture**:
+- `pipeline/`: CreatiLayout pipelines for FLUX and SD3
+- `models/`: Transformer and attention processor implementations
+- Supports layout-to-image generation with bounding box control
 
-1. **Dual System Architecture**: Users can switch between System 1 (baseline) and System 2 (advanced) layouts
-2. **Class-Instance Pattern**: Create reusable class templates with placeholders that can generate multiple instances
-3. **Scene Graph Management**: Complex data structures representing object relationships and attributes
-4. **Real-time Generation**: Progress tracking for AI model inference
-5. **Drag-and-Drop Interface**: ReactFlow-based visual editing with resizable nodes
-6. **Override System**: Instances can override class properties while maintaining inheritance
+### Development Commands
 
-### Development Notes
+**Frontend (React)**:
+```bash
+npm start          # Development server on localhost:3000
+npm run build      # Production build 
+npm test           # Run Jest tests
+```
 
-- The application uses session storage for user state persistence
-- ReactFlow is used for the visual layout editor with custom node types
-- Backend generates timestamped output directories for each generation
-- Extensive logging system tracks user interactions and system events
-- The codebase includes Korean comments in some areas
+**Backend (Python)**:
+```bash
+cd backend
+python server.py  # Start Flask server (debug mode)
+pip install -r requirements.txt  # Install dependencies
+```
 
-### Environment Variables
+**CreatiLayout Models**:
+```bash
+cd backend/CreatiLayout
+python test_sample.py  # Test model inference
+python test_SiamLayout_sd3_layoutsam_benchmark.py  # Benchmark evaluation
+python score_layoutsam_benchmark.py  # VLM-based scoring
+```
 
-Set `REACT_APP_API_BASE_URL` to point to the backend server (defaults to backend endpoints).
+### Key Architecture Patterns
 
-### Build Output
+1. **Dual System Design**: Baseline vs Advanced mode with shared state management
+2. **Class-Instance Pattern**: Reusable templates with placeholder substitution and inheritance
+3. **Scene Graph Architecture**: Complex object relationships with spatial and attribute constraints
+4. **ReactFlow Integration**: Custom nodes, handles, and real-time layout editing
+5. **Session Persistence**: Browser session storage for user state
+6. **Timestamped Outputs**: All generations saved with metadata for debugging
 
-The React build output is served by the Flask backend for production deployment.
+### Dependencies & Environment
+
+**Frontend**: React 19, ReactFlow, Bootstrap, Axios, OpenAI client
+**Backend**: Flask, PyTorch, Diffusers, Transformers, OpenAI API
+**Models**: CreatiLayout (Stable Diffusion 3, FLUX.1-dev variants)
+
+Set `REACT_APP_API_BASE_URL` for backend endpoint configuration.

@@ -17,6 +17,7 @@ import {
 } from "../api/generateTextToGraph";
 import { useInstanceActions } from "../utils/actions/useInstanceActions";
 import { ToolbarButton } from "./nodeComponents/NodeToolbarMenu";
+import { logEvent } from "../api/logEvent";
 
 export default function InstanceCard({
   instance,
@@ -261,10 +262,23 @@ export default function InstanceCard({
         instanceLabel: newLabel,
       });
 
+      logEvent("instance.updated", {
+        instance_id: instance.id,
+        instance_label: newLabel,
+        text_changed: textChanged,
+        graph_changed: graphChanged
+      });
+
       setTempDescription(newTextDescription);
       setEditedSceneGraph(newSceneGraph);
     } catch (err) {
       console.error("Update failed:", err);
+      
+      logEvent("instance.update.failed", {
+        instance_id: instance.id,
+        error_message: err.message
+      });
+      
       alert("Failed to update. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -287,17 +301,35 @@ export default function InstanceCard({
         `Are you sure you want to delete "${instance.instanceLabel}"?`
       )
     ) {
+      logEvent("instance.deleted", {
+        instance_id: instance.id,
+        instance_label: instance.instanceLabel,
+        is_from_class: instance.isFromClass,
+        class_id: instance.classId
+      });
       deleteInstance(instance.id);
     }
   };
 
   const handleEdit = () => {
+    logEvent("instance.edit.started", {
+      instance_id: instance.id,
+      instance_label: instance.instanceLabel,
+      edit_type: "text"
+    });
+    
     setIsEditingText(true);
     setIsExpanded(true); // 편집 시 자동으로 expand
     setTempDescription(instance.textDescription);
   };
 
   const handleEditGraph = () => {
+    logEvent("instance.edit.started", {
+      instance_id: instance.id,
+      instance_label: instance.instanceLabel,
+      edit_type: "graph"
+    });
+    
     setIsEditingGraph(true);
     setIsExpanded(true); // 편집 시 자동으로 expand
     setEditedSceneGraph(instance.sceneGraph);

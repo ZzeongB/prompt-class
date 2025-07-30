@@ -4,6 +4,7 @@ import { useClassContext } from "../context/ClassContext";
 import InstanceCard from "../components/InstanceCard";
 import { Plus, Search, Filter, Grid, List } from "lucide-react";
 import CustomButton from "../components/CustomButton";
+import { logEvent } from "../api/logEvent";
 
 export default function InstanceBoard({
   selectedInstanceId,
@@ -25,9 +26,17 @@ export default function InstanceBoard({
           block: 'nearest',
           inline: 'nearest'
         });
+        
+        const instance = instances.find(i => i.id === selectedInstanceId);
+        logEvent("instance_selected", {
+          instance_id: selectedInstanceId,
+          instance_label: instance?.instanceLabel,
+          is_from_class: instance?.isFromClass,
+          class_id: instance?.classId
+        });
       }
     }
-  }, [selectedInstanceId]);
+  }, [selectedInstanceId, instances]);
 
   const filteredAndSortedInstances = instances
     .filter((instance) => {
@@ -74,6 +83,9 @@ export default function InstanceBoard({
       onClick={(e) => {
         // 배경 클릭 시 선택 해제 (이벤트 버블링 방지)
         if (e.target === e.currentTarget) {
+          logEvent("instance_deselected", {
+            previous_instance_id: selectedInstanceId
+          });
           onInstanceSelect?.(null);
         }
       }}

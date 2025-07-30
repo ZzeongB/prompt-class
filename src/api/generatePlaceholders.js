@@ -1,5 +1,6 @@
 import { all } from 'axios';
 import { callOpenAI } from './utils'; // 기존 callOpenAI 함수를 import
+import { logEvent } from './logEvent';
 
 // SceneGraph에서 모든 텍스트 값들을 추출하는 함수
 const extractValuesFromSceneGraph = (sceneGraph) => {
@@ -42,11 +43,19 @@ export const generatePlaceholders = async (sceneGraph) => {
     throw new Error("Valid tree data is required");
   }
 
+  logEvent("api.generate_placeholders.started", {
+    has_objects: !!(sceneGraph.objects && sceneGraph.objects.length > 0),
+    has_relationships: !!(sceneGraph.relationships && sceneGraph.relationships.length > 0),
+    object_count: sceneGraph.objects?.length || 0,
+    relationship_count: sceneGraph.relationships?.length || 0
+  });
+
   // 트리에서 모든 텍스트 값들을 추출
   const allValues = extractValuesFromSceneGraph(sceneGraph);
   const uniqueValues = [...new Set(allValues)].filter(value => value.trim() !== '');
   
   if (uniqueValues.length === 0) {
+    logEvent("api.generate_placeholders.no_values", {});
     return {};
   }
 
@@ -84,15 +93,31 @@ JSON만 응답하세요:`;
       throw new Error("Invalid placeholder map structure");
     }
     
+    logEvent("api.generate_placeholders.succeeded", {
+      unique_value_count: uniqueValues.length,
+      placeholder_count: Object.keys(placeholderMap).length,
+      categories: Object.values(placeholderMap)
+    });
+    
     return placeholderMap;
     
   } catch (error) {
     console.error("generatePlaceholders Error:", error);
     
+    logEvent("api.generate_placeholders.error", {
+      error_message: error.message,
+      error_type: error.constructor.name,
+      unique_value_count: uniqueValues.length
+    });
+    
     // fallback: 모든 값을 "value"로 매핑
     const fallbackMap = {};
     uniqueValues.forEach(value => {
       fallbackMap[value] = 'value';
+    });
+    
+    logEvent("api.generate_placeholders.fallback", {
+      fallback_count: Object.keys(fallbackMap).length
     });
     
     console.warn("Using fallback placeholder mapping");

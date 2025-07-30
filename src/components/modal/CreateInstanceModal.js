@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { suggestPlaceholderValues } from "../../api/generatePlaceholders";
 import { useClassContext } from "../../context/ClassContext";
+import { logEvent } from "../../api/logEvent";
 
 export const CreateInstanceModal = ({ 
   classData, 
@@ -151,11 +152,31 @@ export const CreateInstanceModal = ({
   const handleCreate = async () => {
     try {
       setIsCreating(true);
+      
+      logEvent("modal.create_instance.started", {
+        class_id: classData.id,
+        class_name: classData.name,
+        values: values
+      });
+      
       const newInstance = await createInstanceFromClass(classData, values);
+      
+      logEvent("modal.create_instance.succeeded", {
+        class_id: classData.id,
+        instance_id: newInstance.id,
+        instance_label: newInstance.instanceLabel
+      });
+      
       onCreateInstance?.(newInstance);
       onClose();
     } catch (error) {
       console.error('인스턴스 생성 실패:', error);
+      
+      logEvent("modal.create_instance.failed", {
+        class_id: classData.id,
+        error_message: error.message
+      });
+      
       alert('인스턴스 생성에 실패했습니다.');
     } finally {
       setIsCreating(false);
