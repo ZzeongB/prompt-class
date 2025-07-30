@@ -866,10 +866,7 @@ function LayoutBoard({
             {showImageOnly ? "Show Layout" : "Show Image Only"}
           </span>
         </CustomButton>
-
-        {/* Model Selection Buttons */}
-        <div style={{ display: "flex", gap: "4px" }}>
-          <CustomButton
+        <CustomButton
             color={currentModel === "sd3" ? "purpleBlue" : "grey"}
             size="sm"
             onClick={() => handleModelSwitch("sd3")}
@@ -889,7 +886,11 @@ function LayoutBoard({
               FLUX {currentModel === "flux" ? "✓" : ""}
             </span>
           </CustomButton>
-        </div>
+
+        {/* Model Selection Buttons
+        <div style={{ display: "flex", gap: "4px" }}>
+          
+        </div> */}
 
         <div
           style={{

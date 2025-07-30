@@ -12,7 +12,6 @@ import { getEdgeParams } from "../utils/node/nodePositionUtils";
 import { EDGE_COLOR } from "../utils/constants";
 import HoverButton from "./nodeComponents/HoverButton";
 import RelationshipNode from "./nodes/RelationshipNode";
-import { Trash2 } from "lucide-react";
 
 export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
   const { deleteElements, setEdges } = useReactFlow();
