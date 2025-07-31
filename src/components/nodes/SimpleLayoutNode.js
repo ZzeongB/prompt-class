@@ -4,24 +4,21 @@ import { Handle, Position } from "@xyflow/react";
 import { Link } from "lucide-react";
 
 function SimpleLayoutNode({ id, data, selected }) {
-  // // 클래스 연결 상태 디버깅
-  // console.log(`SimpleLayoutNode ${data.instanceLabel || 'unknown'}: isFromClass=${data.isFromClass}, parentClassName=${data.parentClassName}, all data:`, data);
+  // 하이라이트 디버깅
+  console.log(`SimpleLayoutNode ${data.instanceLabel || 'unknown'}: selected=${selected}, isHighlighted=${data.isHighlighted}, instanceId=${data.instanceId}`);
   
-  // if (data.isFromClass) {
-  //   console.log(`✅ Should show class link for ${data.instanceLabel}: parentClassName=${data.parentClassName}`);
-  // }
   return (
     <div
       style={{
         padding: "8px 12px",
-        background: selected 
+        background: (selected || data.isHighlighted)
           ? "linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)"
           : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
-        border: selected ? "2px solid #3b82f6" : "1px solid #e5e7eb",
+        border: (selected || data.isHighlighted) ? "2px solid #3b82f6" : "1px solid #e5e7eb",
         borderRadius: "8px",
         cursor: "pointer",
         transition: "all 0.15s ease",
-        boxShadow: selected
+        boxShadow: (selected || data.isHighlighted)
           ? "0 4px 12px -2px rgba(59, 130, 246, 0.25)"
           : "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
         minWidth: "100px",
@@ -87,20 +84,5 @@ function SimpleLayoutNode({ id, data, selected }) {
   );
 }
 
-// memo를 사용하여 props 변경 시 리렌더링 보장
-export default memo(SimpleLayoutNode, (prevProps, nextProps) => {
-  // props가 변경되었는지 확인
-  const isDifferent = 
-    prevProps.data.instanceLabel !== nextProps.data.instanceLabel ||
-    prevProps.data.isFromClass !== nextProps.data.isFromClass ||
-    prevProps.data.parentClassName !== nextProps.data.parentClassName ||
-    prevProps.data.hasOverrides !== nextProps.data.hasOverrides ||
-    prevProps.selected !== nextProps.selected;
-  
-  if (isDifferent) {
-    console.log('🔄 SimpleLayoutNode re-rendering due to prop changes');
-  }
-  
-  // false를 반환하면 리렌더링, true를 반환하면 리렌더링 스킵
-  return !isDifferent;
-});
+// memo를 사용하여 불필요한 리렌더링 방지
+export default memo(SimpleLayoutNode);

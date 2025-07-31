@@ -23,6 +23,19 @@ from datetime import datetime
 from typing import Optional, Callable, Dict
 from threading import Lock
 
+def fix_base64_padding(base64_string):
+    """Fix base64 padding by adding missing padding characters"""
+    # Remove data URL prefix if present (e.g., "data:image/png;base64,")
+    if ',' in base64_string:
+        base64_string = base64_string.split(',', 1)[1]
+    
+    # Add padding if necessary
+    missing_padding = len(base64_string) % 4
+    if missing_padding:
+        base64_string += '=' * (4 - missing_padding)
+    
+    return base64_string
+
 # Object detection imports
 try:
     from ultralytics import YOLO
@@ -58,6 +71,7 @@ seed = 42
 batch_size = 1
 num_inference_steps = 50
 guidance_scale = 3.5
+# Default resolution - will be adjusted based on model type
 height = 512
 width = 512
 
@@ -67,11 +81,19 @@ save_root = "output"
 current_model_type = "sd3"  # Default to SD3, can be "flux" or "sd3"
 pipe = load_model(device, current_model_type)
 
+# Set resolution based on model type
+if current_model_type == "sd3":
+    height = 1024
+    width = 1024
+else:  # flux
+    height = 512
+    width = 512
+
 # Load YOLO model for object detection
 yolo_model = None
 if OBJECT_DETECTION_AVAILABLE:
     try:
-        yolo_model = YOLO("yolo12n.pt")  # or yolov8s.pt
+        yolo_model = YOLO("yolo11n.pt")  # or yolov8s.pt
         print("YOLO model loaded successfully")
     except Exception as e:
         print(f"Failed to load YOLO model: {e}")
@@ -219,7 +241,62 @@ def generate():
             "path": img_with_layout_save_name
         })
 
-    return jsonify({"image": img_base64, "globalCaption": global_caption})
+    # Perform object detection on generated image
+    detected_objects = []
+    if OBJECT_DETECTION_AVAILABLE and yolo_model is not None:
+        try:
+            # Convert PIL to OpenCV format
+            image_cv = cv2.cvtColor(np.array(images[0]), cv2.COLOR_RGB2BGR)
+            
+            # Ensure image dimensions are compatible with YOLO
+            img_height, img_width = image_cv.shape[:2]
+            if img_height % 32 != 0 or img_width % 32 != 0:
+                # Resize to nearest multiple of 32
+                new_height = ((img_height + 31) // 32) * 32
+                new_width = ((img_width + 31) // 32) * 32
+                image_cv = cv2.resize(image_cv, (new_width, new_height))
+            
+            # Run object detection
+            results = yolo_model(image_cv)
+            boxes = results[0].boxes
+            names = yolo_model.names
+            
+            # Extract bounding boxes and labels
+            for box in boxes:
+                cls_id = int(box.cls)
+                label = names[cls_id]
+                conf = box.conf.item()
+                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                
+                # Scale back to original image size if resized
+                if img_height % 32 != 0 or img_width % 32 != 0:
+                    scale_x = width / new_width
+                    scale_y = height / new_height
+                    x1 = int(x1 * scale_x)
+                    y1 = int(y1 * scale_y)
+                    x2 = int(x2 * scale_x)
+                    y2 = int(y2 * scale_y)
+                
+                detected_objects.append({
+                    "label": label,
+                    "confidence": conf,
+                    "bbox": [x1, y1, x2, y2]
+                })
+            
+            log_event("object_detection_integrated", {
+                "objects_count": len(detected_objects)
+            })
+            
+        except Exception as e:
+            log_event("object_detection_failed", {
+                "error": str(e)
+            }, level="ERROR")
+
+    return jsonify({
+        "image": img_base64, 
+        "globalCaption": global_caption,
+        "detectedObjects": detected_objects
+    })
 
 @app.route("/progress", methods=["GET"])
 def get_progress():
@@ -253,7 +330,7 @@ def describe_region():
             "crop_box": crop_box
         }, f, indent=2)
 
-    image_bytes = base64.b64decode(base64_image)
+    image_bytes = base64.b64decode(fix_base64_padding(base64_image))
     full_image = Image.open(BytesIO(image_bytes)).convert("RGB")
 
     region = full_image.crop(crop_box)
@@ -288,11 +365,19 @@ def detect_objects():
     
     try:
         # Convert base64 to image
-        image_bytes = base64.b64decode(base64_image)
+        image_bytes = base64.b64decode(fix_base64_padding(base64_image))
         image = Image.open(BytesIO(image_bytes)).convert("RGB")
         
         # Convert PIL to OpenCV format
         image_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        
+        # Ensure image dimensions are compatible with YOLO
+        height, width = image_cv.shape[:2]
+        if height % 32 != 0 or width % 32 != 0:
+            # Resize to nearest multiple of 32
+            new_height = ((height + 31) // 32) * 32
+            new_width = ((width + 31) // 32) * 32
+            image_cv = cv2.resize(image_cv, (new_width, new_height))
         
         # Run object detection
         results = yolo_model(image_cv)
@@ -327,7 +412,7 @@ def detect_objects():
 
 @app.route("/switch-model", methods=["POST"])
 def switch_model():
-    global pipe, current_model_type
+    global pipe, current_model_type, height, width
     
     data = request.get_json()
     new_model_type = data.get("model_type", "").lower()
@@ -358,13 +443,23 @@ def switch_model():
         pipe = load_model(device, new_model_type)
         current_model_type = new_model_type
         
+        # Update resolution based on model type
+        if current_model_type == "sd3":
+            height = 1024
+            width = 1024
+        else:  # flux
+            height = 512
+            width = 512
+        
         log_event("model_switch_completed", {
-            "new_model": current_model_type
+            "new_model": current_model_type,
+            "resolution": f"{width}x{height}"
         })
         
         return jsonify({
             "message": f"Successfully switched to {current_model_type.upper()} model",
-            "current_model": current_model_type
+            "current_model": current_model_type,
+            "resolution": f"{width}x{height}"
         })
         
     except Exception as e:

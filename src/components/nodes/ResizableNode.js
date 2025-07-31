@@ -76,7 +76,12 @@ function ResizableNode({ id, data, nodeType, style }) {
   };
 
   return (
-    <div>
+    <div
+      style={{
+        borderRadius: "4px",
+        transition: "all 0.15s ease",
+      }}
+    >
       <NodeResizer
         color={DARK_GREY_TRANS}
         minWidth={50}
@@ -175,4 +180,12 @@ function ResizableNode({ id, data, nodeType, style }) {
   );
 }
 
-export default memo(ResizableNode);
+export default memo(ResizableNode, (prevProps, nextProps) => {
+  // Compare relevant props for re-rendering
+  const isDifferent = 
+    prevProps.data.label !== nextProps.data.label ||
+    prevProps.style !== nextProps.style;
+  
+  // Return false to re-render, true to skip
+  return !isDifferent;
+});

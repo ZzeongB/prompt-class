@@ -225,6 +225,8 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                 onImageGenerated={() => {}}
                 newInstanceToAdd={null}
                 onInstanceAdded={() => {}}
+                selectedInstanceId={selectedInstanceId}
+                onNodeSelect={onInstanceSelect}
               />
             )}
 

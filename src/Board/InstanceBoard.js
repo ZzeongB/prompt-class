@@ -131,7 +131,10 @@ export default function InstanceBoard({
               instance={instance}
               classes={classes}
               isSelected={selectedInstanceId === instance.id}
-              onSelect={() => onInstanceSelect?.(instance.id)}
+              onSelect={() => {
+                console.log(`InstanceBoard: Selecting instance ${instance.instanceLabel} with id ${instance.id}`);
+                onInstanceSelect?.(instance.id);
+              }}
               viewMode={viewMode}
             />
           </div>

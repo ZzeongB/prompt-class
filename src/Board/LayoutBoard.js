@@ -12,9 +12,11 @@ import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
 import SimpleLayoutNode from "../components/nodes/SimpleLayoutNode";
 import ResizableNode from "../components/nodes/ResizableNode";
 import { generateImageFromInstanceData } from "../api/generateImage";
-import { detectObjects } from "../api/detectObjects";
 import { generateDescription } from "../api/generateDescription";
-import { generateTextToGraph, generateInstanceLabelFromDescription } from "../api/generateTextToGraph";
+import {
+  generateTextToGraph,
+  generateInstanceLabelFromDescription,
+} from "../api/generateTextToGraph";
 import { switchModel, getCurrentModel } from "../api/modelSwitch";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
@@ -42,6 +44,7 @@ function LayoutBoard({
   newInstanceToAdd,
   onInstanceAdded,
   onNodeSelect,
+  selectedInstanceId,
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -56,18 +59,60 @@ function LayoutBoard({
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [inlinePrompt, setInlinePrompt] = useState(null);
   const [detectedObjects, setDetectedObjects] = useState([]);
-  const [showBoundingBoxes, setShowBoundingBoxes] = useState(false);
+  // const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
   const [hoveredObject, setHoveredObject] = useState(null);
-  const [isDetecting, setIsDetecting] = useState(false);
   const [currentModel, setCurrentModel] = useState("sd3");
   const [isSwitchingModel, setIsSwitchingModel] = useState(false);
 
   const { image, setImage } = useImage();
-  const { instances, classes, setInstances, updateInstance, deleteInstance, addInstance } =
+  const { instances, classes, setInstances, updateInstance, deleteInstance } =
     useClassContext();
 
   const syncFromReactFlow = useRef(false);
   const syncFromClassContext = useRef(false);
+
+  // Calculate Intersection over Union (IOU) between two bounding boxes
+  const calculateIOU = (box1, box2) => {
+    const [x1_1, y1_1, x2_1, y2_1] = box1;
+    const [x1_2, y1_2, x2_2, y2_2] = box2;
+
+    // Calculate intersection area
+    const x1_inter = Math.max(x1_1, x1_2);
+    const y1_inter = Math.max(y1_1, y1_2);
+    const x2_inter = Math.min(x2_1, x2_2);
+    const y2_inter = Math.min(y2_1, y2_2);
+
+    if (x2_inter <= x1_inter || y2_inter <= y1_inter) {
+      return 0; // No intersection
+    }
+
+    const intersectionArea = (x2_inter - x1_inter) * (y2_inter - y1_inter);
+
+    // Calculate union area
+    const area1 = (x2_1 - x1_1) * (y2_1 - y1_1);
+    const area2 = (x2_2 - x1_2) * (y2_2 - y1_2);
+    const unionArea = area1 + area2 - intersectionArea;
+
+    return intersectionArea / unionArea;
+  };
+
+  // useEffect(() => {
+  //   setNodes((prevNodes) =>
+  //     prevNodes.map((node) => {
+  //       if (node.type === "simple") {
+  //         const isHighlighted = node.data?.instanceId === selectedInstanceId;
+  //         return {
+  //           ...node,
+  //           data: {
+  //             ...node.data,
+  //             isHighlighted,
+  //           },
+  //         };
+  //       }
+  //       return node;
+  //     })
+  //   );
+  // }, [selectedInstanceId, setNodes]);
 
   // Load current model on component mount
   useEffect(() => {
@@ -115,118 +160,156 @@ function LayoutBoard({
     // 타이머를 사용해서 다음 틱에 업데이트 (React 렌더링 사이클 보장)
     setTimeout(() => {
       setNodes((prevNodes) => {
-      const updatedNodes = [...prevNodes];
+        const updatedNodes = [...prevNodes];
 
-      instances.forEach((instance) => {
-        const nodeIndex = updatedNodes.findIndex(
-          (n) => n.data?.instanceId === instance.id
-        );
-        const resizableIndex = updatedNodes.findIndex(
-          (n) => n.id === `${instance.id}-resizable`
-        );
+        instances.forEach((instance) => {
+          const nodeIndex = updatedNodes.findIndex(
+            (n) => n.data?.instanceId === instance.id
+          );
+          const resizableIndex = updatedNodes.findIndex(
+            (n) => n.id === `${instance.id}-resizable`
+          );
 
-        if (nodeIndex !== -1) {
-          // 기존 노드 업데이트
-          const parentClass = instance.isFromClass
-            ? classes.find((cls) => cls?.id === instance.classId)
-            : null;
+          if (nodeIndex !== -1) {
+            // 기존 노드 업데이트
+            const parentClass = instance.isFromClass
+              ? classes.find((cls) => cls?.id === instance.classId)
+              : null;
 
-          const updatedData = {
-            ...updatedNodes[nodeIndex].data,
-            label: instance.instanceLabel, // ReactFlow 기본 label 필드도 업데이트
-            instanceLabel: instance.instanceLabel,
-            isFromClass: instance.isFromClass,
-            classId: instance.classId,
-            parentClassName: parentClass?.name,
-            hasOverrides:
-              instance.overrides && Object.keys(instance.overrides).length > 0,
-          };
+            const isHighlighted = selectedInstanceId === instance.id;
+            console.log(`Updating node for instance ${instance.instanceLabel}: selectedInstanceId=${selectedInstanceId}, instance.id=${instance.id}, isHighlighted=${isHighlighted}`);
+            
+            const updatedData = {
+              ...updatedNodes[nodeIndex].data,
+              label: instance.instanceLabel, // ReactFlow 기본 label 필드도 업데이트
+              instanceLabel: instance.instanceLabel,
+              isFromClass: instance.isFromClass,
+              classId: instance.classId,
+              parentClassName: parentClass?.name,
+              hasOverrides:
+                instance.overrides &&
+                Object.keys(instance.overrides).length > 0,
+              isHighlighted,
+            };
 
-          // 클래스 연결 상태 로깅
-          if (instance.isFromClass) {
-            console.log(`Instance ${instance.instanceLabel} is linked to class: ${parentClass?.name}`);
-          }
+            // 클래스 연결 상태 로깅
+            if (instance.isFromClass) {
+              console.log(
+                `Instance ${instance.instanceLabel} is linked to class: ${parentClass?.name}`
+              );
+            }
 
-          updatedNodes[nodeIndex] = {
-            ...updatedNodes[nodeIndex],
-            data: { ...updatedData },
-            _updated: Date.now(), // 강제 리렌더링을 위한 키
-          };
-
-          if (resizableIndex !== -1) {
-            updatedNodes[resizableIndex] = {
-              ...updatedNodes[resizableIndex],
+            updatedNodes[nodeIndex] = {
+              ...updatedNodes[nodeIndex],
               data: { ...updatedData },
               _updated: Date.now(), // 강제 리렌더링을 위한 키
             };
+
+            if (resizableIndex !== -1) {
+              const { isHighlighted, ...resizableData } = updatedData;
+              updatedNodes[resizableIndex] = {
+                ...updatedNodes[resizableIndex],
+                data: { ...resizableData },
+                _updated: Date.now(), // 강제 리렌더링을 위한 키
+              };
+            }
+          } else {
+            // 새로운 instance인 경우 자동으로 보드에 추가
+            const sharedId = instance.id;
+
+            const parentClass = instance.isFromClass
+              ? classes.find((cls) => cls?.id === instance.classId)
+              : null;
+
+            // Calculate position and size from detected object bounding box
+            let position, resizableSize;
+            if (instance.detectedObject && instance.detectedObject.bbox) {
+              const scaleFactor = currentModel === "sd3" ? 0.5 : 1;
+              const scaledBbox = [
+                instance.detectedObject.bbox[0] * scaleFactor,
+                instance.detectedObject.bbox[1] * scaleFactor,
+                instance.detectedObject.bbox[2] * scaleFactor,
+                instance.detectedObject.bbox[3] * scaleFactor,
+              ];
+
+              const bboxPosition = {
+                x: scaledBbox[0] + LEFT_OFFSET,
+                y: scaledBbox[1] + TOP_OFFSET,
+              };
+              position = screenToFlowPosition(bboxPosition);
+
+              // Calculate size from bounding box
+              const width = scaledBbox[2] - scaledBbox[0];
+              const height = scaledBbox[3] - scaledBbox[1];
+              resizableSize = { width, height };
+            } else {
+              // Fallback for non-detected objects
+              position = instance.nodePosition || { x: 50, y: 50 };
+              resizableSize = { width: 50, height: 50 };
+            }
+
+            const objNode = {
+              id: sharedId,
+              type: "simple",
+              position,
+              data: {
+                label: instance.instanceLabel || "New Instance",
+                sharedId,
+                instanceId: sharedId,
+                instanceLabel: instance.instanceLabel || "New Instance",
+                isFromClass: instance.isFromClass || false,
+                parentClassName: parentClass?.name || null,
+                hasOverrides:
+                  instance.overrides &&
+                  Object.keys(instance.overrides).length > 0,
+                isHighlighted: selectedInstanceId === instance.id,
+              },
+            };
+
+            const resizableNode = {
+              id: `${sharedId}-resizable`,
+              type: "resizable",
+              position,
+              data: {
+                label: instance.instanceLabel || "New Instance",
+                sharedId,
+                instanceId: sharedId,
+                instanceLabel: instance.instanceLabel || "New Instance",
+                isFromClass: instance.isFromClass || false,
+                parentClassName: parentClass?.name || null,
+                textDescription: instance.textDescription || "",
+                hasOverrides:
+                  instance.overrides &&
+                  Object.keys(instance.overrides).length > 0,
+              },
+              style: resizableSize,
+            };
+
+            // 새 인스턴스의 클래스 연결 상태 로깅
+            if (instance.isFromClass) {
+              console.log(
+                `New instance ${instance.instanceLabel} created from class: ${parentClass?.name}`
+              );
+            }
+
+            updatedNodes.push(objNode, resizableNode);
           }
-        } else {
-          // 새로운 instance인 경우 자동으로 보드에 추가
-          const position = findEmptyPosition();
-          const sharedId = instance.id;
+        });
 
-          const parentClass = instance.isFromClass
-            ? classes.find((cls) => cls?.id === instance.classId)
-            : null;
-
-          const objNode = {
-            id: sharedId,
-            type: "simple",
-            position,
-            data: {
-              label: instance.instanceLabel || "New Instance",
-              sharedId,
-              instanceId: sharedId,
-              instanceLabel: instance.instanceLabel || "New Instance",
-              isFromClass: instance.isFromClass || false,
-              parentClassName: parentClass?.name || null,
-              hasOverrides:
-                instance.overrides &&
-                Object.keys(instance.overrides).length > 0,
-            },
-          };
-
-          const resizableNode = {
-            id: `${sharedId}-resizable`,
-            type: "resizable",
-            position: { x: position.x, y: position.y + 80 },
-            data: {
-              label: instance.instanceLabel || "New Instance",
-              sharedId,
-              instanceId: sharedId,
-              instanceLabel: instance.instanceLabel || "New Instance",
-              isFromClass: instance.isFromClass || false,
-              parentClassName: parentClass?.name || null,
-              textDescription: instance.textDescription || "",
-              hasOverrides:
-                instance.overrides &&
-                Object.keys(instance.overrides).length > 0,
-            },
-          };
-
-          // 새 인스턴스의 클래스 연결 상태 로깅
-          if (instance.isFromClass) {
-            console.log(`New instance ${instance.instanceLabel} created from class: ${parentClass?.name}`);
-          }
-
-          updatedNodes.push(objNode, resizableNode);
-        }
-      });
-
-      const instanceIds = new Set(instances.map((inst) => inst.id));
-      const filteredNodes = updatedNodes.filter((node) => {
-        const instanceId = node.id.endsWith("-resizable")
-          ? node.id.replace("-resizable", "")
-          : node.data?.instanceId || node.id;
-        return instanceIds.has(instanceId);
-      });
+        const instanceIds = new Set(instances.map((inst) => inst.id));
+        const filteredNodes = updatedNodes.filter((node) => {
+          const instanceId = node.id.endsWith("-resizable")
+            ? node.id.replace("-resizable", "")
+            : node.data?.instanceId || node.id;
+          return instanceIds.has(instanceId);
+        });
 
         return filteredNodes;
       });
     }, 0);
 
     syncFromClassContext.current = false;
-  }, [instances, classes, setNodes]);
+  }, [instances, classes, setNodes, selectedInstanceId]);
 
   // Relationships → Edges 동기화
   useEffect(() => {
@@ -313,12 +396,38 @@ function LayoutBoard({
   }, [newInstanceToAdd, onInstanceAdded, nodes]);
 
   const addInstanceToBoard = (instanceData) => {
-    const position = findEmptyPosition();
     const sharedId = instanceData.id;
 
     const parentClass = instanceData.isFromClass
       ? classes.find((cls) => cls?.id === instanceData.classId)
       : null;
+
+    // Calculate position and size from detected object bounding box
+    let position, resizableSize;
+    if (instanceData.detectedObject && instanceData.detectedObject.bbox) {
+      const scaleFactor = currentModel === "sd3" ? 0.5 : 1;
+      const scaledBbox = [
+        instanceData.detectedObject.bbox[0] * scaleFactor,
+        instanceData.detectedObject.bbox[1] * scaleFactor,
+        instanceData.detectedObject.bbox[2] * scaleFactor,
+        instanceData.detectedObject.bbox[3] * scaleFactor,
+      ];
+
+      const bboxPosition = {
+        x: scaledBbox[0] + LEFT_OFFSET,
+        y: scaledBbox[1] + TOP_OFFSET,
+      };
+      position = screenToFlowPosition(bboxPosition);
+
+      // Calculate size from bounding box
+      const width = scaledBbox[2] - scaledBbox[0];
+      const height = scaledBbox[3] - scaledBbox[1];
+      resizableSize = { width, height };
+    } else {
+      // Fallback for non-detected objects
+      position = instanceData.nodePosition || { x: 50, y: 50 };
+      resizableSize = { width: 50, height: 50 };
+    }
 
     const objNode = {
       id: sharedId,
@@ -334,16 +443,21 @@ function LayoutBoard({
         hasOverrides:
           instanceData.overrides &&
           Object.keys(instanceData.overrides).length > 0,
+        isHighlighted: selectedInstanceId === instanceData.id,
       },
       style: { height: 40, width: 120 },
     };
 
+    const { isHighlighted, ...objNodeDataWithoutHighlight } = objNode.data;
     const resizableNode = {
       id: `${sharedId}-resizable`,
       type: "resizable",
       position,
-      data: objNode.data,
-      style: { height: 50, width: 50 },
+      data: {
+        ...objNodeDataWithoutHighlight,
+        textDescription: instanceData.textDescription || "",
+      },
+      style: resizableSize,
     };
 
     setNodes((prev) => [...prev, resizableNode, objNode]);
@@ -617,13 +731,24 @@ function LayoutBoard({
           boxes,
           globalCaption
         );
+        console.log("response", response);
+
         onImageGenerated(response.image);
         setImage(response.image);
         setImageBoard(response.image);
         setGlobalCaption(response.globalCaption || "");
-        
-        // Automatically detect objects in the generated image
-        handleObjectDetection(response.image);
+
+        // Use integrated object detection results from backend
+        if (response.detectedObjects) {
+          setDetectedObjects(response.detectedObjects);
+          logEvent("object_detection_integrated", {
+            objectsCount: response.detectedObjects.length,
+            objects: response.detectedObjects.map((obj) => ({
+              label: obj.label,
+              confidence: obj.confidence,
+            })),
+          });
+        }
       } catch (err) {
         const message =
           err?.response?.data?.message ||
@@ -637,31 +762,11 @@ function LayoutBoard({
     }, 200);
   };
 
-  const handleObjectDetection = async (imageBase64) => {
-    try {
-      setIsDetecting(true);
-      setDetectedObjects([]);
-      
-      const objects = await detectObjects(imageBase64);
-      setDetectedObjects(objects);
-      
-      logEvent("object_detection_completed", {
-        objectsCount: objects.length,
-        objects: objects.map(obj => ({ label: obj.label, confidence: obj.confidence }))
-      });
-    } catch (error) {
-      console.error("Object detection failed:", error);
-      logEvent("object_detection_failed", { error: error.message });
-    } finally {
-      setIsDetecting(false);
-    }
-  };
-
   const handleObjectClick = async (obj) => {
     logEvent("object_clicked", {
       label: obj.label,
       confidence: obj.confidence,
-      bbox: obj.bbox
+      bbox: obj.bbox,
     });
 
     try {
@@ -675,52 +780,80 @@ function LayoutBoard({
 
       logEvent("object_description_generated", {
         label: descriptionResult.label,
-        description: descriptionResult.description
+        description: descriptionResult.description,
       });
 
       // 2. Convert description to scene graph
-      console.log("Converting description to scene graph:", descriptionResult.description);
+      console.log(
+        "Converting description to scene graph:",
+        descriptionResult.description
+      );
       const sceneGraph = await generateTextToGraph({
-        newTextDescription: descriptionResult.description
+        newTextDescription: descriptionResult.description,
       });
 
       logEvent("scene_graph_generated", {
         objects_count: sceneGraph.objects?.length || 0,
-        relationships_count: sceneGraph.relationships?.length || 0
+        relationships_count: sceneGraph.relationships?.length || 0,
       });
 
       // 3. Generate instance label
-      const instanceLabel = await generateInstanceLabelFromDescription(descriptionResult.description);
+      const instanceLabel = await generateInstanceLabelFromDescription(
+        descriptionResult.description
+      );
 
-      // 4. Create new instance
+      // 4. Calculate position from bounding box
+      const scaleFactor = currentModel === "sd3" ? 0.5 : 1;
+      const scaledBbox = [
+        obj.bbox[0] * scaleFactor,
+        obj.bbox[1] * scaleFactor,
+        obj.bbox[2] * scaleFactor,
+        obj.bbox[3] * scaleFactor,
+      ];
+
+      // Convert screen coordinates to flow coordinates (add LEFT_OFFSET and TOP_OFFSET for proper screen positioning)
+      const bboxPosition = {
+        x: scaledBbox[0] + LEFT_OFFSET,
+        y: scaledBbox[1] + TOP_OFFSET,
+      };
+      const flowPosition = screenToFlowPosition(bboxPosition);
+
+      // 5. Create new instance with proper structure
       const newInstance = {
         id: uuidv4(),
-        label: instanceLabel,
-        description: descriptionResult.description,
+        instanceLabel: instanceLabel,
+        textDescription: descriptionResult.description,
         sceneGraph: sceneGraph,
         detectedObject: obj,
         isFromObjectDetection: true,
-        createdAt: new Date().toISOString()
+        isFromClass: false,
+        classId: null,
+        overrides: {},
+        createdAt: new Date().toISOString(),
+        // Add position information for node placement
+        nodePosition: flowPosition,
       };
 
-      // 5. Add instance to context
-      addInstance(newInstance);
+      // 6. Add instance to context
+      setInstances((prev) => [...prev, newInstance]);
 
       logEvent("instance_created_from_detection", {
         instanceId: newInstance.id,
         label: instanceLabel,
-        originalObjectLabel: obj.label
+        originalObjectLabel: obj.label,
       });
 
-      console.log("Successfully created instance from detected object:", newInstance);
-      
+      console.log(
+        "Successfully created instance from detected object:",
+        newInstance
+      );
     } catch (error) {
       console.error("Failed to process object click:", error);
       logEvent("object_click_processing_failed", {
         error: error.message,
-        objectLabel: obj.label
+        objectLabel: obj.label,
       });
-      
+
       // Show user-friendly error message
       alert(`Failed to process object: ${error.message}`);
     }
@@ -729,27 +862,26 @@ function LayoutBoard({
   const handleModelSwitch = async (newModelType) => {
     try {
       setIsSwitchingModel(true);
-      
+
       logEvent("model_switch_requested", {
         from_model: currentModel,
-        to_model: newModelType
+        to_model: newModelType,
       });
 
       const result = await switchModel(newModelType);
       setCurrentModel(newModelType);
-      
+
       logEvent("model_switch_completed", {
         new_model: newModelType,
-        message: result.message
+        message: result.message,
       });
 
       console.log("Model switched successfully:", result.message);
-      
     } catch (error) {
       console.error("Failed to switch model:", error);
       logEvent("model_switch_failed", {
         error: error.message,
-        attempted_model: newModelType
+        attempted_model: newModelType,
       });
       alert(`Failed to switch model: ${error.message}`);
     } finally {
@@ -766,6 +898,7 @@ function LayoutBoard({
 
   const handleNodesChange = useCallback(
     (changes) => {
+      console.log("chages", changes)
       onNodesChange(changes);
 
       const positionChanges = changes.filter(
@@ -867,25 +1000,25 @@ function LayoutBoard({
           </span>
         </CustomButton>
         <CustomButton
-            color={currentModel === "sd3" ? "purpleBlue" : "grey"}
-            size="sm"
-            onClick={() => handleModelSwitch("sd3")}
-            disabled={isSwitchingModel}
-          >
-            <span style={{ fontSize: "12px", fontWeight: "bold" }}>
-              SD3 {currentModel === "sd3" ? "✓" : ""}
-            </span>
-          </CustomButton>
-          <CustomButton
-            color={currentModel === "flux" ? "purpleBlue" : "grey"}
-            size="sm"
-            onClick={() => handleModelSwitch("flux")}
-            disabled={isSwitchingModel}
-          >
-            <span style={{ fontSize: "12px", fontWeight: "bold" }}>
-              FLUX {currentModel === "flux" ? "✓" : ""}
-            </span>
-          </CustomButton>
+          color={currentModel === "sd3" ? "purpleBlue" : "grey"}
+          size="sm"
+          onClick={() => handleModelSwitch("sd3")}
+          disabled={isSwitchingModel}
+        >
+          <span style={{ fontSize: "12px", fontWeight: "bold" }}>
+            SD3 {currentModel === "sd3" ? "✓" : ""}
+          </span>
+        </CustomButton>
+        <CustomButton
+          color={currentModel === "flux" ? "purpleBlue" : "grey"}
+          size="sm"
+          onClick={() => handleModelSwitch("flux")}
+          disabled={isSwitchingModel}
+        >
+          <span style={{ fontSize: "12px", fontWeight: "bold" }}>
+            FLUX {currentModel === "flux" ? "✓" : ""}
+          </span>
+        </CustomButton>
 
         {/* Model Selection Buttons
         <div style={{ display: "flex", gap: "4px" }}>
@@ -978,7 +1111,13 @@ function LayoutBoard({
                 }
               }}
             />
-            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setInlinePrompt(null)}
@@ -1044,47 +1183,63 @@ function LayoutBoard({
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         />
       )}
-      {showImageOnly && imageBoard && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "512px",
-            position: "relative"
-          }}
-          onMouseEnter={() => setShowBoundingBoxes(true)}
-          onMouseLeave={() => {
-            setShowBoundingBoxes(false);
-            setHoveredObject(null);
-          }}
-        >
-          <img
-            src={imageBoard}
-            alt="Generated"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              zIndex: 0,
-              objectFit: "contain",
-            }}
-          />
-          
-          {/* Bounding boxes overlay */}
-          {showBoundingBoxes && detectedObjects.map((obj, index) => (
+
+      {/* Bounding boxes overlay - filter out overlapping ones */}
+      {detectedObjects
+        .filter((obj, index) => {
+          // Scale bounding boxes for StableDiffusion models (SD3) - reduce by half since image is 1024x1024 but display is 512x512
+          const scaleFactor = currentModel === "sd3" ? 0.5 : 1;
+          const scaledBbox = [
+            obj.bbox[0] * scaleFactor,
+            obj.bbox[1] * scaleFactor,
+            obj.bbox[2] * scaleFactor,
+            obj.bbox[3] * scaleFactor,
+          ];
+
+          // Get existing layout boxes from resizable nodes
+          const layoutBoxes = nodes
+            .filter((n) => n.type === "resizable")
+            .map((n) => {
+              const screenPos = flowToScreenPosition(n.position);
+              const x1 = screenPos.x - LEFT_OFFSET;
+              const y1 = screenPos.y - TOP_OFFSET;
+              const x2 = x1 + (n.width || n.style?.width || 50);
+              const y2 = y1 + (n.height || n.style?.height || 50);
+              return [x1, y1, x2, y2];
+            });
+
+          // Check if detected object overlaps significantly with any layout box
+          const hasHighOverlap = layoutBoxes.some((layoutBox) => {
+            const iou = calculateIOU(scaledBbox, layoutBox);
+            return iou > 0.3; // Threshold for overlap (30%)
+          });
+
+          return !hasHighOverlap; // Only show if no high overlap
+        })
+        .map((obj, index) => {
+          console.log("obj, ids", obj, index);
+          // Scale bounding boxes for StableDiffusion models (SD3) - reduce by half since image is 1024x1024 but display is 512x512
+          const scaleFactor = currentModel === "sd3" ? 0.5 : 1;
+          const scaledBbox = [
+            obj.bbox[0] * scaleFactor,
+            obj.bbox[1] * scaleFactor,
+            obj.bbox[2] * scaleFactor,
+            obj.bbox[3] * scaleFactor,
+          ];
+
+          console.log("scaledBbox", scaledBbox);
+
+          return (
             <div
               key={index}
               style={{
                 position: "absolute",
-                left: `${(obj.bbox[0] / 512) * 100}%`,
-                top: `${(obj.bbox[1] / 512) * 100}%`,
-                width: `${((obj.bbox[2] - obj.bbox[0]) / 512) * 100}%`,
-                height: `${((obj.bbox[3] - obj.bbox[1]) / 512) * 100}%`,
-                border: hoveredObject === index ? "3px solid #ff6b6b" : "2px solid #4dabf7",
-                backgroundColor: hoveredObject === index ? "rgba(255, 107, 107, 0.1)" : "rgba(77, 171, 247, 0.1)",
+                left: `${(scaledBbox[0] / 512) * 100}%`,
+                top: `${(scaledBbox[1] / 512) * 100}%`,
+                width: `${((scaledBbox[2] - scaledBbox[0]) / 512) * 100}%`,
+                height: `${((scaledBbox[3] - scaledBbox[1]) / 512) * 100}%`,
+                border: "3px solid #ff0000",
+                backgroundColor: "rgba(255, 0, 0, 0.2)",
                 cursor: "pointer",
                 zIndex: 10,
                 transition: "all 0.2s ease",
@@ -1106,17 +1261,47 @@ function LayoutBoard({
                     borderRadius: "3px",
                     fontSize: "12px",
                     whiteSpace: "nowrap",
-                    zIndex: 20
+                    zIndex: 20,
                   }}
                 >
                   {obj.label} ({(obj.confidence * 100).toFixed(1)}%)
                 </div>
               )}
             </div>
-          ))}
-          
+          );
+        })}
+
+      {showImageOnly && imageBoard && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "512px",
+            position: "relative",
+          }}
+          // onMouseEnter={() => !showImageOnly && setShowBoundingBoxes(true)}
+          // onMouseLeave={() => {
+          //   setShowBoundingBoxes(false);
+          //   setHoveredObject(null);
+          // }}
+        >
+          <img
+            src={imageBoard}
+            alt="Generated"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              zIndex: 0,
+              objectFit: "contain",
+            }}
+          />
+
           {/* Detection status indicator */}
-          {isDetecting && (
+          {/* {isDetecting && (
             <div
               style={{
                 position: "absolute",
@@ -1132,12 +1317,12 @@ function LayoutBoard({
             >
               Detecting objects...
             </div>
-          )}
-          
+          )} */}
+
           {/* Model switching indicator */}
           {isSwitchingModel && (
             <div
-              style={{
+              styge={{
                 position: "absolute",
                 top: "40px",
                 right: "10px",
@@ -1146,13 +1331,13 @@ function LayoutBoard({
                 padding: "5px 10px",
                 borderRadius: "15px",
                 fontSize: "12px",
-                zIndex: 15
+                zIndex: 15,
               }}
             >
               Switching model...
             </div>
           )}
-          
+
           {/* Current model indicator */}
           <div
             style={{
@@ -1164,7 +1349,7 @@ function LayoutBoard({
               padding: "3px 8px",
               borderRadius: "10px",
               fontSize: "11px",
-              zIndex: 15
+              zIndex: 15,
             }}
           >
             {currentModel.toUpperCase()}
@@ -1180,6 +1365,7 @@ export default function LayoutBoardWithProvider({
   newInstanceToAdd,
   onInstanceAdded,
   onNodeSelect,
+  selectedInstanceId,
 }) {
   return (
     <ReactFlowProvider debounce={200}>
@@ -1188,6 +1374,7 @@ export default function LayoutBoardWithProvider({
         newInstanceToAdd={newInstanceToAdd}
         onInstanceAdded={onInstanceAdded}
         onNodeSelect={onNodeSelect}
+        selectedInstanceId={selectedInstanceId}
       />
     </ReactFlowProvider>
   );
