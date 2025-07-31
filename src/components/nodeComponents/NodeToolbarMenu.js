@@ -19,36 +19,48 @@ export const ToolbarButton = ({
   title, 
   icon, 
   danger = false,
-  tooltipPosition = "bottom" // "top" 또는 "bottom"
+  tooltipPosition = "bottom", // "top" 또는 "bottom"
+  size = "normal", // "compact" 또는 "normal"
+  disabled = false
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
     <div style={{ position: "relative", display: "inline-block" }}>
       <button
-        onClick={onClick}
+        onClick={disabled ? undefined : onClick}
+        disabled={disabled}
         title="" // 기본 title 제거 (커스텀 tooltip 사용)
         style={{
-          padding: "6px",
-          borderRadius: "4px",
+          padding: size === "compact" ? "3px" : "6px",
+          borderRadius: size === "compact" ? "3px" : "4px",
           border: "1px solid #e2e8f0",
-          backgroundColor: danger ? "#fef2f2" : "white",
-          color: danger ? "#dc2626" : "#64748b",
-          cursor: "pointer",
+          backgroundColor: disabled ? "#f9fafb" : (danger ? "#fef2f2" : "white"),
+          color: disabled ? "#9ca3af" : (danger ? "#dc2626" : "#64748b"),
+          cursor: disabled ? "not-allowed" : "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           transition: "all 0.2s ease",
           boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+          width: size === "compact" ? "16px" : "auto",
+          height: size === "compact" ? "16px" : "auto",
+          minWidth: size === "compact" ? "16px" : "auto",
+          minHeight: size === "compact" ? "16px" : "auto",
+          opacity: disabled ? 0.6 : 1,
         }}
         onMouseEnter={(e) => {
-          e.target.style.backgroundColor = danger ? "#fee2e2" : "#f8fafc";
-          e.target.style.borderColor = danger ? "#fca5a5" : "#cbd5e1";
+          if (!disabled) {
+            e.target.style.backgroundColor = danger ? "#fee2e2" : "#f8fafc";
+            e.target.style.borderColor = danger ? "#fca5a5" : "#cbd5e1";
+          }
           setShowTooltip(true);
         }}
         onMouseLeave={(e) => {
-          e.target.style.backgroundColor = danger ? "#fef2f2" : "white";
-          e.target.style.borderColor = "#e2e8f0";
+          if (!disabled) {
+            e.target.style.backgroundColor = danger ? "#fef2f2" : "white";
+            e.target.style.borderColor = "#e2e8f0";
+          }
           setShowTooltip(false);
         }}
       >

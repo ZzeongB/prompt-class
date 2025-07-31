@@ -12,6 +12,7 @@ import {
 import { useClassContext } from "../context/ClassContext";
 import ClassDetailModal from "../components/modal/ClassDetailModal";
 import { logEvent } from "../api/logEvent";
+import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
 
 // Compact Floating Class Library
 export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
@@ -26,7 +27,7 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
     const newExpanded = !isExpanded;
     setIsExpanded(newExpanded);
     onExpandChange?.(newExpanded);
-    
+
     logEvent("class_library_toggle", {
       expanded: newExpanded,
       class_count: classes.length
@@ -40,7 +41,7 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
   const handleClassClick = (classData) => {
     setSelectedClass(classData);
     setIsModalOpen(true);
-    
+
     logEvent("class_detail_opened", {
       class_id: classData.id,
       class_name: classData.name,
@@ -62,8 +63,7 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
 
     if (instanceCount > 0) {
       const confirm = window.confirm(
-        `Delete "${className}" class? This will disconnect ${instanceCount} instance${
-          instanceCount !== 1 ? "s" : ""
+        `Delete "${className}" class? This will disconnect ${instanceCount} instance${instanceCount !== 1 ? "s" : ""
         } but won't delete them.`
       );
       if (!confirm) {
@@ -94,13 +94,13 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
     const classInstances = instances.filter(
       (instance) => instance.classId === classId
     );
-    
+
     logEvent("class_instances_reset", {
       class_id: classId,
       instance_count: classInstances.length,
       class_name: classes.find(c => c.id === classId)?.name
     });
-    
+
     classInstances.forEach((instance) => {
       resetInstanceToClass(instance.id);
     });
@@ -269,6 +269,11 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
                         borderBottom: "1px solid #f1f5f9",
                         cursor: "pointer",
                         transition: "background-color 0.2s",
+                        position: "relative",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        minHeight: "60px",
                       }}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.backgroundColor = "#f8fafc")
@@ -278,68 +283,53 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
                       }
                       onClick={() => handleClassClick(classData)}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: "6px",
-                        }}
-                      >
+                      {/* Left side - Class info */}
+                      <div style={{ flex: 1 }}>
                         <div
                           style={{
                             fontSize: "14px",
                             fontWeight: "500",
                             color: "#1e293b",
+                            marginBottom: "4px",
                           }}
                         >
                           {classData.name}
                         </div>
-                        <button
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "#64748b",
+                            lineHeight: "1.3",
+                          }}
+                        >
+                          {instanceCount} instance{instanceCount !== 1 ? "s" : ""}
+                          {overrideCount > 0 && (
+                            <span style={{ color: "#f59e0b", marginLeft: "8px" }}>
+                              • {overrideCount} custom
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Center - Open button */}
+                      <div 
+                        onClick={(e) => e.stopPropagation()} 
+                        style={{ 
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginRight: "11px"
+                        }}
+                      >
+                        <ToolbarButton
                           onClick={(e) => {
                             e.stopPropagation();
                             handleClassClick(classData);
                           }}
-                          style={{
-                            background: "none",
-                            border: "1px solid #3b82f6",
-                            borderRadius: "4px",
-                            padding: "4px 8px",
-                            cursor: "pointer",
-                            color: "#3b82f6",
-                            fontSize: "12px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            transition: "all 0.2s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = "#3b82f6";
-                            e.target.style.color = "white";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = "transparent";
-                            e.target.style.color = "#3b82f6";
-                          }}
-                        >
-                          <Plus size={12} />
-                          Open
-                        </button>
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          color: "#64748b",
-                          lineHeight: "1.3",
-                        }}
-                      >
-                        {instanceCount} instance{instanceCount !== 1 ? "s" : ""}
-                        {overrideCount > 0 && (
-                          <span style={{ color: "#f59e0b", marginLeft: "8px" }}>
-                            • {overrideCount} custom
-                          </span>
-                        )}
+                          title="Open Details"
+                          icon={<Plus size={14} />}
+                          tooltipPosition="bottom"
+                        />
                       </div>
                     </div>
                   );

@@ -96,23 +96,28 @@ function LayoutBoard({
     return intersectionArea / unionArea;
   };
 
-  // useEffect(() => {
-  //   setNodes((prevNodes) =>
-  //     prevNodes.map((node) => {
-  //       if (node.type === "simple") {
-  //         const isHighlighted = node.data?.instanceId === selectedInstanceId;
-  //         return {
-  //           ...node,
-  //           data: {
-  //             ...node.data,
-  //             isHighlighted,
-  //           },
-  //         };
-  //       }
-  //       return node;
-  //     })
-  //   );
-  // }, [selectedInstanceId, setNodes]);
+  useEffect(() => {
+    console.log(`LayoutBoard highlight useEffect triggered: selectedInstanceId=${selectedInstanceId}`);
+    
+    setNodes((nds) => {
+      return nds.map((node) => {
+        if (node.type === "simple") {
+          const isHighlighted = node.data?.instanceId === selectedInstanceId;
+          console.log(`Updating node ${node.id}: instanceId=${node.data?.instanceId}, isHighlighted=${isHighlighted}`);
+          
+          // 항상 새 객체를 반환하여 ReactFlow가 변경을 감지하도록 함
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              isHighlighted,
+            },
+          };
+        }
+        return node;
+      });
+    });
+  }, [selectedInstanceId]);
 
   // Load current model on component mount
   useEffect(() => {
@@ -177,7 +182,7 @@ function LayoutBoard({
 
             const isHighlighted = selectedInstanceId === instance.id;
             console.log(`Updating node for instance ${instance.instanceLabel}: selectedInstanceId=${selectedInstanceId}, instance.id=${instance.id}, isHighlighted=${isHighlighted}`);
-            
+
             const updatedData = {
               ...updatedNodes[nodeIndex].data,
               label: instance.instanceLabel, // ReactFlow 기본 label 필드도 업데이트
@@ -970,15 +975,6 @@ function LayoutBoard({
             {showImageOnly ? "Show Layout" : "Show Image Only"}
           </span>
         </CustomButton>
-        {/* Model selection removed - always using FLUX */}
-        <div style={{ fontSize: "12px", color: "#666", fontWeight: "bold" }}>
-          Model: FLUX ✓
-        </div>
-
-        {/* Model Selection Buttons
-        <div style={{ display: "flex", gap: "4px" }}>
-          
-        </div> */}
 
         <div
           style={{
@@ -1049,10 +1045,10 @@ function LayoutBoard({
             <input
               name="prompt"
               type="text"
-              placeholder="Describe what you want to create..."
+              placeholder="Describe what you want..."
               autoFocus
               style={{
-                width: "100%",
+                width: "204px",
                 padding: "8px 12px",
                 border: "1px solid #d1d5db",
                 borderRadius: "4px",
@@ -1235,11 +1231,11 @@ function LayoutBoard({
             height: "512px",
             position: "relative",
           }}
-          // onMouseEnter={() => !showImageOnly && setShowBoundingBoxes(true)}
-          // onMouseLeave={() => {
-          //   setShowBoundingBoxes(false);
-          //   setHoveredObject(null);
-          // }}
+        // onMouseEnter={() => !showImageOnly && setShowBoundingBoxes(true)}
+        // onMouseLeave={() => {
+        //   setShowBoundingBoxes(false);
+        //   setHoveredObject(null);
+        // }}
         >
           <img
             src={imageBoard}
@@ -1274,12 +1270,13 @@ function LayoutBoard({
             </div>
           )} */}
 
-          {/* Current model indicator */}
+          {/* Current model indicator - centered */}
           <div
             style={{
               position: "absolute",
               top: "10px",
-              left: "10px",
+              left: "50%",
+              transform: "translateX(-50%)",
               backgroundColor: "rgba(0,0,0,0.5)",
               color: "white",
               padding: "3px 8px",

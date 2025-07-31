@@ -175,6 +175,53 @@ const ClassDetailModal = ({
     }));
   };
 
+  // Generate preview scene graph with filled placeholder values
+  const generatePreviewSceneGraph = () => {
+    if (!classData?.template?.sceneGraph || !classData?.placeholders) {
+      return null;
+    }
+
+    const templateGraph = classData.template.sceneGraph;
+    const placeholders = classData.placeholders;
+    
+    // Create a deep copy of the scene graph
+    const previewGraph = JSON.parse(JSON.stringify(templateGraph));
+    
+    // Replace placeholders in objects
+    if (previewGraph.objects) {
+      previewGraph.objects = previewGraph.objects.map(obj => {
+        const newObj = { ...obj };
+        
+        // Replace placeholder in object name
+        if (newObj.name && newObj.name.includes('{') && newObj.name.includes('}')) {
+          const placeholder = newObj.name.replace(/[{}]/g, '');
+          const placeholderKey = Object.keys(placeholders).find(key => placeholders[key] === placeholder);
+          if (placeholderKey && instanceValues[placeholder]) {
+            newObj.name = instanceValues[placeholder];
+          }
+        }
+        
+        // Replace placeholders in attributes
+        if (newObj.attributes) {
+          newObj.attributes = newObj.attributes.map(attr => {
+            if (attr.includes('{') && attr.includes('}')) {
+              const placeholder = attr.replace(/[{}]/g, '');
+              const placeholderKey = Object.keys(placeholders).find(key => placeholders[key] === placeholder);
+              if (placeholderKey && instanceValues[placeholder]) {
+                return instanceValues[placeholder];
+              }
+            }
+            return attr;
+          });
+        }
+        
+        return newObj;
+      });
+    }
+    
+    return previewGraph;
+  };
+
   if (!isOpen || !classData) return null;
 
   const sceneData = isEditing
@@ -231,6 +278,7 @@ const ClassDetailModal = ({
             padding: "20px",
             borderBottom: "1px solid #e5e7eb",
             backgroundColor: isEditing ? "#eff6ff" : "white",
+            position: "relative",
           }}
         >
           <div>
@@ -279,19 +327,72 @@ const ClassDetailModal = ({
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "24px",
-              cursor: "pointer",
-              color: "#6b7280",
-              padding: "4px",
-            }}
-          >
-            ×
-          </button>
+          {/* Toolbar - InstanceCard와 동일한 스타일 */}
+          <div style={{ 
+            position: "absolute", 
+            top: "8px", 
+            right: "8px",
+            display: "flex",
+            gap: "4px",
+            alignItems: "center",
+            zIndex: 1000,
+            padding: "4px",
+            borderRadius: "6px",
+          }}>
+            {isEditing ? (
+              <>
+                <ToolbarButton
+                  onClick={handleSaveEdit}
+                  title={isUpdating ? "Saving..." : "Save Changes"}
+                  icon={<Check size={16} />}
+                  disabled={isUpdating}
+                  tooltipPosition="bottom"
+                />
+                <ToolbarButton
+                  onClick={handleCancelEdit}
+                  title="Cancel"
+                  icon={<X size={16} />}
+                  disabled={isUpdating}
+                  tooltipPosition="bottom"
+                />
+              </>
+            ) : (
+              <>
+                <ToolbarButton
+                  onClick={handleShowCreatePanel}
+                  title="Create Instance"
+                  icon={<Plus size={16} />}
+                  tooltipPosition="bottom"
+                />
+                <ToolbarButton
+                  onClick={handleEdit}
+                  title="Edit Template"
+                  icon={<Edit2 size={16} />}
+                  tooltipPosition="bottom"
+                />
+                <ToolbarButton
+                  onClick={handleResetInstances}
+                  title="Reset All Instances"
+                  icon={<RotateCcw size={16} />}
+                  tooltipPosition="bottom"
+                />
+                <ToolbarButton
+                  onClick={() => onDelete(classData.id)}
+                  title="Delete Class"
+                  icon={<Trash2 size={16} />}
+                  danger={true}
+                  tooltipPosition="bottom"
+                />
+              </>
+            )}
+            
+            <ToolbarButton
+              onClick={onClose}
+              title="Close"
+              icon={<X size={16} />}
+              tooltipPosition="bottom"
+            />
+          </div>
         </div>
 
         {/* Content */}
@@ -308,7 +409,7 @@ const ClassDetailModal = ({
           <div
             style={{
               width: "100%",
-              height: "400px",
+              height: showCreatePanel ? "300px" : "400px",
               overflow: "hidden",
             }}
           >
@@ -324,6 +425,91 @@ const ClassDetailModal = ({
               }
             />
           </div>
+
+          {/* Instance Preview Section - 클래스 그래프 아래에 표시 */}
+          {showCreatePanel && (
+            <div style={{
+              marginTop: "16px",
+              padding: "16px",
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px"
+            }}>
+              <h5 style={{
+                margin: "0 0 12px 0",
+                fontSize: "14px",
+                fontWeight: "600",
+                color: "#1f2937",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
+              }}>
+                <span style={{
+                  width: "8px",
+                  height: "8px",
+                  backgroundColor: "#10b981",
+                  borderRadius: "50%"
+                }}></span>
+                Instance Preview
+                <span style={{
+                  fontSize: "12px",
+                  color: "#64748b",
+                  fontWeight: "400",
+                  fontStyle: "italic"
+                }}>
+                  • Live preview of your instance
+                </span>
+              </h5>
+              <div style={{
+                height: "250px",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                overflow: "hidden",
+                backgroundColor: "#ffffff"
+              }}>
+                {Object.keys(instanceValues).length > 0 && Object.values(instanceValues).some(v => v.trim()) ? (
+                  <SceneGraphVisualizer
+                    sceneGraph={generatePreviewSceneGraph()}
+                    isEditable={false}
+                    isClassMode={false}
+                    compact={false}
+                  />
+                ) : (
+                  <div style={{
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#9ca3af",
+                    fontSize: "14px",
+                    gap: "12px"
+                  }}>
+                    <div style={{
+                      width: "60px",
+                      height: "60px",
+                      border: "2px dashed #d1d5db",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#9ca3af"
+                    }}>
+                      <span style={{ fontSize: "24px" }}>👁️</span>
+                    </div>
+                    <div style={{ textAlign: "center", lineHeight: "1.4" }}>
+                      <div style={{ fontWeight: "500", marginBottom: "4px" }}>
+                        Preview will appear here
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#9ca3af" }}>
+                        Fill in placeholder values to see your instance
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {isEditing && (
             <div
@@ -370,142 +556,16 @@ const ClassDetailModal = ({
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer - 빈 공간으로 남겨둠 */}
         <div
           style={{
-            padding: "20px",
+            padding: "12px 20px",
             borderTop: "1px solid #e5e7eb",
-            display: "flex",
-            gap: "12px",
-            justifyContent: "flex-end",
             backgroundColor: "#f9fafb",
+            minHeight: "20px",
           }}
         >
-          {isEditing ? (
-            <>
-              <button
-                onClick={handleSaveEdit}
-                disabled={isUpdating}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#10b981",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: isUpdating ? "not-allowed" : "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  opacity: isUpdating ? 0.7 : 1,
-                }}
-              >
-                <Check size={16} />
-                {isUpdating ? "Saving..." : "Save Changes"}
-              </button>
-              <button
-                onClick={handleCancelEdit}
-                disabled={isUpdating}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#f3f4f6",
-                  color: "#374151",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "6px",
-                  cursor: isUpdating ? "not-allowed" : "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  opacity: isUpdating ? 0.7 : 1,
-                }}
-              >
-                <X size={16} />
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={handleShowCreatePanel}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#3b82f6",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <Plus size={16} />
-                Create Instance
-              </button>
-              <button
-                onClick={handleEdit}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#f3f4f6",
-                  color: "#374151",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <Edit2 size={16} />
-                Edit Template
-              </button>
-              <button
-                onClick={handleResetInstances}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#f3f4f6",
-                  color: "#374151",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <RotateCcw size={16} />
-                Reset All
-              </button>
-              <button
-                onClick={() => onDelete(classData.id)}
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#ef4444",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
-              >
-                <Trash2 size={16} />
-                Delete Class
-              </button>
-            </>
-          )}
+          {/* 버튼들은 이제 헤더에 있음 */}
         </div>
         </div>
 
@@ -535,7 +595,7 @@ const ClassDetailModal = ({
                 alignItems: "center",
                 gap: "8px"
               }}>
-                <Plus size={16} />
+                {/* <Plus size={16} /> */}
                 Create Instance
               </h4>
               <p style={{
@@ -553,6 +613,7 @@ const ClassDetailModal = ({
               padding: "20px",
               overflowY: "auto"
             }}>
+              {/* Placeholder Input Fields */}
               {Object.keys(classData.placeholders || {}).map(key => {
                 const placeholder = classData.placeholders[key];
                 return (
@@ -639,35 +700,65 @@ const ClassDetailModal = ({
                 onClick={handleCancelCreate}
                 disabled={isCreatingInstance}
                 style={{
-                  padding: "10px 20px",
+                  padding: "12px 24px",
                   backgroundColor: "#f3f4f6",
                   color: "#374151",
                   border: "1px solid #d1d5db",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   cursor: isCreatingInstance ? "not-allowed" : "pointer",
                   fontSize: "14px",
-                  fontWeight: "500",
-                  opacity: isCreatingInstance ? 0.7 : 1
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  opacity: isCreatingInstance ? 0.7 : 1,
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+                }}
+                onMouseEnter={(e) => {
+                  if (!isCreatingInstance) {
+                    e.target.style.backgroundColor = "#e5e7eb";
+                    e.target.style.borderColor = "#9ca3af";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isCreatingInstance) {
+                    e.target.style.backgroundColor = "#f3f4f6";
+                    e.target.style.borderColor = "#d1d5db";
+                  }
                 }}
               >
+                <X size={16} />
                 Cancel
               </button>
               <button
                 onClick={handleCreateNewInstance}
                 disabled={isCreatingInstance}
                 style={{
-                  padding: "10px 20px",
+                  padding: "12px 24px",
                   backgroundColor: "#10b981",
                   color: "white",
                   border: "none",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   cursor: isCreatingInstance ? "not-allowed" : "pointer",
                   fontSize: "14px",
-                  fontWeight: "500",
+                  fontWeight: "600",
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px",
-                  opacity: isCreatingInstance ? 0.7 : 1
+                  gap: "8px",
+                  opacity: isCreatingInstance ? 0.7 : 1,
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
+                }}
+                onMouseEnter={(e) => {
+                  if (!isCreatingInstance) {
+                    e.target.style.backgroundColor = "#059669";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isCreatingInstance) {
+                    e.target.style.backgroundColor = "#10b981";
+                  }
                 }}
               >
                 <Plus size={16} />

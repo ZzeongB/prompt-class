@@ -1,6 +1,7 @@
 // ObjectNode.js - 편집 상태 개선 버전
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronRight, ChevronDown, X, Plus, ExternalLink } from "lucide-react";
+import { ToolbarButton } from "../nodeComponents/NodeToolbarMenu";
 
 const ObjectNode = ({
   object,
@@ -153,7 +154,8 @@ const ObjectNode = ({
 
     if (editingMode === "name") {
       if (isClassMode) {
-        const { placeholderLabel, defaultValue } = parseClassInput(editingValue);
+        const { placeholderLabel, defaultValue } =
+          parseClassInput(editingValue);
         onEdit?.(object.id, `{${placeholderLabel}}`, object.attributes, {
           [defaultValue]: placeholderLabel,
         });
@@ -162,7 +164,8 @@ const ObjectNode = ({
       }
     } else if (editingMode === "adding") {
       if (isClassMode) {
-        const { placeholderLabel, defaultValue } = parseClassInput(editingValue);
+        const { placeholderLabel, defaultValue } =
+          parseClassInput(editingValue);
         const updatedAttributes = [
           ...(object.attributes || []),
           `{${placeholderLabel}}`,
@@ -176,7 +179,8 @@ const ObjectNode = ({
     } else if (editingMode?.startsWith("attribute-")) {
       const index = parseInt(editingMode.replace("attribute-", ""));
       if (isClassMode) {
-        const { placeholderLabel, defaultValue } = parseClassInput(editingValue);
+        const { placeholderLabel, defaultValue } =
+          parseClassInput(editingValue);
         const updated = [...object.attributes];
         updated[index] = `{${placeholderLabel}}`;
         onEdit?.(object.id, object.name, updated, {
@@ -198,9 +202,11 @@ const ObjectNode = ({
   };
 
   const handleExtract = () => {
-    if (window.confirm(
-      `Extract "${object.name}" as a separate instance?\n\nThis will:\n• Create a new independent instance with this object\n• Connect it to the original instance via existing relationships`
-    )) {
+    if (
+      window.confirm(
+        `Extract "${object.name}" as a separate instance?\n\nThis will:\n• Create a new independent instance with this object\n• Connect it to the original instance via existing relationships`
+      )
+    ) {
       onExtract?.(object.id, parentInstanceId);
     }
   };
@@ -235,7 +241,7 @@ const ObjectNode = ({
   // 동적 스타일 계산
   const attributeCount = object.attributes?.length || 0;
   const hasMultipleAttributes = attributeCount > 5;
-  
+
   const nodeStyle = {
     border: isClassMode ? "2px dashed #fca5a5" : "1px solid #fca5a5",
     borderRadius: "6px",
@@ -306,31 +312,18 @@ const ObjectNode = ({
             }}
             placeholder={isClassMode ? "label value" : "attribute"}
           />
-          <button
+          <ToolbarButton
             onClick={(e) => {
               e.stopPropagation();
               handleDeleteAttribute(index);
               cancelEditing();
             }}
-            style={{
-              background: "#fecaca",
-              border: "1px solid #f87171",
-              borderRadius: "3px",
-              width: "16px",
-              height: "16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "11px",
-              color: "#dc2626",
-              cursor: "pointer",
-              fontWeight: "bold",
-              flexShrink: 0,
-            }}
             title="Delete Attribute"
-          >
-            ×
-          </button>
+            icon={<X size={8} />}
+            danger={true}
+            tooltipPosition="top"
+            size="compact"
+          />
         </div>
       );
     }
@@ -372,7 +365,10 @@ const ObjectNode = ({
             }}
             onDoubleClick={() => {
               if (isEditable && editingMode === null) {
-                startEditing(`attribute-${index}`, `${cleanAttr} ${defaultValue}`);
+                startEditing(
+                  `attribute-${index}`,
+                  `${cleanAttr} ${defaultValue}`
+                );
               }
             }}
             title={`${cleanAttr}: ${defaultValue} (Double-click to edit)`}
@@ -448,37 +444,17 @@ const ObjectNode = ({
           {attr}
         </div>
         {isEditable && (
-          <button
+          <ToolbarButton
             onClick={(e) => {
               e.stopPropagation();
               handleDeleteAttribute(index);
             }}
-            style={{
-              background: "#fecaca",
-              border: "1px solid #f87171",
-              borderRadius: "3px",
-              width: compact ? "14px" : "16px",
-              height: compact ? "14px" : "16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              fontSize: compact ? "8px" : "10px",
-              color: "#dc2626",
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#f87171";
-              e.target.style.color = "#fff";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "#fecaca";
-              e.target.style.color = "#dc2626";
-            }}
             title="Delete Attribute"
-          >
-            ×
-          </button>
+            icon={<X size={compact ? 6 : 8} />}
+            danger={true}
+            tooltipPosition="top"
+            size="compact"
+          />
         )}
       </div>
     );
@@ -589,7 +565,7 @@ const ObjectNode = ({
           opacity,
           transition: "opacity 0.2s ease",
           fontSize: compact ? "11px" : "12px",
-          fontWeight: "500", 
+          fontWeight: "500",
           color: "#7f1d1d",
           textAlign: "center",
           minHeight: compact ? "18px" : "22px",
@@ -615,13 +591,15 @@ const ObjectNode = ({
       >
         {/* Attributes Section */}
         {expanded && attributeCount > 0 && (
-          <div style={{ 
-            flex: 1, 
-            marginBottom: compact ? "2px" : "4px",
-            display: "flex",
-            flexDirection: "column",
-            gap: compact ? "1px" : "2px",
-          }}>
+          <div
+            style={{
+              flex: 1,
+              marginBottom: compact ? "2px" : "4px",
+              display: "flex",
+              flexDirection: "column",
+              gap: compact ? "1px" : "2px",
+            }}
+          >
             <div
               style={{
                 display: "grid",
@@ -677,10 +655,8 @@ const ObjectNode = ({
             minHeight: compact ? "20px" : "24px",
           }}
         >
-          <div style={{ flex: 1 }}>
-            {renderObjectName()}
-          </div>
-          
+          <div style={{ flex: 1 }}>{renderObjectName()}</div>
+
           {/* Controls */}
           {isEditable && editingMode === null && (
             <div
@@ -691,99 +667,39 @@ const ObjectNode = ({
                 flexShrink: 0,
               }}
             >
-              <button
+              <ToolbarButton
                 onClick={(e) => {
                   e.stopPropagation();
                   startEditing("adding");
                 }}
-                style={{
-                  background: "#dbeafe",
-                  border: "1px solid #93c5fd",
-                  borderRadius: "3px",
-                  width: compact ? "14px" : "16px",
-                  height: compact ? "14px" : "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: compact ? "11px" : "12px",
-                  color: "#1e40af",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  transition: "background-color 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#bfdbfe";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "#dbeafe";
-                }}
                 title="Add Attribute"
-              >
-                +
-              </button>
+                icon={<Plus size={compact ? 8 : 10} />}
+                tooltipPosition="top"
+                size="compact"
+              />
               {canExtract && !isClassMode && (
-                <button
+                <ToolbarButton
                   onClick={(e) => {
                     e.stopPropagation();
                     handleExtract();
                   }}
-                  style={{
-                    background: "#f0f9ff",
-                    border: "1px solid #0ea5e9",
-                    borderRadius: "3px",
-                    width: compact ? "14px" : "16px",
-                    height: compact ? "14px" : "16px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: compact ? "8px" : "9px",
-                    color: "#0369a1",
-                    cursor: "pointer",
-                    transition: "background-color 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = "#e0f2fe";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = "#f0f9ff";
-                  }}
                   title="Extract as Separate Instance"
-                >
-                  <ExternalLink size={compact ? 8 : 9} />
-                </button>
+                  icon={<ExternalLink size={compact ? 8 : 10} />}
+                  tooltipPosition="top"
+                  size="compact"
+                />
               )}
-              <button
+              <ToolbarButton
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete?.(object.id);
                 }}
-                style={{
-                  background: "#fecaca",
-                  border: "1px solid #f87171",
-                  borderRadius: "3px",
-                  width: compact ? "14px" : "16px",
-                  height: compact ? "14px" : "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: compact ? "10px" : "11px",
-                  color: "#dc2626",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  transition: "background-color 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#f87171";
-                  e.target.style.color = "white";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "#fecaca";
-                  e.target.style.color = "#dc2626";
-                }}
                 title="Delete Object"
-              >
-                ×
-              </button>
+                icon={<X size={compact ? 8 : 10} />}
+                danger={true}
+                tooltipPosition="top"
+                size="compact"
+              />
             </div>
           )}
           
@@ -830,9 +746,9 @@ const ObjectNode = ({
           }}
         >
           <div
-            style={{ 
-              fontSize: compact ? "11px" : "12px", 
-              fontWeight: "500", 
+            style={{
+              fontSize: compact ? "11px" : "12px",
+              fontWeight: "500",
               color: "#7f1d1d",
               textAlign: "center",
               padding: compact ? "4px" : "6px",
