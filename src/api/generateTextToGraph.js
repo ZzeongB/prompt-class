@@ -57,33 +57,54 @@ export const generateTextToGraph = async ({
   const hasPrevious = previousSceneGraph && previousTextDescription;
 
   const basePrompt = `
-Given a new text prompt${
-    hasPrevious ? " and the previous Scene Graph + its description" : ""
-  }, generate an updated Scene Graph in strict JSON format.
+You are a precise scene graph generator. Convert the given text description into a structured scene graph in strict JSON format.
 
-Include:
-1. objects (each with id, name, attributes[])
-2. relationships (source, target, relation)  
-3. root (the id of the main object)
+PARSING RULES:
+1. OBJECTS: Identify concrete nouns (person, cat, table, car, tree, house, etc.)
+2. ATTRIBUTES: Adjectives and descriptive words that modify objects (red, large, wooden, happy, etc.)
+3. RELATIONSHIPS: Spatial and semantic connections between objects (on, in, near, holding, wearing, etc.)
 
-Constraints:
-- Avoid unnecessary words like "a", "the", "is", "its", etc.
-- Each word must belong to only ONE of: object, attribute, relationship
-- Do not miss any word nor add new words
-- Output must be strict JSON only
-- Do not make self-connected relationships
-- Make the main object the first in the objects array
-- The "root" field should exactly match the id of the main object
+STRUCTURAL REQUIREMENTS:
+- objects: Array of {id, name, attributes[]} where:
+  * id: "object1", "object2", etc. (sequential numbering)
+  * name: single noun in singular form
+  * attributes: array of adjectives/descriptors for this object
+- relationships: Array of {source, target, relation} where:
+  * source/target: object ids that exist in objects array
+  * relation: preposition or verb describing the connection
+- root: id of the most prominent/central object
 
-Example:
-"white, fluffy cat on wooden, brown table" ->
+ACCURACY CONSTRAINTS:
+- Use ONLY words present in the input text
+- Each content word must appear exactly once in the scene graph
+- Skip articles (a, an, the), conjunctions (and, or), and filler words
+- Do not create self-referential relationships (source ≠ target)
+- Main subject should be object1 and set as root
+
+EXAMPLES:
+
+Input: "A red car driving on the highway"
+Output:
 {
   "objects": [
-    { "id": "object1", "name": "cat", "attributes": ["white", "fluffy"] },
-    { "id": "object2", "name": "table", "attributes": ["wooden", "brown"] }
+    { "id": "object1", "name": "car", "attributes": ["red"] },
+    { "id": "object2", "name": "highway", "attributes": [] }
   ],
   "relationships": [
-    { "source": "object1", "target": "object2", "relation": "on" }
+    { "source": "object1", "target": "object2", "relation": "driving on" }
+  ],
+  "root": "object1"
+}
+
+Input: "Large brown dog sitting in small green park"
+Output:
+{
+  "objects": [
+    { "id": "object1", "name": "dog", "attributes": ["large", "brown"] },
+    { "id": "object2", "name": "park", "attributes": ["small", "green"] }
+  ],
+  "relationships": [
+    { "source": "object1", "target": "object2", "relation": "sitting in" }
   ],
   "root": "object1"
 }`;

@@ -1,14 +1,24 @@
 // 2. SimpleLayoutNode.js - 레이아웃 보드용 간단한 노드
-import { Handle, Position } from "@xyflow/react";
+import { Handle, Position, useConnection } from "@xyflow/react";
 import { Link } from "lucide-react";
+import { useState } from "react";
+import NodeHandles from "../nodeComponents/NodeHandles";
 
 function SimpleLayoutNode({ id, data, selected }) {
   // 하이라이트 디버깅
-  console.log(`SimpleLayoutNode ${data.instanceLabel || 'unknown'}: selected=${selected}, isHighlighted=${data.isHighlighted}, instanceId=${data.instanceId}`);
-  
+  // console.log(`SimpleLayoutNode ${data.instanceLabel || 'unknown'}: selected=${selected}, isHighlighted=${data.isHighlighted}, instanceId=${data.instanceId}`);
+
   const shouldHighlight = selected || data.isHighlighted;
-  console.log(`Should highlight: ${shouldHighlight} (selected: ${selected}, isHighlighted: ${data.isHighlighted})`);
-  
+  // console.log(`Should highlight: ${shouldHighlight} (selected: ${selected}, isHighlighted: ${data.isHighlighted})`);
+
+  const [isHovered, setIsHovered] = useState(false);
+  const connection = useConnection();
+  // target handles should be visible only when connecting (when another node is being dragged to connect)
+  const showTargetHandles = connection.inProgress && connection.fromNode?.id !== id;
+
+  // source handles should be visible on hover
+  const showSourceHandles = isHovered;
+
   return (
     <div
       style={{
@@ -28,12 +38,36 @@ function SimpleLayoutNode({ id, data, selected }) {
         textAlign: "center",
         transform: shouldHighlight ? "scale(1.05)" : "scale(1)", // 약간의 크기 변화
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Right} style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
-      
+      {/* Target handles - visible when connecting */}
+      <Handle
+        type="target"
+        position={Position.Right}
+        style={{
+          width: 8,
+          height: 8,
+          backgroundColor: '#22c55e',
+          border: '2px solid white',
+          opacity: showTargetHandles ? 1 : 0,
+          transition: 'opacity 0.2s ease'
+        }}
+      />
+
+      {/* Source handles - visible on hover */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          width: 8,
+          height: 8,
+          backgroundColor: '#3b82f6',
+          border: '2px solid white',
+          opacity: showSourceHandles ? 1 : 0,
+          transition: 'opacity 0.2s ease'
+        }}
+      />
       <div
         style={{
           fontSize: "12px",
@@ -70,7 +104,7 @@ function SimpleLayoutNode({ id, data, selected }) {
           </span>
         )}
       </div>
-      
+
       {data.hasOverrides && (
         <div
           style={{

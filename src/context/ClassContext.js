@@ -13,7 +13,7 @@ const deepCloneSceneGraph = (sceneGraph) => {
   const idMapping = {};
 
   const newObjects = sceneGraph.objects.map((obj) => {
-    const newId = `object-${uuidv4()}`;
+    const newId = obj.id; //`object-${uuidv4()}`;
     idMapping[obj.id] = newId;
     return {
       id: newId,
@@ -46,9 +46,14 @@ const replaceWithSceneGraphPlaceholders = (sceneGraph, placeholderMap) => {
   cloned.objects?.forEach((obj) => {
     // 객체 이름 placeholder 처리
     if (obj.name && placeholderMap[obj.name]) {
-      obj.defaultName = obj.name; // 원본 이름 저장
-      obj.name = `{${placeholderMap[obj.name]}}`;
-      obj.isPlaceholder = true;
+      const placeholderData = placeholderMap[obj.name];
+      if (placeholderData && placeholderData.category && placeholderData.id) {
+        obj.defaultName = obj.name; // 원본 이름 저장
+        obj.name = `{${placeholderData.id}}`; // 고유 ID 사용
+        obj.isPlaceholder = true;
+        obj.placeholderId = placeholderData.id; // 고유 ID 저장
+        obj.placeholderCategory = placeholderData.category; // 카테고리도 저장
+      }
     }
 
     // attributes가 문자열 배열일 때 처리
@@ -58,7 +63,10 @@ const replaceWithSceneGraphPlaceholders = (sceneGraph, placeholderMap) => {
 
       obj.attributes = obj.attributes.map((attr) => {
         if (typeof attr === "string" && placeholderMap[attr]) {
-          return `{${placeholderMap[attr]}}`;
+          const placeholderData = placeholderMap[attr];
+          if (placeholderData && placeholderData.category && placeholderData.id) {
+            return `{${placeholderData.id}}`; // 고유 ID 사용
+          }
         }
         return attr;
       });
@@ -353,22 +361,19 @@ export const ClassProvider = ({ children }) => {
     result.objects.forEach((obj, objIndex) => {
       // 객체 이름 처리
       if (obj.name && obj.name.includes("{") && obj.name.includes("}")) {
-        const placeholderKey = obj.name.replace(/[{}]/g, "");
-
-        // placeholders에서 해당하는 원본 값을 찾기
-        // placeholders: { "red": "color" } 형태에서
-        // placeholderKey가 "color"일 때 "red"를 찾아야 함
-        const originalValue =
-          Object.keys(placeholders).find(
-            (key) => placeholders[key] === placeholderKey
-          ) ||
+        // defaultName이 있으면 사용, 없으면 originalSceneGraph에서 가져오기
+        const originalValue = 
+          obj.defaultName ||
           originalSceneGraph.objects?.[objIndex]?.name ||
-          placeholderKey;
+          obj.name.replace(/[{}]/g, ""); // fallback
 
         obj.name = originalValue;
 
+        // placeholder 관련 속성 정리
         delete obj.defaultName;
         delete obj.isPlaceholder;
+        delete obj.placeholderId;
+        delete obj.placeholderCategory;
       }
 
       // attributes 처리 (문자열 배열)
@@ -379,21 +384,18 @@ export const ClassProvider = ({ children }) => {
             attr.includes("{") &&
             attr.includes("}")
           ) {
-            const placeholderKey = attr.replace(/[{}]/g, "");
-
-            // placeholders에서 해당하는 원본 값을 찾기
+            // defaultAttributes에서 원본 값 가져오기
             const originalValue =
-              Object.keys(placeholders).find(
-                (key) => placeholders[key] === placeholderKey
-              ) ||
+              obj.defaultAttributes?.[attrIndex] ||
               originalSceneGraph.objects?.[objIndex]?.attributes?.[attrIndex] ||
-              placeholderKey;
+              attr.replace(/[{}]/g, ""); // fallback
 
             return originalValue;
           }
           return attr;
         });
 
+        // defaultAttributes 정리
         delete obj.defaultAttributes;
       }
     });
@@ -546,20 +548,19 @@ export const ClassProvider = ({ children }) => {
     resolved.objects.forEach((obj, objIndex) => {
       // 객체 이름 복원
       if (obj.name && obj.name.includes("{") && obj.name.includes("}")) {
-        const placeholderKey = obj.name.replace(/[{}]/g, "");
-
-        // placeholders에서 원본 값 찾기
+        // defaultName이 있으면 사용, 없으면 originalInstanceSceneGraph에서 가져오기
         const resolvedName =
-          Object.keys(placeholders).find(
-            (key) => placeholders[key] === placeholderKey
-          ) ||
+          obj.defaultName ||
           originalInstanceSceneGraph.objects?.[objIndex]?.name ||
-          placeholderKey;
+          obj.name.replace(/[{}]/g, ""); // fallback
 
         obj.name = resolvedName;
 
+        // placeholder 관련 속성 정리
         delete obj.defaultName;
         delete obj.isPlaceholder;
+        delete obj.placeholderId;
+        delete obj.placeholderCategory;
       }
 
       // attributes 복원
@@ -570,23 +571,18 @@ export const ClassProvider = ({ children }) => {
             attr.includes("{") &&
             attr.includes("}")
           ) {
-            const placeholderKey = attr.replace(/[{}]/g, "");
-
-            // placeholders에서 원본 값 찾기
+            // defaultAttributes에서 원본 값 가져오기
             const resolvedAttr =
-              Object.keys(placeholders).find(
-                (key) => placeholders[key] === placeholderKey
-              ) ||
-              originalInstanceSceneGraph.objects?.[objIndex]?.attributes?.[
-                attrIndex
-              ] ||
-              placeholderKey;
+              obj.defaultAttributes?.[attrIndex] ||
+              originalInstanceSceneGraph.objects?.[objIndex]?.attributes?.[attrIndex] ||
+              attr.replace(/[{}]/g, ""); // fallback
 
             return resolvedAttr;
           }
           return attr;
         });
 
+        // defaultAttributes 정리
         delete obj.defaultAttributes;
       }
     });
@@ -671,7 +667,6 @@ export const ClassProvider = ({ children }) => {
         }
       } else if (path === "structure") {
         // 구조적 변경인 경우 - 특별한 처리가 필요할 수 있음
-        console.log("Structural change detected");
       }
     });
 
@@ -691,6 +686,8 @@ export const ClassProvider = ({ children }) => {
       // 기타 속성들도 보존
       ...(obj.defaultName && { defaultName: obj.defaultName }),
       ...(obj.isPlaceholder && { isPlaceholder: obj.isPlaceholder }),
+      ...(obj.placeholderId && { placeholderId: obj.placeholderId }),
+      ...(obj.placeholderCategory && { placeholderCategory: obj.placeholderCategory }),
       ...(obj.defaultAttributes && {
         defaultAttributes: [...obj.defaultAttributes],
       }),
@@ -707,7 +704,6 @@ export const ClassProvider = ({ children }) => {
       relationships: newRelationships,
     };
 
-    console.log("Cloned result:", cloned);
     return cloned;
   };
 

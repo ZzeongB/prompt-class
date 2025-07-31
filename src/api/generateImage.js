@@ -21,8 +21,6 @@ export async function generateImageFromInstanceData(
       requiredKeywords || null
     );
 
-    console.log("refined", refinedCaptions, globalCaption, boxes);
-
     if (!refinedCaptions || refinedCaptions.length === 0) {
       console.warn("No refined captions generated, using original sentences.");
       logEvent("api.generate_image.caption_fallback", {

@@ -10,6 +10,8 @@ import {
   Trash2,
   Check,
   X,
+  Type,
+  Network,
 } from "lucide-react";
 import {
   generateTextToGraph,
@@ -273,12 +275,12 @@ export default function InstanceCard({
       setEditedSceneGraph(newSceneGraph);
     } catch (err) {
       console.error("Update failed:", err);
-      
+
       logEvent("instance.update.failed", {
         instance_id: instance.id,
         error_message: err.message
       });
-      
+
       alert("Failed to update. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -317,7 +319,7 @@ export default function InstanceCard({
       instance_label: instance.instanceLabel,
       edit_type: "text"
     });
-    
+
     setIsEditingText(true);
     setIsExpanded(true); // 편집 시 자동으로 expand
     setTempDescription(instance.textDescription);
@@ -329,7 +331,7 @@ export default function InstanceCard({
       instance_label: instance.instanceLabel,
       edit_type: "graph"
     });
-    
+
     setIsEditingGraph(true);
     setIsExpanded(true); // 편집 시 자동으로 expand
     setEditedSceneGraph(instance.sceneGraph);
@@ -344,8 +346,8 @@ export default function InstanceCard({
         border: isEditing
           ? "2px solid #3b82f6"
           : isSelected
-          ? "2px solid #3b82f6"
-          : "1px solid #e2e8f0",
+            ? "2px solid #3b82f6"
+            : "1px solid #e2e8f0",
         borderRadius: "8px",
         backgroundColor: isEditing ? "#f8fafc" : "white",
         boxShadow:
@@ -504,7 +506,7 @@ export default function InstanceCard({
             highlightedTerm={highlightedTerm}
             onNodeHover={setHighlightedTerm}
             onNodeLeave={() => setHighlightedTerm(null)}
-            // compact
+          // compact
           />
         </div>
       )}
@@ -550,7 +552,25 @@ export default function InstanceCard({
                   handleEdit();
                 }}
                 title="Edit Description"
-                icon={<Edit2 size={12} />}
+                icon={
+                  <div style={{
+                    position: 'relative', display: 'inline-block',
+                  }}>
+                    <Edit2 size={12} />
+                    <Type
+                      size={8}
+                      style={{
+                        position: 'absolute',
+                        bottom: '-2px',
+                        right: '-2px',
+                        backgroundColor: 'white',
+                        borderRadius: '50%',
+                        padding: '1px'
+
+                      }}
+                    />
+                  </div>
+                }
               />
 
               <ToolbarButton
@@ -559,7 +579,22 @@ export default function InstanceCard({
                   handleEditGraph();
                 }}
                 title="Edit Graph"
-                icon={<Edit2 size={12} />}
+                icon={
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <Edit2 size={12} />
+                    <Network
+                      size={8}
+                      style={{
+                        position: 'absolute',
+                        bottom: '-2px',
+                        right: '-2px',
+                        backgroundColor: 'white',
+                        borderRadius: '50%',
+                        padding: '1px'
+                      }}
+                    />
+                  </div>
+                }
               />
 
               <ToolbarButton

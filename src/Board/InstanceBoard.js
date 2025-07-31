@@ -21,12 +21,12 @@ export default function InstanceBoard({
     if (selectedInstanceId) {
       const element = document.getElementById(`instance-card-${selectedInstanceId}`);
       if (element) {
-        element.scrollIntoView({ 
-          behavior: 'smooth', 
+        element.scrollIntoView({
+          behavior: 'smooth',
           block: 'nearest',
           inline: 'nearest'
         });
-        
+
         const instance = instances.find(i => i.id === selectedInstanceId);
         logEvent("instance_selected", {
           instance_id: selectedInstanceId,
@@ -132,7 +132,6 @@ export default function InstanceBoard({
               classes={classes}
               isSelected={selectedInstanceId === instance.id}
               onSelect={() => {
-                console.log(`InstanceBoard: Selecting instance ${instance.instanceLabel} with id ${instance.id}`);
                 onInstanceSelect?.(instance.id);
               }}
               viewMode={viewMode}

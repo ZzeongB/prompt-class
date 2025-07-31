@@ -6,6 +6,7 @@ import {
   useEdgesState,
   useReactFlow,
   ReactFlowProvider,
+  addEdge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
@@ -61,6 +62,7 @@ function LayoutBoard({
   const [detectedObjects, setDetectedObjects] = useState([]);
   // const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
   const [hoveredObject, setHoveredObject] = useState(null);
+  const [relationshipInput, setRelationshipInput] = useState(null);
   // Always use FLUX model
   const currentModel = "flux";
 
@@ -96,14 +98,11 @@ function LayoutBoard({
     return intersectionArea / unionArea;
   };
 
-  useEffect(() => {
-    console.log(`LayoutBoard highlight useEffect triggered: selectedInstanceId=${selectedInstanceId}`);
-    
+  useEffect(() => {    
     setNodes((nds) => {
       return nds.map((node) => {
         if (node.type === "simple") {
           const isHighlighted = node.data?.instanceId === selectedInstanceId;
-          console.log(`Updating node ${node.id}: instanceId=${node.data?.instanceId}, isHighlighted=${isHighlighted}`);
           
           // 항상 새 객체를 반환하여 ReactFlow가 변경을 감지하도록 함
           return {
@@ -181,7 +180,6 @@ function LayoutBoard({
               : null;
 
             const isHighlighted = selectedInstanceId === instance.id;
-            console.log(`Updating node for instance ${instance.instanceLabel}: selectedInstanceId=${selectedInstanceId}, instance.id=${instance.id}, isHighlighted=${isHighlighted}`);
 
             const updatedData = {
               ...updatedNodes[nodeIndex].data,
@@ -195,13 +193,6 @@ function LayoutBoard({
                 Object.keys(instance.overrides).length > 0,
               isHighlighted,
             };
-
-            // 클래스 연결 상태 로깅
-            if (instance.isFromClass) {
-              console.log(
-                `Instance ${instance.instanceLabel} is linked to class: ${parentClass?.name}`
-              );
-            }
 
             updatedNodes[nodeIndex] = {
               ...updatedNodes[nodeIndex],
@@ -288,13 +279,6 @@ function LayoutBoard({
               },
               style: resizableSize,
             };
-
-            // 새 인스턴스의 클래스 연결 상태 로깅
-            if (instance.isFromClass) {
-              console.log(
-                `New instance ${instance.instanceLabel} created from class: ${parentClass?.name}`
-              );
-            }
 
             updatedNodes.push(objNode, resizableNode);
           }
@@ -550,7 +534,7 @@ function LayoutBoard({
       // 임시 인스턴스를 먼저 생성 (로딩 상태)
       const tempInstance = {
         id: sharedId,
-        instanceLabel: "Generating...",
+        instanceLabel: "Processing...",
         textDescription: description.trim(),
         sceneGraph: { objects: [], relationships: [] },
         createdAt: new Date().toISOString(),
@@ -568,10 +552,10 @@ function LayoutBoard({
         type: "simple",
         position,
         data: {
-          label: "Generating...",
+          label: "Processing...",
           sharedId,
           instanceId: sharedId,
-          instanceLabel: "Generating...",
+          instanceLabel: "Processing...",
           isFromClass: false,
           parentClassName: null,
           hasOverrides: false,
@@ -716,8 +700,6 @@ function LayoutBoard({
             return description;
           });
 
-        console.log("Generated sentences with relationships:", sentences);
-
         const boxes = nodes
           .filter((n) => n.type === "resizable")
           .map((n) => {
@@ -735,7 +717,6 @@ function LayoutBoard({
           boxes,
           globalCaption
         );
-        console.log("response", response);
 
         onImageGenerated(response.image);
         setImage(response.image);
@@ -775,7 +756,6 @@ function LayoutBoard({
 
     try {
       // 1. Generate description for the clicked object
-      console.log("Generating description for object:", obj.label);
       const descriptionResult = await generateDescription(
         imageBoard,
         obj.bbox,
@@ -788,10 +768,6 @@ function LayoutBoard({
       });
 
       // 2. Convert description to scene graph
-      console.log(
-        "Converting description to scene graph:",
-        descriptionResult.description
-      );
       const sceneGraph = await generateTextToGraph({
         newTextDescription: descriptionResult.description,
       });
@@ -846,11 +822,6 @@ function LayoutBoard({
         label: instanceLabel,
         originalObjectLabel: obj.label,
       });
-
-      console.log(
-        "Successfully created instance from detected object:",
-        newInstance
-      );
     } catch (error) {
       console.error("Failed to process object click:", error);
       logEvent("object_click_processing_failed", {
@@ -874,7 +845,6 @@ function LayoutBoard({
 
   const handleNodesChange = useCallback(
     (changes) => {
-      console.log("chages", changes)
       onNodesChange(changes);
 
       const positionChanges = changes.filter(
@@ -929,7 +899,80 @@ function LayoutBoard({
     if (inlinePrompt) {
       setInlinePrompt(null);
     }
-  }, [onNodeSelect, inlinePrompt]);
+    // 관계 입력창도 닫기
+    if (relationshipInput) {
+      setRelationshipInput(null);
+    }
+  }, [onNodeSelect, inlinePrompt, relationshipInput]);
+
+  // 엣지 연결 핸들러
+  const onConnect = useCallback(
+    (params) => {
+      // 엣지 ID 생성
+      const edgeId = `${params.source}-${params.target}`;
+      
+      // 임시 엣지 생성 (관계명이 입력될 때까지)
+      const tempEdge = {
+        ...params,
+        id: edgeId,
+        type: "main",
+        data: {
+          relation: "related", // 임시 기본값
+          isTemporary: true,
+        },
+        style: {
+          stroke: "#cbd5e1",
+          strokeWidth: 1.5,
+          strokeDasharray: "5,5", // 점선으로 표시
+        },
+      };
+
+      // 엣지를 먼저 추가
+      setEdges((eds) => addEdge(tempEdge, eds));
+
+      // 관계 입력창 표시
+      setRelationshipInput({
+        edgeId,
+        sourceId: params.source,
+        targetId: params.target,
+        edgeParams: params,
+      });
+    },
+    [setEdges]
+  );
+
+  // 관계명 입력 완료 핸들러
+  const handleRelationshipSubmit = useCallback((relationshipText) => {
+    if (!relationshipText || !relationshipText.trim() || !relationshipInput) {
+      // 관계명이 없으면 엣지 삭제
+      setEdges((eds) => eds.filter((edge) => edge.id !== relationshipInput.edgeId));
+      setRelationshipInput(null);
+      return;
+    }
+
+    // 엣지 업데이트 (임시 상태 해제, 관계명 설정)
+    setEdges((eds) =>
+      eds.map((edge) =>
+        edge.id === relationshipInput.edgeId
+          ? {
+              ...edge,
+              data: {
+                ...edge.data,
+                relation: relationshipText.trim(),
+                isTemporary: false,
+              },
+              style: {
+                stroke: "#cbd5e1",
+                strokeWidth: 1.5,
+                strokeDasharray: "none", // 실선으로 변경
+              },
+            }
+          : edge
+      )
+    );
+
+    setRelationshipInput(null);
+  }, [relationshipInput, setEdges]);
 
   return (
     <div
@@ -1102,12 +1145,104 @@ function LayoutBoard({
         </div>
       )}
 
+      {relationshipInput && (
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 1000,
+            backgroundColor: "#ffffff",
+            border: "2px solid #3b82f6",
+            borderRadius: "8px",
+            padding: "16px",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+            minWidth: "250px",
+          }}
+        >
+          <div style={{ marginBottom: "12px", fontSize: "14px", fontWeight: "500" }}>
+            Define Relationship
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const input = e.target.elements.relationship;
+              handleRelationshipSubmit(input.value);
+            }}
+          >
+            <input
+              name="relationship"
+              type="text"
+              placeholder="Enter relationship (e.g., 'next to', 'above', 'contains')"
+              autoFocus
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                fontSize: "14px",
+                marginBottom: "12px",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setRelationshipInput(null);
+                  setEdges((eds) => eds.filter((edge) => edge.id !== relationshipInput.edgeId));
+                }
+              }}
+            />
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setRelationshipInput(null);
+                  setEdges((eds) => eds.filter((edge) => edge.id !== relationshipInput.edgeId));
+                }}
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor: "#f3f4f6",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor: "#3b82f6",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+              >
+                Create
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {!showImageOnly && (
         <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={handleNodesChange}
           onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
           onNodeClick={handleNodeClick}
           onPaneClick={handlePaneClick}
           nodeTypes={nodeTypes}
@@ -1168,7 +1303,6 @@ function LayoutBoard({
           return !hasHighOverlap; // Only show if no high overlap
         })
         .map((obj, index) => {
-          console.log("obj, ids", obj, index);
           // Scale bounding boxes for StableDiffusion models (SD3) - reduce by half since image is 1024x1024 but display is 512x512
           const scaleFactor = 1; // FLUX uses 1:1 scaling
           const scaledBbox = [
@@ -1177,8 +1311,6 @@ function LayoutBoard({
             obj.bbox[2] * scaleFactor,
             obj.bbox[3] * scaleFactor,
           ];
-
-          console.log("scaledBbox", scaledBbox);
 
           return (
             <div

@@ -2,39 +2,21 @@ import { all } from 'axios';
 import { callOpenAI } from './utils'; // 기존 callOpenAI 함수를 import
 import { logEvent } from './logEvent';
 
-// SceneGraph에서 모든 텍스트 값들을 추출하는 함수
+// SceneGraph에서 objectId별로 텍스트 값들을 추출하는 함수
 const extractValuesFromSceneGraph = (sceneGraph) => {
-  const values = [];
+  const objectMappings = {};
   
   // Objects에서 이름과 속성들 추출
   if (sceneGraph.objects && Array.isArray(sceneGraph.objects)) {
     sceneGraph.objects.forEach(obj => {
-      // Object 이름 추가
-      if (obj.name && typeof obj.name === 'string') {
-        values.push(obj.name);
-      }
-      
-      // Object 속성들 추가
-      if (obj.attributes && Array.isArray(obj.attributes)) {
-        obj.attributes.forEach(attr => {
-          if (typeof attr === 'string') {
-            values.push(attr);
-          }
-        });
-      }
+      objectMappings[obj.id] = {
+        name: obj.name || null,
+        attributes: (obj.attributes || []).filter(attr => typeof attr === 'string')
+      };
     });
   }
   
-  // Relationships에서 관계 텍스트들 추출
-  if (sceneGraph.relationships && Array.isArray(sceneGraph.relationships)) {
-    sceneGraph.relationships.forEach(rel => {
-      if (rel.relation && typeof rel.relation === 'string') {
-        values.push(rel.relation);
-      }
-    });
-  }
-  
-  return values;
+  return objectMappings;
 };
 
 // GPT를 이용해서 값들을 카테고리로 변환
@@ -50,17 +32,25 @@ export const generatePlaceholders = async (sceneGraph) => {
     relationship_count: sceneGraph.relationships?.length || 0
   });
 
-  // 트리에서 모든 텍스트 값들을 추출
-  const allValues = extractValuesFromSceneGraph(sceneGraph);
-  const uniqueValues = [...new Set(allValues)].filter(value => value.trim() !== '');
+  // objectId별로 텍스트 값들을 추출
+  const objectMappings = extractValuesFromSceneGraph(sceneGraph);
   
-  if (uniqueValues.length === 0) {
+  if (Object.keys(objectMappings).length === 0) {
     logEvent("api.generate_placeholders.no_values", {});
     return {};
   }
 
+  // 모든 고유 값들을 수집
+  const allValues = new Set();
+  Object.values(objectMappings).forEach(obj => {
+    if (obj.name) allValues.add(obj.name);
+    obj.attributes.forEach(attr => allValues.add(attr));
+  });
+  
+  const uniqueValues = Array.from(allValues);
+
   const systemPrompt = `
-다음 값들을 보고, 각각을 적절한 일반적인 카테고리로 변환해주세요. 카테고리 이름은 겹치지 않게 해주세요.
+다음 값들을 보고, 각각을 적절한 일반적인 카테고리로 변환해주세요.
 
 예시:
 - "apple" -> "fruit"
@@ -86,17 +76,34 @@ JSON만 응답하세요:`;
       cleanContent = cleanContent.replace(/```(?:json)?\n?/g, "").replace(/```$/g, "").trim();
     }
     
-    const placeholderMap = JSON.parse(cleanContent);
+    const rawCategoryMap = JSON.parse(cleanContent);
     
     // 유효성 검증
-    if (typeof placeholderMap !== 'object' || placeholderMap === null) {
+    if (typeof rawCategoryMap !== 'object' || rawCategoryMap === null) {
       throw new Error("Invalid placeholder map structure");
     }
     
+    // objectId별로 placeholders 구성 - 간단한 구조
+    const placeholderMap = {};
+    
+    Object.entries(objectMappings).forEach(([objectId, data]) => {
+      placeholderMap[objectId] = {
+        name: data.name ? {
+          name: rawCategoryMap[data.name] || 'unknown',
+          defaultvalue: data.name
+        } : null,
+        attr: data.attributes.map(attr => ({
+          name: rawCategoryMap[attr] || 'unknown',
+          defaultvalue: attr
+        }))
+      };
+    });
+    
+    console.log(`🎯 Generated placeholderMap:`, placeholderMap);
+    
     logEvent("api.generate_placeholders.succeeded", {
-      unique_value_count: uniqueValues.length,
-      placeholder_count: Object.keys(placeholderMap).length,
-      categories: Object.values(placeholderMap)
+      object_count: Object.keys(placeholderMap).length,
+      unique_value_count: uniqueValues.length
     });
     
     return placeholderMap;
@@ -107,13 +114,22 @@ JSON만 응답하세요:`;
     logEvent("api.generate_placeholders.error", {
       error_message: error.message,
       error_type: error.constructor.name,
-      unique_value_count: uniqueValues.length
+      object_count: Object.keys(objectMappings).length
     });
     
-    // fallback: 모든 값을 "value"로 매핑
+    // fallback: objectId별로 기본 매핑 - 간단한 구조
     const fallbackMap = {};
-    uniqueValues.forEach(value => {
-      fallbackMap[value] = 'value';
+    Object.entries(objectMappings).forEach(([objectId, data]) => {
+      fallbackMap[objectId] = {
+        name: data.name ? {
+          name: 'value',
+          defaultvalue: data.name
+        } : null,
+        attr: data.attributes.map(attr => ({
+          name: 'value',
+          defaultvalue: attr
+        }))
+      };
     });
     
     logEvent("api.generate_placeholders.fallback", {

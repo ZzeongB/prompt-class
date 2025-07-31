@@ -114,7 +114,7 @@ export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
               isEditable={true}
               isHovered={isHovered}
               setIsHovered={setIsHovered}
-              onEdit={(updatedRelation) => {
+              onEdit={(sourceId, targetId, updatedRelation) => {
                 // Edge의 relationship 업데이트
                 setEdges((prev) =>
                   prev.map((edge) =>

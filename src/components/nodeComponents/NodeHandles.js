@@ -12,23 +12,23 @@ const getHandleStyle = (pos) => {
     zIndex: 1,
   };
 
-  switch (pos) {
-    case "Top":
-      return { ...base, top: -10, left: "50%", transform: "translateX(-50%)" };
-    case "Bottom":
-      return {
-        ...base,
-        bottom: -10,
-        left: "50%",
-        transform: "translateX(-50%)",
-      };
-    case "Left":
-      return { ...base, left: -10, top: "50%", transform: "translateY(-50%)" };
-    case "Right":
-      return { ...base, right: -10, top: "50%", transform: "translateY(-50%)" };
-    default:
+  // switch (pos) {
+  //   case "Top":
+  //     return { ...base, left: "50%", transform: "translateX(-50%)" };
+  //   case "Bottom":
+  //     return {
+  //       ...base,
+  //       // bottom: -10,
+  //       left: "50%",
+  //       transform: "translateX(-50%)",
+  //     };
+  //   case "Left":
+  //     return { ...base,  top: "50%", transform: "translateY(-50%)" };
+  //   case "Right":
+  //     return { ...base, top: "50%", transform: "translateY(-50%)" };
+  //   default:
       return base;
-  }
+  // }
 };
 
 export default function NodeHandles({ id, isSelected, nodeType }) {
