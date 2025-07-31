@@ -78,16 +78,12 @@ width = 512
 save_root = "output"
 
 # Model configuration
-current_model_type = "sd3"  # Default to SD3, can be "flux" or "sd3"
+current_model_type = "flux"  # Default to FLUX
 pipe = load_model(device, current_model_type)
 
 # Set resolution based on model type
-if current_model_type == "sd3":
-    height = 1024
-    width = 1024
-else:  # flux
-    height = 512
-    width = 512
+height = 512
+width = 512
 
 # Load YOLO model for object detection
 yolo_model = None
@@ -412,69 +408,18 @@ def detect_objects():
 
 @app.route("/switch-model", methods=["POST"])
 def switch_model():
-    global pipe, current_model_type, height, width
-    
-    data = request.get_json()
-    new_model_type = data.get("model_type", "").lower()
-    
-    if new_model_type not in ["flux", "sd3"]:
-        return jsonify({"error": "Invalid model type. Use 'flux' or 'sd3'"}), 400
-    
-    if new_model_type == current_model_type:
-        return jsonify({
-            "message": f"Already using {current_model_type.upper()} model",
-            "current_model": current_model_type
-        })
-    
-    try:
-        log_event("model_switch_requested", {
-            "from_model": current_model_type,
-            "to_model": new_model_type
-        })
-        
-        print(f"🔄 Switching from {current_model_type.upper()} to {new_model_type.upper()}...")
-        
-        # Clear GPU memory
-        if pipe is not None:
-            del pipe
-            torch.cuda.empty_cache()
-        
-        # Load new model
-        pipe = load_model(device, new_model_type)
-        current_model_type = new_model_type
-        
-        # Update resolution based on model type
-        if current_model_type == "sd3":
-            height = 1024
-            width = 1024
-        else:  # flux
-            height = 512
-            width = 512
-        
-        log_event("model_switch_completed", {
-            "new_model": current_model_type,
-            "resolution": f"{width}x{height}"
-        })
-        
-        return jsonify({
-            "message": f"Successfully switched to {current_model_type.upper()} model",
-            "current_model": current_model_type,
-            "resolution": f"{width}x{height}"
-        })
-        
-    except Exception as e:
-        log_event("model_switch_failed", {
-            "error": str(e),
-            "attempted_model": new_model_type
-        }, level="ERROR")
-        
-        return jsonify({"error": f"Failed to switch model: {str(e)}"}), 500
+    # Always return FLUX as the current model, ignore any switch requests
+    return jsonify({
+        "message": "Using FLUX model",
+        "current_model": "flux",
+        "resolution": "512x512"
+    })
 
 @app.route("/current-model", methods=["GET"])
 def get_current_model():
     return jsonify({
-        "current_model": current_model_type,
-        "available_models": ["flux", "sd3"]
+        "current_model": "flux",
+        "available_models": ["flux"]
     })
 
 @app.route("/api/log", methods=["POST"])

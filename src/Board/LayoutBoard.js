@@ -17,7 +17,7 @@ import {
   generateTextToGraph,
   generateInstanceLabelFromDescription,
 } from "../api/generateTextToGraph";
-import { switchModel, getCurrentModel } from "../api/modelSwitch";
+// Model switching removed - always using FLUX
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import { useImage } from "../context/ImageContext";
@@ -61,8 +61,8 @@ function LayoutBoard({
   const [detectedObjects, setDetectedObjects] = useState([]);
   // const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
   const [hoveredObject, setHoveredObject] = useState(null);
-  const [currentModel, setCurrentModel] = useState("sd3");
-  const [isSwitchingModel, setIsSwitchingModel] = useState(false);
+  // Always use FLUX model
+  const currentModel = "flux";
 
   const { image, setImage } = useImage();
   const { instances, classes, setInstances, updateInstance, deleteInstance } =
@@ -118,8 +118,7 @@ function LayoutBoard({
   useEffect(() => {
     const loadCurrentModel = async () => {
       try {
-        const modelInfo = await getCurrentModel();
-        setCurrentModel(modelInfo.current_model);
+        // Always use FLUX model - no need to fetch
       } catch (error) {
         console.error("Failed to get current model:", error);
       }
@@ -224,7 +223,7 @@ function LayoutBoard({
             // Calculate position and size from detected object bounding box
             let position, resizableSize;
             if (instance.detectedObject && instance.detectedObject.bbox) {
-              const scaleFactor = currentModel === "sd3" ? 0.5 : 1;
+              const scaleFactor = 1; // FLUX uses 1:1 scaling
               const scaledBbox = [
                 instance.detectedObject.bbox[0] * scaleFactor,
                 instance.detectedObject.bbox[1] * scaleFactor,
@@ -405,7 +404,7 @@ function LayoutBoard({
     // Calculate position and size from detected object bounding box
     let position, resizableSize;
     if (instanceData.detectedObject && instanceData.detectedObject.bbox) {
-      const scaleFactor = currentModel === "sd3" ? 0.5 : 1;
+      const scaleFactor = 1; // FLUX uses 1:1 scaling
       const scaledBbox = [
         instanceData.detectedObject.bbox[0] * scaleFactor,
         instanceData.detectedObject.bbox[1] * scaleFactor,
@@ -803,7 +802,7 @@ function LayoutBoard({
       );
 
       // 4. Calculate position from bounding box
-      const scaleFactor = currentModel === "sd3" ? 0.5 : 1;
+      const scaleFactor = 1; // FLUX uses 1:1 scaling
       const scaledBbox = [
         obj.bbox[0] * scaleFactor,
         obj.bbox[1] * scaleFactor,
@@ -859,35 +858,7 @@ function LayoutBoard({
     }
   };
 
-  const handleModelSwitch = async (newModelType) => {
-    try {
-      setIsSwitchingModel(true);
-
-      logEvent("model_switch_requested", {
-        from_model: currentModel,
-        to_model: newModelType,
-      });
-
-      const result = await switchModel(newModelType);
-      setCurrentModel(newModelType);
-
-      logEvent("model_switch_completed", {
-        new_model: newModelType,
-        message: result.message,
-      });
-
-      console.log("Model switched successfully:", result.message);
-    } catch (error) {
-      console.error("Failed to switch model:", error);
-      logEvent("model_switch_failed", {
-        error: error.message,
-        attempted_model: newModelType,
-      });
-      alert(`Failed to switch model: ${error.message}`);
-    } finally {
-      setIsSwitchingModel(false);
-    }
-  };
+  // Model switching removed - always using FLUX
 
   const onNodeDragStop = (_, node) => {
     logEvent("layout.node.moved", {
@@ -999,26 +970,10 @@ function LayoutBoard({
             {showImageOnly ? "Show Layout" : "Show Image Only"}
           </span>
         </CustomButton>
-        <CustomButton
-          color={currentModel === "sd3" ? "purpleBlue" : "grey"}
-          size="sm"
-          onClick={() => handleModelSwitch("sd3")}
-          disabled={isSwitchingModel}
-        >
-          <span style={{ fontSize: "12px", fontWeight: "bold" }}>
-            SD3 {currentModel === "sd3" ? "✓" : ""}
-          </span>
-        </CustomButton>
-        <CustomButton
-          color={currentModel === "flux" ? "purpleBlue" : "grey"}
-          size="sm"
-          onClick={() => handleModelSwitch("flux")}
-          disabled={isSwitchingModel}
-        >
-          <span style={{ fontSize: "12px", fontWeight: "bold" }}>
-            FLUX {currentModel === "flux" ? "✓" : ""}
-          </span>
-        </CustomButton>
+        {/* Model selection removed - always using FLUX */}
+        <div style={{ fontSize: "12px", color: "#666", fontWeight: "bold" }}>
+          Model: FLUX ✓
+        </div>
 
         {/* Model Selection Buttons
         <div style={{ display: "flex", gap: "4px" }}>
@@ -1188,7 +1143,7 @@ function LayoutBoard({
       {detectedObjects
         .filter((obj, index) => {
           // Scale bounding boxes for StableDiffusion models (SD3) - reduce by half since image is 1024x1024 but display is 512x512
-          const scaleFactor = currentModel === "sd3" ? 0.5 : 1;
+          const scaleFactor = 1; // FLUX uses 1:1 scaling
           const scaledBbox = [
             obj.bbox[0] * scaleFactor,
             obj.bbox[1] * scaleFactor,
@@ -1219,7 +1174,7 @@ function LayoutBoard({
         .map((obj, index) => {
           console.log("obj, ids", obj, index);
           // Scale bounding boxes for StableDiffusion models (SD3) - reduce by half since image is 1024x1024 but display is 512x512
-          const scaleFactor = currentModel === "sd3" ? 0.5 : 1;
+          const scaleFactor = 1; // FLUX uses 1:1 scaling
           const scaledBbox = [
             obj.bbox[0] * scaleFactor,
             obj.bbox[1] * scaleFactor,
@@ -1318,25 +1273,6 @@ function LayoutBoard({
               Detecting objects...
             </div>
           )} */}
-
-          {/* Model switching indicator */}
-          {isSwitchingModel && (
-            <div
-              styge={{
-                position: "absolute",
-                top: "40px",
-                right: "10px",
-                backgroundColor: "rgba(0,0,0,0.7)",
-                color: "white",
-                padding: "5px 10px",
-                borderRadius: "15px",
-                fontSize: "12px",
-                zIndex: 15,
-              }}
-            >
-              Switching model...
-            </div>
-          )}
 
           {/* Current model indicator */}
           <div
