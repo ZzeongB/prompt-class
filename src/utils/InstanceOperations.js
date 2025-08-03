@@ -13,6 +13,7 @@ import { logEvent } from "../api/logEvent";
 
 export const generateInstanceLabel = (values) => {
   const mainValue = Object.values(values)[0] || "New";
+  console.log("Generating instance label from values:", values, "->", mainValue);
   return mainValue.charAt(0).toUpperCase() + mainValue.slice(1);
 };
 
@@ -31,6 +32,8 @@ export const createInstanceFromClass = async (classData, newValues = {}) => {
     classData.originalData?.sceneGraph
   );
 
+  console.log("Resolved sceneGraph:", sceneGraph);
+
   let textDescription = classData.template.textDescription || "";
   try {
     textDescription = await generateSceneGraphTextDescription(sceneGraph);
@@ -41,7 +44,7 @@ export const createInstanceFromClass = async (classData, newValues = {}) => {
 
   const newInstance = {
     id: `instance-${uuidv4()}`,
-    instanceLabel: generateInstanceLabel(newValues),
+    instanceLabel: classData.name, //generateInstanceLabel(newValues),
     sceneGraph,
     textDescription,
     createdAt: new Date().toISOString(),

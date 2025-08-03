@@ -98,12 +98,12 @@ function LayoutBoard({
     return intersectionArea / unionArea;
   };
 
-  useEffect(() => {    
+  useEffect(() => {
     setNodes((nds) => {
       return nds.map((node) => {
         if (node.type === "simple") {
           const isHighlighted = node.data?.instanceId === selectedInstanceId;
-          
+
           // 항상 새 객체를 반환하여 ReactFlow가 변경을 감지하도록 함
           return {
             ...node,
@@ -880,7 +880,7 @@ function LayoutBoard({
     (params) => {
       // 엣지 ID 생성
       const edgeId = `${params.source}-${params.target}`;
-      
+
       // 임시 엣지 생성 (관계명이 입력될 때까지)
       const tempEdge = {
         ...params,
@@ -925,18 +925,18 @@ function LayoutBoard({
       eds.map((edge) =>
         edge.id === relationshipInput.edgeId
           ? {
-              ...edge,
-              data: {
-                ...edge.data,
-                relation: relationshipText.trim(),
-                isTemporary: false,
-              },
-              style: {
-                stroke: "#cbd5e1",
-                strokeWidth: 1.5,
-                strokeDasharray: "none", // 실선으로 변경
-              },
-            }
+            ...edge,
+            data: {
+              ...edge.data,
+              relation: relationshipText.trim(),
+              isTemporary: false,
+            },
+            style: {
+              stroke: "#cbd5e1",
+              strokeWidth: 1.5,
+              strokeDasharray: "none", // 실선으로 변경
+            },
+          }
           : edge
       )
     );

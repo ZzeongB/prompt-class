@@ -44,7 +44,7 @@ This is a React-based web application for prompt-class generation with a Python 
 - `/progress`: Real-time generation progress
 - `/api/log`: Event logging from frontend
 
-**CreatiLayout Integration** (`backend/CreatiLayout/`):
+**CreatiLayout Integration** (`backend/src/`):
 - SiamLayout diffusion transformer implementation
 - Multiple model variants: SD3, SD3-LoRA, FLUX
 - Custom attention processors and pipelines in `backend/src/`
@@ -68,14 +68,6 @@ npm test           # Run Jest tests
 cd backend
 python server.py  # Start Flask server (debug mode)
 pip install -r requirements.txt  # Install dependencies
-```
-
-**CreatiLayout Models**:
-```bash
-cd backend/CreatiLayout
-python test_sample.py  # Test model inference
-python test_SiamLayout_sd3_layoutsam_benchmark.py  # Benchmark evaluation
-python score_layoutsam_benchmark.py  # VLM-based scoring
 ```
 
 ### Key Architecture Patterns

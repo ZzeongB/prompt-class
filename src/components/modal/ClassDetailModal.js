@@ -31,8 +31,6 @@ const ClassDetailModal = ({
   const [showCreatePanel, setShowCreatePanel] = useState(false);
   const { updateClass, createInstanceFromClass } = useClassContext();
 
-  console.log("classDa", classData)
-
   // 편집용 임시 상태
   const [tempSceneData, setTempSceneData] = useState({
     sceneGraph: classData?.template?.sceneGraph || {},
@@ -115,7 +113,7 @@ const ClassDetailModal = ({
     }
   };
 
-  const handleDummyFunction = () => {};
+  const handleDummyFunction = () => { };
 
   // 인스턴스 생성 패널 로직
   const handleShowCreatePanel = () => {
@@ -125,7 +123,7 @@ const ClassDetailModal = ({
 
   const initializeInstanceCreation = async () => {
     if (!classData?.placeholders) return;
-    
+
     // 기본값 설정 - 간단한 구조
     const defaultValues = {};
     Object.entries(classData.placeholders).forEach(([objectId, objectData]) => {
@@ -150,7 +148,7 @@ const ClassDetailModal = ({
           categoryMap[`${objectId}_attr_${index}`] = attr.name;
         });
       });
-      
+
       const suggestions = await suggestPlaceholderValues(categoryMap);
       // 각 placeholder에 해당하는 suggestion을 매핑
       const mappedSuggestions = {};
@@ -169,7 +167,8 @@ const ClassDetailModal = ({
     setIsCreatingInstance(true);
     try {
       console.log("Creating instance with values:", instanceValues);
-      const newInstance = await createInstanceFromClass(classData, instanceValues);
+      const previewGraph = generatePreviewSceneGraph()
+      const newInstance = await createInstanceFromClass(classData, previewGraph);
       onCreateInstance?.(newInstance);
       setShowCreatePanel(false);
       setInstanceValues({});
@@ -201,15 +200,15 @@ const ClassDetailModal = ({
 
     const templateGraph = classData.template.sceneGraph;
     const placeholders = classData.placeholders;
-    
+
     // Create a deep copy of the scene graph
     const previewGraph = JSON.parse(JSON.stringify(templateGraph));
-    
+
     // Replace placeholders in objects
     if (previewGraph.objects) {
       previewGraph.objects = previewGraph.objects.map(obj => {
         const newObj = { ...obj };
-        
+
         // Replace placeholder in object name
         if (newObj.name) {
           const objectId = newObj.id;
@@ -218,7 +217,7 @@ const ClassDetailModal = ({
             newObj.name = instanceValues[nameKey];
           }
         }
-        
+
         // Replace placeholders in attributes
         if (newObj.attributes) {
           newObj.attributes = newObj.attributes.map((attr, index) => {
@@ -232,11 +231,11 @@ const ClassDetailModal = ({
             return attr;
           });
         }
-        
+
         return newObj;
       });
     }
-    
+
     return previewGraph;
   };
 
@@ -245,9 +244,9 @@ const ClassDetailModal = ({
   const sceneData = isEditing
     ? tempSceneData
     : {
-        sceneGraph: classData.template?.sceneGraph || {},
-        placeholders: classData.placeholders || {},
-      };
+      sceneGraph: classData.template?.sceneGraph || {},
+      placeholders: classData.placeholders || {},
+    };
 
   return (
     <div
@@ -281,310 +280,310 @@ const ClassDetailModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Main Content */}
-        <div style={{ 
+        <div style={{
           flex: showCreatePanel ? "1" : "none",
           display: "flex",
           flexDirection: "column",
           minWidth: showCreatePanel ? "60%" : "100%"
         }}>
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "20px",
-            borderBottom: "1px solid #e5e7eb",
-            backgroundColor: isEditing ? "#eff6ff" : "white",
-            position: "relative",
-          }}
-        >
-          <div>
-            <h3
-              style={{
-                margin: 0,
-                fontSize: "18px",
-                fontWeight: "600",
-                color: isEditing ? "#1d4ed8" : "#1f2937",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              {isEditing && <Edit2 size={16} />}
-              {classData.name}
-              {isEditing && (
-                <span
-                  style={{
-                    fontSize: "12px",
-                    backgroundColor: "#3b82f6",
-                    color: "white",
-                    padding: "4px 8px",
-                    borderRadius: "12px",
-                  }}
-                >
-                  Editing
-                </span>
-              )}
-            </h3>
-            <div
-              style={{ fontSize: "14px", color: "#64748b", marginTop: "4px" }}
-            >
-              {instanceCount} instance{instanceCount !== 1 ? "s" : ""}
-              {instancesWithOverrides.length > 0 && (
-                <span
-                  style={{
-                    marginLeft: "12px",
-                    color: "#f59e0b",
-                    fontWeight: "500",
-                  }}
-                >
-                  • {instancesWithOverrides.length} with overrides
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Toolbar - InstanceCard와 동일한 스타일 */}
-          <div style={{ 
-            position: "absolute", 
-            top: "8px", 
-            right: "8px",
-            display: "flex",
-            gap: "4px",
-            alignItems: "center",
-            zIndex: 1000,
-            padding: "4px",
-            borderRadius: "6px",
-          }}>
-            {isEditing ? (
-              <>
-                <ToolbarButton
-                  onClick={handleSaveEdit}
-                  title={isUpdating ? "Saving..." : "Save Changes"}
-                  icon={<Check size={16} />}
-                  disabled={isUpdating}
-                  tooltipPosition="bottom"
-                />
-                <ToolbarButton
-                  onClick={handleCancelEdit}
-                  title="Cancel"
-                  icon={<X size={16} />}
-                  disabled={isUpdating}
-                  tooltipPosition="bottom"
-                />
-              </>
-            ) : (
-              <>
-                <ToolbarButton
-                  onClick={handleShowCreatePanel}
-                  title="Create Instance"
-                  icon={<Plus size={16} />}
-                  tooltipPosition="bottom"
-                />
-                <ToolbarButton
-                  onClick={handleEdit}
-                  title="Edit Template"
-                  icon={<Edit2 size={16} />}
-                  tooltipPosition="bottom"
-                />
-                <ToolbarButton
-                  onClick={handleResetInstances}
-                  title="Reset All Instances"
-                  icon={<RotateCcw size={16} />}
-                  tooltipPosition="bottom"
-                />
-                <ToolbarButton
-                  onClick={() => onDelete(classData.id)}
-                  title="Delete Class"
-                  icon={<Trash2 size={16} />}
-                  danger={true}
-                  tooltipPosition="bottom"
-                />
-              </>
-            )}
-            
-            <ToolbarButton
-              onClick={onClose}
-              title="Close"
-              icon={<X size={16} />}
-              tooltipPosition="bottom"
-            />
-          </div>
-        </div>
-
-        {/* Content */}
-        <div
-          style={{
-            padding: "4px",
-            overflowY: "auto",
-            maxHeight: "calc(90vh - 160px)",
-            position: "relative",
-          }}
-        >
-          
-
+          {/* Header */}
           <div
             style={{
-              width: "100%",
-              height: showCreatePanel ? "300px" : "400px",
-              overflow: "hidden",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "20px",
+              borderBottom: "1px solid #e5e7eb",
+              backgroundColor: isEditing ? "#eff6ff" : "white",
+              position: "relative",
             }}
           >
-            <SceneGraphVisualizer
-              sceneGraph={sceneData.sceneGraph}
-              onSceneGraphChange={
-                isEditing ? handleSceneGraphChange : handleDummyFunction
-              }
-              isEditable={isEditing}
-              isClassMode={true}
-              placeHolders={
-                isEditing ? tempSceneData.placeholders : classData.placeholders
-              }
-            />
-          </div>
-
-          {/* Instance Preview Section - 클래스 그래프 아래에 표시 */}
-          {showCreatePanel && (
-            <div style={{
-              marginTop: "16px",
-              padding: "16px",
-              backgroundColor: "#f8fafc",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px"
-            }}>
-              <h5 style={{
-                margin: "0 0 12px 0",
-                fontSize: "14px",
-                fontWeight: "600",
-                color: "#1f2937",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px"
-              }}>
-                <span style={{
-                  width: "8px",
-                  height: "8px",
-                  backgroundColor: "#10b981",
-                  borderRadius: "50%"
-                }}></span>
-                Instance Preview
-                <span style={{
-                  fontSize: "12px",
-                  color: "#64748b",
-                  fontWeight: "400",
-                  fontStyle: "italic"
-                }}>
-                  • Live preview of your instance
-                </span>
-              </h5>
-              <div style={{
-                height: "250px",
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
-                overflow: "hidden",
-                backgroundColor: "#ffffff"
-              }}>
-                {Object.keys(instanceValues).length > 0 && Object.values(instanceValues).some(v => v.trim()) ? (
-                  <SceneGraphVisualizer
-                    sceneGraph={generatePreviewSceneGraph()}
-                    isEditable={false}
-                    isClassMode={false}
-                    compact={false}
-                  />
-                ) : (
-                  <div style={{
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#9ca3af",
-                    fontSize: "14px",
-                    gap: "12px"
-                  }}>
-                    <div style={{
-                      width: "60px",
-                      height: "60px",
-                      border: "2px dashed #d1d5db",
-                      borderRadius: "8px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#9ca3af"
-                    }}>
-                      <span style={{ fontSize: "24px" }}>👁️</span>
-                    </div>
-                    <div style={{ textAlign: "center", lineHeight: "1.4" }}>
-                      <div style={{ fontWeight: "500", marginBottom: "4px" }}>
-                        Preview will appear here
-                      </div>
-                      <div style={{ fontSize: "12px", color: "#9ca3af" }}>
-                        Fill in placeholder values to see your instance
-                      </div>
-                    </div>
-                  </div>
+            <div>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "18px",
+                  fontWeight: "600",
+                  color: isEditing ? "#1d4ed8" : "#1f2937",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                {isEditing && <Edit2 size={16} />}
+                {classData.name}
+                {isEditing && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      backgroundColor: "#3b82f6",
+                      color: "white",
+                      padding: "4px 8px",
+                      borderRadius: "12px",
+                    }}
+                  >
+                    Editing
+                  </span>
+                )}
+              </h3>
+              <div
+                style={{ fontSize: "14px", color: "#64748b", marginTop: "4px" }}
+              >
+                {instanceCount} instance{instanceCount !== 1 ? "s" : ""}
+                {instancesWithOverrides.length > 0 && (
+                  <span
+                    style={{
+                      marginLeft: "12px",
+                      color: "#f59e0b",
+                      fontWeight: "500",
+                    }}
+                  >
+                    • {instancesWithOverrides.length} with overrides
+                  </span>
                 )}
               </div>
             </div>
-          )}
 
-          {isEditing && (
+            {/* Toolbar - InstanceCard와 동일한 스타일 */}
+            <div style={{
+              position: "absolute",
+              top: "8px",
+              right: "8px",
+              display: "flex",
+              gap: "4px",
+              alignItems: "center",
+              zIndex: 1000,
+              padding: "4px",
+              borderRadius: "6px",
+            }}>
+              {isEditing ? (
+                <>
+                  <ToolbarButton
+                    onClick={handleSaveEdit}
+                    title={isUpdating ? "Saving..." : "Save Changes"}
+                    icon={<Check size={16} />}
+                    disabled={isUpdating}
+                    tooltipPosition="bottom"
+                  />
+                  <ToolbarButton
+                    onClick={handleCancelEdit}
+                    title="Cancel"
+                    icon={<X size={16} />}
+                    disabled={isUpdating}
+                    tooltipPosition="bottom"
+                  />
+                </>
+              ) : (
+                <>
+                  <ToolbarButton
+                    onClick={handleShowCreatePanel}
+                    title="Create Instance"
+                    icon={<Plus size={16} />}
+                    tooltipPosition="bottom"
+                  />
+                  <ToolbarButton
+                    onClick={handleEdit}
+                    title="Edit Template"
+                    icon={<Edit2 size={16} />}
+                    tooltipPosition="bottom"
+                  />
+                  <ToolbarButton
+                    onClick={handleResetInstances}
+                    title="Reset All Instances"
+                    icon={<RotateCcw size={16} />}
+                    tooltipPosition="bottom"
+                  />
+                  <ToolbarButton
+                    onClick={() => onDelete(classData.id)}
+                    title="Delete Class"
+                    icon={<Trash2 size={16} />}
+                    danger={true}
+                    tooltipPosition="bottom"
+                  />
+                </>
+              )}
+
+              <ToolbarButton
+                onClick={onClose}
+                title="Close"
+                icon={<X size={16} />}
+                tooltipPosition="bottom"
+              />
+            </div>
+          </div>
+
+          {/* Content */}
+          <div
+            style={{
+              padding: "4px",
+              overflowY: "auto",
+              maxHeight: "calc(90vh - 160px)",
+              position: "relative",
+            }}
+          >
+
+
             <div
               style={{
-                marginTop: "16px",
-                padding: "12px",
-                backgroundColor: "#fef3c7",
-                border: "1px solid #f59e0b",
-                borderRadius: "8px",
-                fontSize: "14px",
-                color: "#92400e",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
+                width: "100%",
+                height: showCreatePanel ? "300px" : "400px",
+                overflow: "hidden",
               }}
             >
+              <SceneGraphVisualizer
+                sceneGraph={sceneData.sceneGraph}
+                onSceneGraphChange={
+                  isEditing ? handleSceneGraphChange : handleDummyFunction
+                }
+                isEditable={isEditing}
+                isClassMode={true}
+                placeHolders={
+                  isEditing ? tempSceneData.placeholders : classData.placeholders
+                }
+              />
+            </div>
+
+            {/* Instance Preview Section - 클래스 그래프 아래에 표시 */}
+            {showCreatePanel && (
+              <div style={{
+                marginTop: "16px",
+                padding: "16px",
+                backgroundColor: "#f8fafc",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px"
+              }}>
+                <h5 style={{
+                  margin: "0 0 12px 0",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "#1f2937",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px"
+                }}>
+                  <span style={{
+                    width: "8px",
+                    height: "8px",
+                    backgroundColor: "#10b981",
+                    borderRadius: "50%"
+                  }}></span>
+                  Instance Preview
+                  <span style={{
+                    fontSize: "12px",
+                    color: "#64748b",
+                    fontWeight: "400",
+                    fontStyle: "italic"
+                  }}>
+                    • Live preview of your instance
+                  </span>
+                </h5>
+                <div style={{
+                  height: "250px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  overflow: "hidden",
+                  backgroundColor: "#ffffff"
+                }}>
+                  {Object.keys(instanceValues).length > 0 && Object.values(instanceValues).some(v => v.trim()) ? (
+                    <SceneGraphVisualizer
+                      sceneGraph={generatePreviewSceneGraph()}
+                      isEditable={false}
+                      isClassMode={false}
+                      compact={false}
+                    />
+                  ) : (
+                    <div style={{
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#9ca3af",
+                      fontSize: "14px",
+                      gap: "12px"
+                    }}>
+                      <div style={{
+                        width: "60px",
+                        height: "60px",
+                        border: "2px dashed #d1d5db",
+                        borderRadius: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#9ca3af"
+                      }}>
+                        <span style={{ fontSize: "24px" }}>👁️</span>
+                      </div>
+                      <div style={{ textAlign: "center", lineHeight: "1.4" }}>
+                        <div style={{ fontWeight: "500", marginBottom: "4px" }}>
+                          Preview will appear here
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#9ca3af" }}>
+                          Fill in placeholder values to see your instance
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isEditing && (
               <div
                 style={{
-                  width: "6px",
-                  height: "6px",
-                  backgroundColor: "#f59e0b",
-                  borderRadius: "50%",
-                  animation: "pulse 2s infinite",
+                  marginTop: "16px",
+                  padding: "12px",
+                  backgroundColor: "#fef3c7",
+                  border: "1px solid #f59e0b",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  color: "#92400e",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
                 }}
-              />
-              <strong>Note:</strong> Changes will automatically apply to all{" "}
-              {instanceCount} connected instance{instanceCount !== 1 ? "s" : ""}
-              .
-            </div>
-          )}
+              >
+                <div
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    backgroundColor: "#f59e0b",
+                    borderRadius: "50%",
+                    animation: "pulse 2s infinite",
+                  }}
+                />
+                <strong>Note:</strong> Changes will automatically apply to all{" "}
+                {instanceCount} connected instance{instanceCount !== 1 ? "s" : ""}
+                .
+              </div>
+            )}
 
-          {isUpdating && (
-            <div
-              style={{
-                marginTop: "16px",
-                textAlign: "center",
-                fontSize: "14px",
-                color: "#6b7280",
-                fontStyle: "italic",
-              }}
-            >
-              Updating instances...
-            </div>
-          )}
-        </div>
+            {isUpdating && (
+              <div
+                style={{
+                  marginTop: "16px",
+                  textAlign: "center",
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  fontStyle: "italic",
+                }}
+              >
+                Updating instances...
+              </div>
+            )}
+          </div>
 
-        {/* Footer - 빈 공간으로 남겨둠 */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid #e5e7eb",
-            backgroundColor: "#f9fafb",
-            minHeight: "20px",
-          }}
-        >
-          {/* 버튼들은 이제 헤더에 있음 */}
-        </div>
+          {/* Footer - 빈 공간으로 남겨둠 */}
+          <div
+            style={{
+              padding: "12px 20px",
+              borderTop: "1px solid #e5e7eb",
+              backgroundColor: "#f9fafb",
+              minHeight: "20px",
+            }}
+          >
+            {/* 버튼들은 이제 헤더에 있음 */}
+          </div>
         </div>
 
         {/* Instance Creation Side Panel */}
@@ -634,7 +633,7 @@ const ClassDetailModal = ({
               {/* Placeholder Input Fields */}
               {Object.entries(classData.placeholders || {}).flatMap(([objectId, objectData]) => {
                 const fields = [];
-                
+
                 if (objectData.name) {
                   const placeholderKey = `${objectId}_name`;
                   fields.push(
@@ -663,50 +662,50 @@ const ClassDetailModal = ({
                         }}
                       />
                       {instanceSuggestions[placeholderKey] && Array.isArray(instanceSuggestions[placeholderKey]) && (
-                      <div style={{ marginTop: "4px" }}>
-                        <div style={{
-                          display: "flex",
-                          gap: "6px",
-                          flexWrap: "wrap"
-                        }}>
-                          {instanceSuggestions[placeholderKey].slice(0, 3).map((suggestion, index) => (
-                            <button
-                              key={index}
-                              onClick={() => handleInstanceValueChange(placeholderKey, suggestion)}
-                              style={{
-                                padding: "3px 6px",
-                                fontSize: "10px",
-                                backgroundColor: "#f8fafc",
-                                border: "1px solid #e2e8f0",
-                                borderRadius: "3px",
-                                cursor: "pointer",
-                                transition: "all 0.2s",
-                                textAlign: "center",
-                                flex: "1",
-                                color: "#64748b",
-                                fontWeight: "400"
-                              }}
-                              onMouseEnter={(e) => {
-                                e.target.style.backgroundColor = "#f1f5f9";
-                                e.target.style.borderColor = "#cbd5e1";
-                                e.target.style.color = "#475569";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.target.style.backgroundColor = "#f8fafc";
-                                e.target.style.borderColor = "#e2e8f0";
-                                e.target.style.color = "#64748b";
-                              }}
-                            >
-                              {suggestion}
-                            </button>
-                          ))}
+                        <div style={{ marginTop: "4px" }}>
+                          <div style={{
+                            display: "flex",
+                            gap: "6px",
+                            flexWrap: "wrap"
+                          }}>
+                            {instanceSuggestions[placeholderKey].slice(0, 3).map((suggestion, index) => (
+                              <button
+                                key={index}
+                                onClick={() => handleInstanceValueChange(placeholderKey, suggestion)}
+                                style={{
+                                  padding: "3px 6px",
+                                  fontSize: "10px",
+                                  backgroundColor: "#f8fafc",
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: "3px",
+                                  cursor: "pointer",
+                                  transition: "all 0.2s",
+                                  textAlign: "center",
+                                  flex: "1",
+                                  color: "#64748b",
+                                  fontWeight: "400"
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.backgroundColor = "#f1f5f9";
+                                  e.target.style.borderColor = "#cbd5e1";
+                                  e.target.style.color = "#475569";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.backgroundColor = "#f8fafc";
+                                  e.target.style.borderColor = "#e2e8f0";
+                                  e.target.style.color = "#64748b";
+                                }}
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                     </div>
                   );
                 }
-                
+
                 // Add attribute fields
                 objectData.attr.forEach((attr, index) => {
                   const placeholderKey = `${objectId}_attr_${index}`;
@@ -769,7 +768,7 @@ const ClassDetailModal = ({
                     </div>
                   );
                 });
-                
+
                 return fields;
               })}
             </div>

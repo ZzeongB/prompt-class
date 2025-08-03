@@ -1,12 +1,14 @@
 // 2. SimpleLayoutNode.js - 레이아웃 보드용 간단한 노드
+import React, { useState, useEffect } from "react";
 import { Handle, Position, useConnection } from "@xyflow/react";
 import { Link } from "lucide-react";
-import { useState } from "react";
-import NodeHandles from "../nodeComponents/NodeHandles";
 
 function SimpleLayoutNode({ id, data, selected }) {
   // 하이라이트 디버깅
-  // console.log(`SimpleLayoutNode ${data.instanceLabel || 'unknown'}: selected=${selected}, isHighlighted=${data.isHighlighted}, instanceId=${data.instanceId}`);
+
+  useEffect(() => {
+    console.log(`🌀 Rerender: ${data.instanceLabel}`, { selected, isHighlighted: data.isHighlighted, shouldHighlight });
+  }, [selected, data.isHighlighted]);
 
   const shouldHighlight = selected || data.isHighlighted;
   // console.log(`Should highlight: ${shouldHighlight} (selected: ${selected}, isHighlighted: ${data.isHighlighted})`);
