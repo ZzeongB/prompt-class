@@ -421,30 +421,6 @@ function LayoutBoard({
     setNodes((prev) => [...prev, resizableNode, objNode]);
   };
 
-  const findEmptyPosition = () => {
-    const gridSize = 80;
-    const maxCols = Math.floor(512 / gridSize);
-
-    for (let row = 0; row < 10; row++) {
-      for (let col = 0; col < maxCols; col++) {
-        const x = col * gridSize + 20;
-        const y = row * gridSize + 20;
-
-        const hasConflict = nodes.some((node) => {
-          if (!node?.position) return false;
-          const distance = Math.sqrt(
-            Math.pow(node.position.x - x, 2) + Math.pow(node.position.y - y, 2)
-          );
-          return distance < 60;
-        });
-
-        if (!hasConflict) return { x, y };
-      }
-    }
-
-    return { x: Math.random() * 400 + 50, y: Math.random() * 400 + 50 };
-  };
-
   const handleAddNewNode = () => {
     setGhostNode({
       id: `ghost-${Date.now()}`,
