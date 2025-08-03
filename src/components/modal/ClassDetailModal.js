@@ -211,19 +211,21 @@ const ClassDetailModal = ({
         
         // Replace placeholder in object name
         if (newObj.name && newObj.name.includes('{') && newObj.name.includes('}')) {
-          const placeholderId = newObj.name.replace(/[{}]/g, '');
-          if (instanceValues[placeholderId]) {
-            newObj.name = instanceValues[placeholderId];
+          const objectId = newObj.id;
+          const nameKey = `${objectId}_name`;
+          if (instanceValues[nameKey]) {
+            newObj.name = instanceValues[nameKey];
           }
         }
         
         // Replace placeholders in attributes
         if (newObj.attributes) {
-          newObj.attributes = newObj.attributes.map(attr => {
-            if (attr.includes('{') && attr.includes('}')) {
-              const placeholderId = attr.replace(/[{}]/g, '');
-              if (instanceValues[placeholderId]) {
-                return instanceValues[placeholderId];
+          newObj.attributes = newObj.attributes.map((attr, index) => {
+            if (typeof attr === 'string' && attr.includes('{') && attr.includes('}')) {
+              const objectId = newObj.id;
+              const attrKey = `${objectId}_attr_${index}`;
+              if (instanceValues[attrKey]) {
+                return instanceValues[attrKey];
               }
             }
             return attr;
