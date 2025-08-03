@@ -13,7 +13,7 @@ const deepCloneSceneGraph = (sceneGraph) => {
   const idMapping = {};
 
   const newObjects = sceneGraph.objects.map((obj) => {
-    const newId = obj.id; //`object-${uuidv4()}`;
+    const newId = `object-${uuidv4()}`;
     idMapping[obj.id] = newId;
     return {
       id: newId,
