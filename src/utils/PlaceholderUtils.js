@@ -9,31 +9,22 @@ export const replaceWithSceneGraphPlaceholders = (sceneGraph, placeholderMap) =>
   }
 
   cloned.objects?.forEach((obj) => {
-    // 객체 이름 placeholder 처리
+    // 객체 이름 placeholder 처리 - {} 사용하지 않음
     if (obj.name && placeholderMap[obj.name]) {
       const placeholderData = placeholderMap[obj.name];
       if (placeholderData && placeholderData.category && placeholderData.id) {
         obj.defaultName = obj.name;
-        obj.name = `{${placeholderData.id}}`;
         obj.isPlaceholder = true;
         obj.placeholderId = placeholderData.id;
         obj.placeholderCategory = placeholderData.category;
+        // {} 플레이스홀더 제거 - name을 그대로 유지하거나 defaultName으로 보관
       }
     }
 
-    // attributes가 문자열 배열일 때 처리
+    // attributes가 문자열 배열일 때 처리 - {} 사용하지 않음
     if (obj.attributes && Array.isArray(obj.attributes)) {
       obj.defaultAttributes = [...obj.attributes];
-
-      obj.attributes = obj.attributes.map((attr) => {
-        if (typeof attr === "string" && placeholderMap[attr]) {
-          const placeholderData = placeholderMap[attr];
-          if (placeholderData && placeholderData.category && placeholderData.id) {
-            return `{${placeholderData.id}}`;
-          }
-        }
-        return attr;
-      });
+      // attributes는 원본 그대로 유지
     }
   });
 
@@ -44,9 +35,7 @@ export const resolvePlaceholdersInSceneGraph = (sceneGraph, values, originalScen
   const resolved = deepCloneSceneGraph(sceneGraph);
   const overrides = {};
   let hasOverrides = false;
-
-  console.log("Resolving placeholders in sceneGraph:", resolved, values);
-
+  
   // values가 sceneGraph 구조를 가진 경우 처리
   const isValuesSceneGraph = values && values.objects && Array.isArray(values.objects);
   
@@ -55,52 +44,14 @@ export const resolvePlaceholdersInSceneGraph = (sceneGraph, values, originalScen
     return sourceObjects.find(obj => obj.id === targetId);
   };
 
-  // values에서 값을 가져오는 헬퍼 함수 (개선된 매칭 로직)
-  const getValueFromValues = (key, currentObj, objIndex) => {
-    if (isValuesSceneGraph) {
-      // 1. ID로 정확한 매칭 시도
-      const matchedObj = findMatchingObjectById(currentObj.id, values.objects);
-      if (matchedObj) {
-        // 객체 이름 매칭
-        if (matchedObj.name && (matchedObj.name === key || matchedObj.name.replace(/[{}]/g, "") === key)) {
-          return matchedObj.name;
-        }
-        // attributes에서 매칭
-        if (matchedObj.attributes && Array.isArray(matchedObj.attributes)) {
-          const foundAttr = matchedObj.attributes.find(attr => 
-            typeof attr === "string" && (attr === key || attr.replace(/[{}]/g, "") === key)
-          );
-          if (foundAttr) return foundAttr;
-        }
-      }
-      
-      // 2. ID 매칭이 실패한 경우 인덱스로 fallback
-      const valuesObj = values.objects[objIndex];
-      if (valuesObj) {
-        if (valuesObj.name && (valuesObj.name === key || valuesObj.name.replace(/[{}]/g, "") === key)) {
-          return valuesObj.name;
-        }
-        if (valuesObj.attributes && Array.isArray(valuesObj.attributes)) {
-          const foundAttr = valuesObj.attributes.find(attr => 
-            typeof attr === "string" && (attr === key || attr.replace(/[{}]/g, "") === key)
-          );
-          if (foundAttr) return foundAttr;
-        }
-      }
-      return undefined;
-    } else {
-      // values가 단순 키-값 객체일 때
-      return values[key];
-    }
-  };
 
   resolved.objects.forEach((obj, objIndex) => {
-    // 객체 이름 처리 - 직접 비교와 placeholder 방식 둘 다 지원
+    // 객체 이름 처리 - {} 로직 제거, 직접 비교만 사용
     if (obj.name) {
       let newValue = obj.name;
       let valueFromValues = null;
 
-      // 1. values가 sceneGraph 구조일 때: ID로 매칭해서 직접 비교
+      // values가 sceneGraph 구조일 때: ID로 매칭해서 직접 비교
       if (isValuesSceneGraph) {
         const matchedValuesObj = findMatchingObjectById(obj.id, values.objects);
         if (matchedValuesObj && matchedValuesObj.name && matchedValuesObj.name !== obj.name) {
@@ -108,13 +59,12 @@ export const resolvePlaceholdersInSceneGraph = (sceneGraph, values, originalScen
           valueFromValues = matchedValuesObj.name;
           newValue = matchedValuesObj.name;
         }
-      }
-      
-      // 2. placeholder 방식 처리 (기존 로직)
-      if (!valueFromValues && obj.name.includes("{") && obj.name.includes("}")) {
-        const key = obj.name.replace(/[{}]/g, "");
-        valueFromValues = getValueFromValues(key, obj, objIndex);
-        newValue = valueFromValues || obj.defaultName || key;
+      } else {
+        // values가 단순 키-값 객체일 때 - 키로 직접 매칭
+        valueFromValues = values[obj.name];
+        if (valueFromValues) {
+          newValue = valueFromValues;
+        }
       }
 
       // override 기록
@@ -126,13 +76,14 @@ export const resolvePlaceholdersInSceneGraph = (sceneGraph, values, originalScen
       }
 
       obj.name = newValue;
+      // 플레이스홀더 관련 메타데이터 정리
       delete obj.defaultName;
       delete obj.isPlaceholder;
       delete obj.placeholderId;
       delete obj.placeholderCategory;
     }
 
-    // attributes 처리 (개선된 매칭 로직)
+    // attributes 처리 - {} 로직 제거
     if (obj.attributes && Array.isArray(obj.attributes)) {
       // values에서 매칭되는 객체를 찾아서 attributes 전체를 비교
       const matchedValuesObj = isValuesSceneGraph ? 
@@ -141,7 +92,6 @@ export const resolvePlaceholdersInSceneGraph = (sceneGraph, values, originalScen
 
       obj.attributes = obj.attributes.map((attr, attrIndex) => {
         if (typeof attr === "string") {
-          const key = attr.replace(/[{}]/g, "");
           let value;
 
           // 매칭된 객체의 동일한 인덱스 위치에서 값 가져오기
@@ -149,18 +99,18 @@ export const resolvePlaceholdersInSceneGraph = (sceneGraph, values, originalScen
               Array.isArray(matchedValuesObj.attributes) && 
               matchedValuesObj.attributes[attrIndex]) {
             value = matchedValuesObj.attributes[attrIndex];
-          } else {
-            // fallback: key로 검색
-            value = getValueFromValues(key, obj, objIndex);
+          } else if (!isValuesSceneGraph) {
+            // values가 단순 객체일 때 키로 직접 매칭
+            value = values[attr];
           }
 
           if (value === undefined && obj.defaultAttributes) {
             value = obj.defaultAttributes[attrIndex];
           }
 
-          const finalValue = value !== undefined ? value : key;
+          const finalValue = value !== undefined ? value : attr;
 
-          if (value && value !== (obj.defaultAttributes?.[attrIndex] || key)) {
+          if (value && value !== (obj.defaultAttributes?.[attrIndex] || attr)) {
             if (!overrides.objects) overrides.objects = {};
             if (!overrides.objects[obj.id]) overrides.objects[obj.id] = {};
             if (!overrides.objects[obj.id].attributes) overrides.objects[obj.id].attributes = {};
@@ -208,18 +158,17 @@ export const resolvePlaceholdersInSceneGraph = (sceneGraph, values, originalScen
 
 export const restorePlaceholdersFromTemplate = (
   classSceneGraph,
-  originalSceneGraph,
-  placeholders = {}
+  originalSceneGraph
 ) => {
   const result = deepCloneSceneGraph(classSceneGraph);
 
   result.objects.forEach((obj, objIndex) => {
-    // 객체 이름 복원
-    if (obj.name && obj.name.includes("{") && obj.name.includes("}")) {
+    // 객체 이름 복원 - {} 로직 제거
+    if (obj.name) {
       const resolvedName =
         obj.defaultName ||
         originalSceneGraph.objects?.[objIndex]?.name ||
-        obj.name.replace(/[{}]/g, "");
+        obj.name;
 
       obj.name = resolvedName;
 
@@ -229,18 +178,14 @@ export const restorePlaceholdersFromTemplate = (
       delete obj.placeholderCategory;
     }
 
-    // attributes 복원
+    // attributes 복원 - {} 로직 제거
     if (obj.attributes && Array.isArray(obj.attributes)) {
       obj.attributes = obj.attributes.map((attr, attrIndex) => {
-        if (
-          typeof attr === "string" &&
-          attr.includes("{") &&
-          attr.includes("}")
-        ) {
+        if (typeof attr === "string") {
           const resolvedAttr =
             obj.defaultAttributes?.[attrIndex] ||
             originalSceneGraph.objects?.[objIndex]?.attributes?.[attrIndex] ||
-            attr.replace(/[{}]/g, "");
+            attr;
 
           return resolvedAttr;
         }

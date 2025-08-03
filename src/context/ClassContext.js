@@ -40,6 +40,7 @@ export const ClassProvider = ({ children }) => {
     setInstances((prev) => [...prev, newInstance]);
     return newInstance;
   };
+
   const updateClass = (classId, updates) => {
     setClasses((prev) => {
       const updatedClasses = ClassOps.updateClass(prev, classId, updates);
@@ -108,9 +109,6 @@ export const ClassProvider = ({ children }) => {
         updatedSourceInstance,
         newInstance
       ]);
-      
-      console.log(`Extracted object from instance "${sourceInstance.instanceLabel}"`);
-      console.log(`Created new instance: "${newInstance.instanceLabel}"`);
       
       return newInstance;
     } catch (error) {

@@ -4,14 +4,7 @@ import { Handle, Position, useConnection } from "@xyflow/react";
 import { Link } from "lucide-react";
 
 function SimpleLayoutNode({ id, data, selected }) {
-  // 하이라이트 디버깅
-
-  useEffect(() => {
-    console.log(`🌀 Rerender: ${data.instanceLabel}`, { selected, isHighlighted: data.isHighlighted, shouldHighlight });
-  }, [selected, data.isHighlighted]);
-
   const shouldHighlight = selected || data.isHighlighted;
-  // console.log(`Should highlight: ${shouldHighlight} (selected: ${selected}, isHighlighted: ${data.isHighlighted})`);
 
   const [isHovered, setIsHovered] = useState(false);
   const connection = useConnection();

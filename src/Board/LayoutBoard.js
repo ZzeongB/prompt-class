@@ -1,5 +1,5 @@
 // 1. LayoutBoard.js - 레이아웃과 관계만 담당
-import React, { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import {
   ReactFlow,
   useNodesState,
@@ -30,6 +30,13 @@ import {
 } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
 import { getNormalizedBox } from "../utils/node/getNormalizedBox";
+import { 
+  calculateIOU, 
+  scaleDetectedObjectBbox, 
+  calculateBboxDimensions,
+  filterOverlappingObjects 
+} from "../utils/boundingBox";
+import { LAYOUT_CONFIG, UI_CONFIG } from "../utils/layoutConstants";
 
 const nodeTypes = {
   simple: SimpleLayoutNode,
@@ -57,7 +64,6 @@ function LayoutBoard({
   const [errorMessage, setErrorMessage] = useState("");
   const [ghostNode, setGhostNode] = useState(null);
   const [showImageOnly, setShowImageOnly] = useState(false);
-  const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [inlinePrompt, setInlinePrompt] = useState(null);
   const [detectedObjects, setDetectedObjects] = useState([]);
   // const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
@@ -66,37 +72,60 @@ function LayoutBoard({
   // Always use FLUX model
   const currentModel = "flux";
 
-  const { image, setImage } = useImage();
-  const { instances, classes, setInstances, updateInstance, deleteInstance } =
-    useClassContext();
+  const { setImage } = useImage();
+  const { instances, classes, setInstances } = useClassContext();
 
   const syncFromReactFlow = useRef(false);
   const syncFromClassContext = useRef(false);
 
-  // Calculate Intersection over Union (IOU) between two bounding boxes
-  const calculateIOU = (box1, box2) => {
-    const [x1_1, y1_1, x2_1, y2_1] = box1;
-    const [x1_2, y1_2, x2_2, y2_2] = box2;
+  // Helper function to create node data from instance
+  const createNodeDataFromInstance = (instance, selectedInstanceId) => {
+    const parentClass = instance.isFromClass
+      ? classes.find((cls) => cls?.id === instance.classId)
+      : null;
 
-    // Calculate intersection area
-    const x1_inter = Math.max(x1_1, x1_2);
-    const y1_inter = Math.max(y1_1, y1_2);
-    const x2_inter = Math.min(x2_1, x2_2);
-    const y2_inter = Math.min(y2_1, y2_2);
+    return {
+      label: instance.instanceLabel || "New Instance",
+      sharedId: instance.id,
+      instanceId: instance.id,
+      instanceLabel: instance.instanceLabel || "New Instance",
+      isFromClass: instance.isFromClass || false,
+      classId: instance.classId,
+      parentClassName: parentClass?.name || null,
+      textDescription: instance.textDescription || "",
+      hasOverrides:
+        instance.overrides && Object.keys(instance.overrides).length > 0,
+      isHighlighted: selectedInstanceId === instance.id,
+      isGenerating: instance.isGenerating || false,
+    };
+  };
 
-    if (x2_inter <= x1_inter || y2_inter <= y1_inter) {
-      return 0; // No intersection
+  // Helper function to calculate position and size from detected object or fallback
+  const calculateNodePositionAndSize = (instance) => {
+    let position, resizableSize;
+    
+    if (instance.detectedObject && instance.detectedObject.bbox) {
+      const scaledBbox = scaleDetectedObjectBbox(instance.detectedObject.bbox, LAYOUT_CONFIG.SCALE_FACTOR);
+
+      const bboxPosition = {
+        x: scaledBbox[0] + LEFT_OFFSET,
+        y: scaledBbox[1] + TOP_OFFSET,
+      };
+      position = screenToFlowPosition(bboxPosition);
+
+      // Calculate size from bounding box
+      const { width, height } = calculateBboxDimensions(scaledBbox);
+      resizableSize = { width, height };
+    } else {
+      // Fallback for non-detected objects
+      position = instance.nodePosition || LAYOUT_CONFIG.DEFAULT_POSITION;
+      resizableSize = LAYOUT_CONFIG.DEFAULT_NODE_SIZE;
     }
 
-    const intersectionArea = (x2_inter - x1_inter) * (y2_inter - y1_inter);
-
-    // Calculate union area
-    const area1 = (x2_1 - x1_1) * (y2_1 - y1_1);
-    const area2 = (x2_2 - x1_2) * (y2_2 - y1_2);
-    const unionArea = area1 + area2 - intersectionArea;
-
-    return intersectionArea / unionArea;
+    return { position, resizableSize };
   };
+
+
 
   useEffect(() => {
     setNodes((nds) => {
@@ -175,23 +204,9 @@ function LayoutBoard({
 
           if (nodeIndex !== -1) {
             // 기존 노드 업데이트
-            const parentClass = instance.isFromClass
-              ? classes.find((cls) => cls?.id === instance.classId)
-              : null;
-
-            const isHighlighted = selectedInstanceId === instance.id;
-
             const updatedData = {
               ...updatedNodes[nodeIndex].data,
-              label: instance.instanceLabel, // ReactFlow 기본 label 필드도 업데이트
-              instanceLabel: instance.instanceLabel,
-              isFromClass: instance.isFromClass,
-              classId: instance.classId,
-              parentClassName: parentClass?.name,
-              hasOverrides:
-                instance.overrides &&
-                Object.keys(instance.overrides).length > 0,
-              isHighlighted,
+              ...createNodeDataFromInstance(instance, selectedInstanceId),
             };
 
             updatedNodes[nodeIndex] = {
@@ -211,72 +226,22 @@ function LayoutBoard({
           } else {
             // 새로운 instance인 경우 자동으로 보드에 추가
             const sharedId = instance.id;
-
-            const parentClass = instance.isFromClass
-              ? classes.find((cls) => cls?.id === instance.classId)
-              : null;
-
-            // Calculate position and size from detected object bounding box
-            let position, resizableSize;
-            if (instance.detectedObject && instance.detectedObject.bbox) {
-              const scaleFactor = 1; // FLUX uses 1:1 scaling
-              const scaledBbox = [
-                instance.detectedObject.bbox[0] * scaleFactor,
-                instance.detectedObject.bbox[1] * scaleFactor,
-                instance.detectedObject.bbox[2] * scaleFactor,
-                instance.detectedObject.bbox[3] * scaleFactor,
-              ];
-
-              const bboxPosition = {
-                x: scaledBbox[0] + LEFT_OFFSET,
-                y: scaledBbox[1] + TOP_OFFSET,
-              };
-              position = screenToFlowPosition(bboxPosition);
-
-              // Calculate size from bounding box
-              const width = scaledBbox[2] - scaledBbox[0];
-              const height = scaledBbox[3] - scaledBbox[1];
-              resizableSize = { width, height };
-            } else {
-              // Fallback for non-detected objects
-              position = instance.nodePosition || { x: 50, y: 50 };
-              resizableSize = { width: 50, height: 50 };
-            }
+            const { position, resizableSize } = calculateNodePositionAndSize(instance);
+            const nodeData = createNodeDataFromInstance(instance, selectedInstanceId);
 
             const objNode = {
               id: sharedId,
               type: "simple",
               position,
-              data: {
-                label: instance.instanceLabel || "New Instance",
-                sharedId,
-                instanceId: sharedId,
-                instanceLabel: instance.instanceLabel || "New Instance",
-                isFromClass: instance.isFromClass || false,
-                parentClassName: parentClass?.name || null,
-                hasOverrides:
-                  instance.overrides &&
-                  Object.keys(instance.overrides).length > 0,
-                isHighlighted: selectedInstanceId === instance.id,
-              },
+              data: nodeData,
             };
 
+            const { isHighlighted, ...resizableData } = nodeData;
             const resizableNode = {
               id: `${sharedId}-resizable`,
               type: "resizable",
               position,
-              data: {
-                label: instance.instanceLabel || "New Instance",
-                sharedId,
-                instanceId: sharedId,
-                instanceLabel: instance.instanceLabel || "New Instance",
-                isFromClass: instance.isFromClass || false,
-                parentClassName: parentClass?.name || null,
-                textDescription: instance.textDescription || "",
-                hasOverrides:
-                  instance.overrides &&
-                  Object.keys(instance.overrides).length > 0,
-              },
+              data: resizableData,
               style: resizableSize,
             };
 
@@ -322,11 +287,7 @@ function LayoutBoard({
                 relation: rel.relation,
                 isExtractedRelationship: true,
               },
-              style: {
-                stroke: "#cbd5e1", // SceneGraphVisualizer와 동일한 색상
-                strokeWidth: 1.5,
-                strokeDasharray: "5,5", // 점선으로 표시
-              },
+              style: UI_CONFIG.EDGE_STYLES.DEFAULT,
               label: rel.relation,
               labelStyle: {
                 fontSize: "10px",
@@ -355,66 +316,23 @@ function LayoutBoard({
 
   const addInstanceToBoard = (instanceData) => {
     const sharedId = instanceData.id;
-
-    const parentClass = instanceData.isFromClass
-      ? classes.find((cls) => cls?.id === instanceData.classId)
-      : null;
-
-    // Calculate position and size from detected object bounding box
-    let position, resizableSize;
-    if (instanceData.detectedObject && instanceData.detectedObject.bbox) {
-      const scaleFactor = 1; // FLUX uses 1:1 scaling
-      const scaledBbox = [
-        instanceData.detectedObject.bbox[0] * scaleFactor,
-        instanceData.detectedObject.bbox[1] * scaleFactor,
-        instanceData.detectedObject.bbox[2] * scaleFactor,
-        instanceData.detectedObject.bbox[3] * scaleFactor,
-      ];
-
-      const bboxPosition = {
-        x: scaledBbox[0] + LEFT_OFFSET,
-        y: scaledBbox[1] + TOP_OFFSET,
-      };
-      position = screenToFlowPosition(bboxPosition);
-
-      // Calculate size from bounding box
-      const width = scaledBbox[2] - scaledBbox[0];
-      const height = scaledBbox[3] - scaledBbox[1];
-      resizableSize = { width, height };
-    } else {
-      // Fallback for non-detected objects
-      position = instanceData.nodePosition || { x: 50, y: 50 };
-      resizableSize = { width: 50, height: 50 };
-    }
+    const { position, resizableSize } = calculateNodePositionAndSize(instanceData);
+    const nodeData = createNodeDataFromInstance(instanceData, selectedInstanceId);
 
     const objNode = {
       id: sharedId,
       type: "simple",
       position,
-      data: {
-        label: instanceData.instanceLabel || "New Instance",
-        sharedId,
-        instanceId: sharedId,
-        instanceLabel: instanceData.instanceLabel || "New Instance",
-        isFromClass: instanceData.isFromClass || false,
-        parentClassName: parentClass?.name || null,
-        hasOverrides:
-          instanceData.overrides &&
-          Object.keys(instanceData.overrides).length > 0,
-        isHighlighted: selectedInstanceId === instanceData.id,
-      },
+      data: nodeData,
       style: { height: 40, width: 120 },
     };
 
-    const { isHighlighted, ...objNodeDataWithoutHighlight } = objNode.data;
+    const { isHighlighted, ...resizableData } = nodeData;
     const resizableNode = {
       id: `${sharedId}-resizable`,
       type: "resizable",
       position,
-      data: {
-        ...objNodeDataWithoutHighlight,
-        textDescription: instanceData.textDescription || "",
-      },
+      data: resizableData,
       style: resizableSize,
     };
 
@@ -450,8 +368,8 @@ function LayoutBoard({
     e.preventDefault();
     e.stopPropagation();
 
-    if (nodes.filter((n) => n.type !== "resizable").length >= 10) {
-      alert("최대 10개의 노드까지만 생성할 수 있습니다.");
+    if (nodes.filter((n) => n.type !== "resizable").length >= LAYOUT_CONFIG.MAX_NODES) {
+      alert(`최대 ${LAYOUT_CONFIG.MAX_NODES}개의 노드까지만 생성할 수 있습니다.`);
       setGhostNode(null);
       return;
     }
@@ -466,7 +384,7 @@ function LayoutBoard({
     setGhostNode(null);
   };
 
-  const handlePromptSubmit = async (description) => {
+  const handlePromptSubmit = useCallback(async (description) => {
     if (!description || !description.trim() || !inlinePrompt) {
       setInlinePrompt(null);
       return;
@@ -599,7 +517,7 @@ function LayoutBoard({
 
       alert("Failed to generate scene graph. Created basic instance instead.");
     }
-  };
+  }, [inlinePrompt, setInstances, setNodes]);
 
   const handleClick = async () => {
     setProgress(0);
@@ -728,23 +646,7 @@ function LayoutBoard({
         descriptionResult.description
       );
 
-      // 4. Calculate position from bounding box
-      const scaleFactor = 1; // FLUX uses 1:1 scaling
-      const scaledBbox = [
-        obj.bbox[0] * scaleFactor,
-        obj.bbox[1] * scaleFactor,
-        obj.bbox[2] * scaleFactor,
-        obj.bbox[3] * scaleFactor,
-      ];
-
-      // Convert screen coordinates to flow coordinates (add LEFT_OFFSET and TOP_OFFSET for proper screen positioning)
-      const bboxPosition = {
-        x: scaledBbox[0] + LEFT_OFFSET,
-        y: scaledBbox[1] + TOP_OFFSET,
-      };
-      const flowPosition = screenToFlowPosition(bboxPosition);
-
-      // 5. Create new instance with proper structure
+      // 4. Create new instance with proper structure
       const newInstance = {
         id: uuidv4(),
         instanceLabel: instanceLabel,
@@ -756,8 +658,6 @@ function LayoutBoard({
         classId: null,
         overrides: {},
         createdAt: new Date().toISOString(),
-        // Add position information for node placement
-        nodePosition: flowPosition,
       };
 
       // 6. Add instance to context
@@ -830,7 +730,6 @@ function LayoutBoard({
   const handleNodeClick = useCallback(
     (_, node) => {
       if (node.type !== "resizable") {
-        setSelectedNodeId(node.data?.instanceId);
         onNodeSelect?.(node.data?.instanceId);
       }
     },
@@ -839,7 +738,6 @@ function LayoutBoard({
 
   // 배경 클릭 시 선택 해제
   const handlePaneClick = useCallback(() => {
-    setSelectedNodeId(null);
     onNodeSelect?.(null);
     // 인라인 프롬프트도 닫기
     if (inlinePrompt) {
@@ -866,11 +764,7 @@ function LayoutBoard({
           relation: "related", // 임시 기본값
           isTemporary: true,
         },
-        style: {
-          stroke: "#cbd5e1",
-          strokeWidth: 1.5,
-          strokeDasharray: "5,5", // 점선으로 표시
-        },
+        style: UI_CONFIG.EDGE_STYLES.DEFAULT,
       };
 
       // 엣지를 먼저 추가
@@ -907,11 +801,7 @@ function LayoutBoard({
               relation: relationshipText.trim(),
               isTemporary: false,
             },
-            style: {
-              stroke: "#cbd5e1",
-              strokeWidth: 1.5,
-              strokeDasharray: "none", // 실선으로 변경
-            },
+            style: UI_CONFIG.EDGE_STYLES.SOLID,
           }
           : edge
       )
@@ -998,7 +888,7 @@ function LayoutBoard({
             border: "1px solid #d1d5db",
             borderRadius: "6px",
             backgroundColor: "#ffffff",
-            opacity: 0.9,
+            opacity: UI_CONFIG.GHOST_NODE_OPACITY,
             pointerEvents: "none",
             zIndex: 999,
             fontSize: "12px",
@@ -1200,16 +1090,16 @@ function LayoutBoard({
           zoomOnScroll={false}
           zoomOnDoubleClick={false}
           zoomOnPinch={false}
-          nodeDragBounds={{ left: 0, top: 0, right: 512, bottom: 512 }}
+          nodeDragBounds={LAYOUT_CONFIG.NODE_BOUNDS}
           onNodeDragStop={onNodeDragStop}
           nodesDraggable={true}
           translateExtent={[
             [0, 0],
-            [512, 512],
+            [LAYOUT_CONFIG.CANVAS_SIZE, LAYOUT_CONFIG.CANVAS_SIZE],
           ]}
           nodeExtent={[
             [0, 0],
-            [512, 512],
+            [LAYOUT_CONFIG.CANVAS_SIZE, LAYOUT_CONFIG.CANVAS_SIZE],
           ]}
           proOptions={{ hideAttribution: true }}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
@@ -1217,58 +1107,29 @@ function LayoutBoard({
       )}
 
       {/* Bounding boxes overlay - filter out overlapping ones */}
-      {detectedObjects
-        .filter((obj, index) => {
-          // Scale bounding boxes for StableDiffusion models (SD3) - reduce by half since image is 1024x1024 but display is 512x512
-          const scaleFactor = 1; // FLUX uses 1:1 scaling
-          const scaledBbox = [
-            obj.bbox[0] * scaleFactor,
-            obj.bbox[1] * scaleFactor,
-            obj.bbox[2] * scaleFactor,
-            obj.bbox[3] * scaleFactor,
-          ];
-
-          // Get existing layout boxes from resizable nodes
-          const layoutBoxes = nodes
-            .filter((n) => n.type === "resizable")
-            .map((n) => {
-              const screenPos = flowToScreenPosition(n.position);
-              const x1 = screenPos.x - LEFT_OFFSET;
-              const y1 = screenPos.y - TOP_OFFSET;
-              const x2 = x1 + (n.width || n.style?.width || 50);
-              const y2 = y1 + (n.height || n.style?.height || 50);
-              return [x1, y1, x2, y2];
-            });
-
-          // Check if detected object overlaps significantly with any layout box
-          const hasHighOverlap = layoutBoxes.some((layoutBox) => {
-            const iou = calculateIOU(scaledBbox, layoutBox);
-            return iou > 0.3; // Threshold for overlap (30%)
-          });
-
-          return !hasHighOverlap; // Only show if no high overlap
-        })
+      {filterOverlappingObjects(
+        detectedObjects, 
+        nodes, 
+        flowToScreenPosition, 
+        LEFT_OFFSET, 
+        TOP_OFFSET, 
+        LAYOUT_CONFIG.OVERLAP_THRESHOLD
+      )
         .map((obj, index) => {
           // Scale bounding boxes for StableDiffusion models (SD3) - reduce by half since image is 1024x1024 but display is 512x512
-          const scaleFactor = 1; // FLUX uses 1:1 scaling
-          const scaledBbox = [
-            obj.bbox[0] * scaleFactor,
-            obj.bbox[1] * scaleFactor,
-            obj.bbox[2] * scaleFactor,
-            obj.bbox[3] * scaleFactor,
-          ];
+          const scaledBbox = scaleDetectedObjectBbox(obj.bbox, LAYOUT_CONFIG.SCALE_FACTOR);
 
           return (
             <div
               key={index}
               style={{
                 position: "absolute",
-                left: `${(scaledBbox[0] / 512) * 100}%`,
-                top: `${(scaledBbox[1] / 512) * 100}%`,
-                width: `${((scaledBbox[2] - scaledBbox[0]) / 512) * 100}%`,
-                height: `${((scaledBbox[3] - scaledBbox[1]) / 512) * 100}%`,
-                border: "3px solid #ff0000",
-                backgroundColor: "rgba(255, 0, 0, 0.2)",
+                left: `${(scaledBbox[0] / LAYOUT_CONFIG.CANVAS_SIZE) * 100}%`,
+                top: `${(scaledBbox[1] / LAYOUT_CONFIG.CANVAS_SIZE) * 100}%`,
+                width: `${((scaledBbox[2] - scaledBbox[0]) / LAYOUT_CONFIG.CANVAS_SIZE) * 100}%`,
+                height: `${((scaledBbox[3] - scaledBbox[1]) / LAYOUT_CONFIG.CANVAS_SIZE) * 100}%`,
+                border: UI_CONFIG.BOUNDING_BOX_BORDER,
+                backgroundColor: UI_CONFIG.BOUNDING_BOX_BACKGROUND,
                 cursor: "pointer",
                 zIndex: 10,
                 transition: "all 0.2s ease",

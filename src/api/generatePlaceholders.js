@@ -98,9 +98,7 @@ JSON만 응답하세요:`;
         }))
       };
     });
-    
-    console.log(`🎯 Generated placeholderMap:`, placeholderMap);
-    
+        
     logEvent("api.generate_placeholders.succeeded", {
       object_count: Object.keys(placeholderMap).length,
       unique_value_count: uniqueValues.length

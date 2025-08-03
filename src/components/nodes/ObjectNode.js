@@ -163,7 +163,7 @@ const ObjectNode = ({
             attr: placeHolders[object.id]?.attr || []
           }
         };
-        onEdit?.(object.id, `{${object.id}_name}`, object.attributes, updatedPlaceHolders);
+        onEdit?.(object.id, defaultValue, object.attributes, updatedPlaceHolders); // {} 플레이스홀더 대신 기본값 직접 사용
       } else {
         onEdit?.(object.id, editingValue);
       }
@@ -171,10 +171,9 @@ const ObjectNode = ({
       if (isClassMode) {
         const { category, defaultValue } = parseClassInput(editingValue);
         const currentAttrs = placeHolders[object.id]?.attr || [];
-        const newAttrIndex = currentAttrs.length;
         const updatedAttributes = [
           ...(object.attributes || []),
-          `{${object.id}_attr_${newAttrIndex}}`,
+          defaultValue, // {} 플레이스홀더 대신 기본값 직접 사용
         ];
         const updatedPlaceHolders = {
           ...placeHolders,
@@ -191,10 +190,11 @@ const ObjectNode = ({
       const index = parseInt(editingMode.replace("attribute-", ""));
       if (isClassMode) {
         const { category, defaultValue } = parseClassInput(editingValue);
-        console.log("🔧 Editing attribute:", { category, defaultValue, objectId: object.id, index });
+
         const updated = [...object.attributes];
-        updated[index] = `{${object.id}_attr_${index}}`;
+        updated[index] = defaultValue; // {} 플레이스홀더 대신 기본값 직접 사용
         const currentAttrs = [...(placeHolders[object.id]?.attr || [])];
+        
         currentAttrs[index] = { name: category, defaultvalue: defaultValue };
         const updatedPlaceHolders = {
           ...placeHolders,
@@ -216,7 +216,22 @@ const ObjectNode = ({
 
   const handleDeleteAttribute = (index) => {
     const updated = object.attributes.filter((_, i) => i !== index);
-    onEdit?.(object.id, object.name, updated);
+    
+    if (isClassMode) {
+      // class mode에서는 placeHolders도 함께 업데이트
+      const currentAttrs = placeHolders[object.id]?.attr || [];
+      const updatedAttrs = currentAttrs.filter((_, i) => i !== index);
+      const updatedPlaceHolders = {
+        ...placeHolders,
+        [object.id]: {
+          name: placeHolders[object.id]?.name || null,
+          attr: updatedAttrs
+        }
+      };
+      onEdit?.(object.id, object.name, updated, updatedPlaceHolders);
+    } else {
+      onEdit?.(object.id, object.name, updated);
+    }
   };
 
   const handleExtract = () => {
@@ -348,7 +363,6 @@ const ObjectNode = ({
 
     // Class mode rendering
     if (isClassMode) {
-      const cleanId = attr.replace(/[{}]/g, "");
       const objectId = object.id;
       
       let category = "unknown";
@@ -367,10 +381,10 @@ const ObjectNode = ({
           category = "attribute";
         }
       }
-      // 추가 fallback: 원본 값이 placeholder 형태가 아닌 경우
-      else if (!attr.includes("{") && !attr.includes("}")) {
+      // 원본 값 사용 (더 이상 {} 체크하지 않음)
+      else {
         category = "attribute";
-        defaultValue = attr;
+        defaultValue = attr || "?";
       }
 
       return (
@@ -381,6 +395,9 @@ const ObjectNode = ({
             opacity,
             transition: "opacity 0.2s ease",
             minHeight: compact ? "16px" : "18px",
+            display: "flex",
+            alignItems: "center",
+            gap: "2px",
           }}
         >
           <div
@@ -399,6 +416,7 @@ const ObjectNode = ({
               display: "flex",
               flexDirection: "column",
               justifyContent: "center",
+              flex: 1,
             }}
             onDoubleClick={() => {
               if (isEditable && editingMode === null) {
@@ -432,6 +450,19 @@ const ObjectNode = ({
               {defaultValue}
             </div>
           </div>
+          {isEditable && (
+            <ToolbarButton
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteAttribute(index);
+              }}
+              title="Delete Attribute"
+              icon={<X size={compact ? 6 : 8} />}
+              danger={true}
+              tooltipPosition="top"
+              size="compact"
+            />
+          )}
         </div>
       );
     }
@@ -545,10 +576,10 @@ const ObjectNode = ({
         category = "object";
         defaultValue = object.defaultName;
       }
-      // 추가 fallback: 원본 값이 placeholder 형태가 아닌 경우
-      else if (!object.name.includes("{") && !object.name.includes("}")) {
+      // 원본 값 사용 (더 이상 {} 체크하지 않음)
+      else {
         category = "object";
-        defaultValue = object.name;
+        defaultValue = object.name || "?";
       }
 
       return (

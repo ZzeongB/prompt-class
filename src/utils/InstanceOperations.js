@@ -13,7 +13,6 @@ import { logEvent } from "../api/logEvent";
 
 export const generateInstanceLabel = (values) => {
   const mainValue = Object.values(values)[0] || "New";
-  console.log("Generating instance label from values:", values, "->", mainValue);
   return mainValue.charAt(0).toUpperCase() + mainValue.slice(1);
 };
 
@@ -31,8 +30,6 @@ export const createInstanceFromClass = async (classData, newValues = {}) => {
     newValues,
     classData.originalData?.sceneGraph
   );
-
-  console.log("Resolved sceneGraph:", sceneGraph);
 
   let textDescription = classData.template.textDescription || "";
   try {
@@ -221,7 +218,7 @@ export const extractObjectFromInstance = (objectId, sourceInstance) => {
 export const updateInstancesFromClassTemplate = async (updatedClass, instances) => {
   const instancesFromClass = instances.filter(instance => instance.classId === updatedClass.id);
   
-  const updatePromises = instancesFromClass.map(async (instance) => {
+  const updatePromises = instancesFromClass.map(async (instance, index) => {
     const newSceneGraph = applyClassUpdatesToInstance(
       updatedClass.template.sceneGraph,
       instance.overrides,
@@ -237,14 +234,17 @@ export const updateInstancesFromClassTemplate = async (updatedClass, instances) 
         console.error("Failed to update text description for instance:", instance.id, error);
         newTextDescription = updatedClass.template.textDescription || instance.textDescription;
       }
-    }
+    } 
 
-    return {
+    const updatedInstance = {
       ...instance,
       sceneGraph: newSceneGraph,
       textDescription: newTextDescription,
     };
+
+    return updatedInstance;
   });
 
-  return await Promise.all(updatePromises);
+  const results = await Promise.all(updatePromises);
+  return results;
 };

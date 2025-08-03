@@ -166,7 +166,6 @@ const ClassDetailModal = ({
   const handleCreateNewInstance = async () => {
     setIsCreatingInstance(true);
     try {
-      console.log("Creating instance with values:", instanceValues);
       const previewGraph = generatePreviewSceneGraph()
       const newInstance = await createInstanceFromClass(classData, previewGraph);
       onCreateInstance?.(newInstance);
