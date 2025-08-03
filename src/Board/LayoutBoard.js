@@ -30,10 +30,11 @@ import {
 } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
 import { getNormalizedBox } from "../utils/node/getNormalizedBox";
-import { 
-  calculateBboxDimensions
+import {
+  calculateBboxDimensions,
+  scaleDetectedObjectBbox
 } from "../utils/boundingBox";
-import { LAYOUT_CONFIG } from "../utils/layoutConstants";
+import { LAYOUT_CONFIG, UI_CONFIG } from "../utils/layoutConstants";
 import GhostNode from "../components/layout/GhostNode";
 import InlinePrompt from "../components/layout/InlinePrompt";
 import RelationshipInput from "../components/layout/RelationshipInput";
@@ -105,7 +106,7 @@ function LayoutBoard({
   // Helper function to calculate position and size from detected object or fallback
   const calculateNodePositionAndSize = (instance) => {
     let position, resizableSize;
-    
+
     if (instance.detectedObject && instance.detectedObject.bbox) {
       const scaledBbox = scaleDetectedObjectBbox(instance.detectedObject.bbox, LAYOUT_CONFIG.SCALE_FACTOR);
 
@@ -882,13 +883,13 @@ function LayoutBoard({
 
       <GhostNode ghostNode={ghostNode} />
 
-      <InlinePrompt 
+      <InlinePrompt
         inlinePrompt={inlinePrompt}
         onSubmit={handlePromptSubmit}
         onCancel={() => setInlinePrompt(null)}
       />
 
-      <RelationshipInput 
+      <RelationshipInput
         relationshipInput={relationshipInput}
         onSubmit={handleRelationshipSubmit}
         onCancel={() => {
@@ -931,7 +932,7 @@ function LayoutBoard({
         />
       )}
 
-      <ObjectOverlay 
+      <ObjectOverlay
         detectedObjects={detectedObjects}
         nodes={nodes}
         flowToScreenPosition={flowToScreenPosition}
