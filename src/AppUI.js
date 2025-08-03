@@ -32,7 +32,7 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
       if (
         e.message.includes(
           "ResizeObserver loop completed with undelivered notifications" ||
-            "ResizeObserver loop limit exceeded"
+          "ResizeObserver loop limit exceeded"
         )
       ) {
         const resizeObserverErr = document.getElementById(
@@ -93,7 +93,7 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
             style={{
               display: "flex",
               height: "600px",
-              width: "1500px",
+              width: isBaseline ? "542px" : "1500px",
               boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
               position: "relative",
               marginRight: "20px",
@@ -149,44 +149,45 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
                 )}
               </div>
             </div>
-            <div
-              style={{
-                flexGrow: 1,
-                marginLeft: "10px",
-                overflowY: "auto",
-                backgroundColor: "#f8fafc",
-                borderRadius: "8px",
-                boxShadow: "-1px 0 4px rgba(0,0,0,0.04)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-                marginTop: "12px",
-                marginRight: "12px",
-                marginBottom: "12px",
-                width: "400px",
-                position: "relative",
-                // height: "576px"
-              }}
-            >
+            {!isBaseline && (
               <div
                 style={{
-                  flex: 1,
-                  minWidth: 0,
-                  marginRight: isClassLibraryExpanded ? "300px" : "40px",
-                  transition: "margin-right 0.3s ease-in-out",
+                  flexGrow: 1,
+                  marginLeft: "10px",
+                  overflowY: "auto",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "8px",
+                  boxShadow: "-1px 0 4px rgba(0,0,0,0.04)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                  marginTop: "12px",
+                  marginRight: "12px",
+                  marginBottom: "12px",
+                  width: "400px",
+                  position: "relative",
+                  // height: "576px"
                 }}
               >
-                <InstanceBoard
-                  selectedInstanceId={selectedInstanceId}
-                  onInstanceSelect={onInstanceSelect}
-                />
-              </div>
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    marginRight: isClassLibraryExpanded ? "300px" : "40px",
+                    transition: "margin-right 0.3s ease-in-out",
+                  }}
+                >
+                  <InstanceBoard
+                    selectedInstanceId={selectedInstanceId}
+                    onInstanceSelect={onInstanceSelect}
+                  />
+                </div>
 
-              <ClassTreeBoard
-                onAddInstance={handleAddInstance}
-                onExpandChange={handleClassLibraryExpandChange}
-              />
-            </div>
+                <ClassTreeBoard
+                  onAddInstance={handleAddInstance}
+                  onExpandChange={handleClassLibraryExpandChange}
+                />
+              </div>)}
 
             {/* <CustomButton
               color="grey"
@@ -219,12 +220,12 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
 
           <>
             {isBaseline ? (
-              <BaselineLayoutBoardWithProvider onImageGenerated={() => {}} />
+              <BaselineLayoutBoardWithProvider onImageGenerated={() => { }} />
             ) : (
               <LayoutBoardWithProvider
-                onImageGenerated={() => {}}
+                onImageGenerated={() => { }}
                 newInstanceToAdd={null}
-                onInstanceAdded={() => {}}
+                onInstanceAdded={() => { }}
                 selectedInstanceId={selectedInstanceId}
                 onNodeSelect={onInstanceSelect}
               />
