@@ -304,38 +304,8 @@ function LayoutBoard({
     const newEdges = [];
 
     instances.forEach((instance) => {
-      // 1. 기존 intra-instance relationships 처리
-      if (instance.sceneGraph?.relationships) {
-        instance.sceneGraph.relationships.forEach((rel) => {
-          // 관계의 대상이 다른 인스턴스인지 확인
-          const targetInstance = instances.find((inst) =>
-            inst.sceneGraph?.objects?.some((obj) => obj.id === rel.target)
-          );
-
-          if (targetInstance && targetInstance.id !== instance.id) {
-            const edgeId = `${instance.id}-${targetInstance.id}-${rel.relation}`;
-            newEdges.push({
-              id: edgeId,
-              source: instance.id,
-              target: targetInstance.id,
-              type: "main",
-              data: {
-                relation: rel.relation || "related_to",
-                originalRelationship: rel,
-              },
-              style: {
-                stroke: "#cbd5e1",
-                strokeWidth: 1.5,
-              },
-              label: rel.relation || "related",
-              labelStyle: {
-                fontSize: "10px",
-                fontWeight: "500",
-              },
-            });
-          }
-        });
-      }
+      // 1. 기존 intra-instance relationships는 inter-instance edge를 생성하지 않음
+      // (inter-instance relationships는 extract로 생성된 것만 처리)
 
       // 2. Extract로 생성된 inter-instance relationships 처리
       if (instance.interInstanceRelationships) {

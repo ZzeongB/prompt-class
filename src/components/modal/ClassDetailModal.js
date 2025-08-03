@@ -168,6 +168,7 @@ const ClassDetailModal = ({
   const handleCreateNewInstance = async () => {
     setIsCreatingInstance(true);
     try {
+      console.log("Creating instance with values:", instanceValues);
       const newInstance = await createInstanceFromClass(classData, instanceValues);
       onCreateInstance?.(newInstance);
       setShowCreatePanel(false);
@@ -210,7 +211,7 @@ const ClassDetailModal = ({
         const newObj = { ...obj };
         
         // Replace placeholder in object name
-        if (newObj.name && newObj.name.includes('{') && newObj.name.includes('}')) {
+        if (newObj.name) {
           const objectId = newObj.id;
           const nameKey = `${objectId}_name`;
           if (instanceValues[nameKey]) {
@@ -221,7 +222,7 @@ const ClassDetailModal = ({
         // Replace placeholders in attributes
         if (newObj.attributes) {
           newObj.attributes = newObj.attributes.map((attr, index) => {
-            if (typeof attr === 'string' && attr.includes('{') && attr.includes('}')) {
+            if (typeof attr === 'string') {
               const objectId = newObj.id;
               const attrKey = `${objectId}_attr_${index}`;
               if (instanceValues[attrKey]) {

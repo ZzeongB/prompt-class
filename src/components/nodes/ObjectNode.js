@@ -155,7 +155,6 @@ const ObjectNode = ({
     if (editingMode === "name") {
       if (isClassMode) {
         const { category, defaultValue } = parseClassInput(editingValue);
-        console.log("🔧 Name editing:", { category, defaultValue, objectId: object.id });
         // 전체 placeHolders 구조를 유지하면서 해당 객체만 업데이트
         const updatedPlaceHolders = {
           ...placeHolders,
@@ -171,7 +170,6 @@ const ObjectNode = ({
     } else if (editingMode === "adding") {
       if (isClassMode) {
         const { category, defaultValue } = parseClassInput(editingValue);
-        console.log("🔧 Adding attribute:", { category, defaultValue, objectId: object.id });
         const currentAttrs = placeHolders[object.id]?.attr || [];
         const newAttrIndex = currentAttrs.length;
         const updatedAttributes = [
