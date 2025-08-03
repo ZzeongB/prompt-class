@@ -31,12 +31,14 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 import { 
-  calculateIOU, 
-  scaleDetectedObjectBbox, 
-  calculateBboxDimensions,
-  filterOverlappingObjects 
+  calculateBboxDimensions
 } from "../utils/boundingBox";
-import { LAYOUT_CONFIG, UI_CONFIG } from "../utils/layoutConstants";
+import { LAYOUT_CONFIG } from "../utils/layoutConstants";
+import GhostNode from "../components/layout/GhostNode";
+import InlinePrompt from "../components/layout/InlinePrompt";
+import RelationshipInput from "../components/layout/RelationshipInput";
+import ObjectOverlay from "../components/layout/ObjectOverlay";
+import ImageDisplay from "../components/layout/ImageDisplay";
 
 const nodeTypes = {
   simple: SimpleLayoutNode,
@@ -878,199 +880,22 @@ function LayoutBoard({
         </div>
       </div>
 
-      {ghostNode && (
-        <div
-          style={{
-            position: "absolute",
-            left: ghostNode.position.x,
-            top: ghostNode.position.y,
-            padding: "8px 12px",
-            border: "1px solid #d1d5db",
-            borderRadius: "6px",
-            backgroundColor: "#ffffff",
-            opacity: UI_CONFIG.GHOST_NODE_OPACITY,
-            pointerEvents: "none",
-            zIndex: 999,
-            fontSize: "12px",
-            fontWeight: "500",
-          }}
-        >
-          {ghostNode.data?.label}
-        </div>
-      )}
+      <GhostNode ghostNode={ghostNode} />
 
-      {inlinePrompt && (
-        <div
-          style={{
-            position: "absolute",
-            left: inlinePrompt.position.x,
-            top: inlinePrompt.position.y,
-            zIndex: 1000,
-            backgroundColor: "#ffffff",
-            border: "2px solid #3b82f6",
-            borderRadius: "8px",
-            padding: "12px",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-            minWidth: "200px",
-          }}
-        >
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const input = e.target.elements.prompt;
-              handlePromptSubmit(input.value);
-            }}
-          >
-            <input
-              name="prompt"
-              type="text"
-              placeholder="Describe what you want..."
-              autoFocus
-              style={{
-                width: "204px",
-                padding: "8px 12px",
-                border: "1px solid #d1d5db",
-                borderRadius: "4px",
-                fontSize: "14px",
-                marginBottom: "8px",
-                outline: "none",
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setInlinePrompt(null);
-                }
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                justifyContent: "flex-end",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setInlinePrompt(null)}
-                style={{
-                  padding: "6px 12px",
-                  backgroundColor: "#f3f4f6",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                style={{
-                  padding: "6px 12px",
-                  backgroundColor: "#3b82f6",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                }}
-              >
-                Create
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <InlinePrompt 
+        inlinePrompt={inlinePrompt}
+        onSubmit={handlePromptSubmit}
+        onCancel={() => setInlinePrompt(null)}
+      />
 
-      {relationshipInput && (
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)",
-            zIndex: 1000,
-            backgroundColor: "#ffffff",
-            border: "2px solid #3b82f6",
-            borderRadius: "8px",
-            padding: "16px",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-            minWidth: "250px",
-          }}
-        >
-          <div style={{ marginBottom: "12px", fontSize: "14px", fontWeight: "500" }}>
-            Define Relationship
-          </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const input = e.target.elements.relationship;
-              handleRelationshipSubmit(input.value);
-            }}
-          >
-            <input
-              name="relationship"
-              type="text"
-              placeholder="Enter relationship (e.g., 'next to', 'above', 'contains')"
-              autoFocus
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                border: "1px solid #d1d5db",
-                borderRadius: "4px",
-                fontSize: "14px",
-                marginBottom: "12px",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setRelationshipInput(null);
-                  setEdges((eds) => eds.filter((edge) => edge.id !== relationshipInput.edgeId));
-                }
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                justifyContent: "flex-end",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setRelationshipInput(null);
-                  setEdges((eds) => eds.filter((edge) => edge.id !== relationshipInput.edgeId));
-                }}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#f3f4f6",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#3b82f6",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                }}
-              >
-                Create
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <RelationshipInput 
+        relationshipInput={relationshipInput}
+        onSubmit={handleRelationshipSubmit}
+        onCancel={() => {
+          setRelationshipInput(null);
+          setEdges((eds) => eds.filter((edge) => edge.id !== relationshipInput?.edgeId));
+        }}
+      />
 
       {!showImageOnly && (
         <ReactFlow
@@ -1106,128 +931,18 @@ function LayoutBoard({
         />
       )}
 
-      {/* Bounding boxes overlay - filter out overlapping ones */}
-      {filterOverlappingObjects(
-        detectedObjects, 
-        nodes, 
-        flowToScreenPosition, 
-        LEFT_OFFSET, 
-        TOP_OFFSET, 
-        LAYOUT_CONFIG.OVERLAP_THRESHOLD
-      )
-        .map((obj, index) => {
-          // Scale bounding boxes for StableDiffusion models (SD3) - reduce by half since image is 1024x1024 but display is 512x512
-          const scaledBbox = scaleDetectedObjectBbox(obj.bbox, LAYOUT_CONFIG.SCALE_FACTOR);
+      <ObjectOverlay 
+        detectedObjects={detectedObjects}
+        nodes={nodes}
+        flowToScreenPosition={flowToScreenPosition}
+        leftOffset={LEFT_OFFSET}
+        topOffset={TOP_OFFSET}
+        hoveredObject={hoveredObject}
+        setHoveredObject={setHoveredObject}
+        onObjectClick={handleObjectClick}
+      />
 
-          return (
-            <div
-              key={index}
-              style={{
-                position: "absolute",
-                left: `${(scaledBbox[0] / LAYOUT_CONFIG.CANVAS_SIZE) * 100}%`,
-                top: `${(scaledBbox[1] / LAYOUT_CONFIG.CANVAS_SIZE) * 100}%`,
-                width: `${((scaledBbox[2] - scaledBbox[0]) / LAYOUT_CONFIG.CANVAS_SIZE) * 100}%`,
-                height: `${((scaledBbox[3] - scaledBbox[1]) / LAYOUT_CONFIG.CANVAS_SIZE) * 100}%`,
-                border: UI_CONFIG.BOUNDING_BOX_BORDER,
-                backgroundColor: UI_CONFIG.BOUNDING_BOX_BACKGROUND,
-                cursor: "pointer",
-                zIndex: 10,
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={() => setHoveredObject(index)}
-              onMouseLeave={() => setHoveredObject(null)}
-              onClick={() => handleObjectClick(obj)}
-              title={`${obj.label} (${(obj.confidence * 100).toFixed(1)}%)`}
-            >
-              {hoveredObject === index && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "-25px",
-                    left: "0",
-                    backgroundColor: "#333",
-                    color: "white",
-                    padding: "2px 6px",
-                    borderRadius: "3px",
-                    fontSize: "12px",
-                    whiteSpace: "nowrap",
-                    zIndex: 20,
-                  }}
-                >
-                  {obj.label} ({(obj.confidence * 100).toFixed(1)}%)
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-      {showImageOnly && imageBoard && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            height: "512px",
-            position: "relative",
-          }}
-        // onMouseEnter={() => !showImageOnly && setShowBoundingBoxes(true)}
-        // onMouseLeave={() => {
-        //   setShowBoundingBoxes(false);
-        //   setHoveredObject(null);
-        // }}
-        >
-          <img
-            src={imageBoard}
-            alt="Generated"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              zIndex: 0,
-              objectFit: "contain",
-            }}
-          />
-
-          {/* Detection status indicator */}
-          {/* {isDetecting && (
-            <div
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                backgroundColor: "rgba(0,0,0,0.7)",
-                color: "white",
-                padding: "5px 10px",
-                borderRadius: "15px",
-                fontSize: "12px",
-                zIndex: 15
-              }}
-            >
-              Detecting objects...
-            </div>
-          )} */}
-
-          {/* Current model indicator - centered */}
-          <div
-            style={{
-              position: "absolute",
-              top: "10px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              backgroundColor: "rgba(0,0,0,0.5)",
-              color: "white",
-              padding: "3px 8px",
-              borderRadius: "10px",
-              fontSize: "11px",
-              zIndex: 15,
-            }}
-          >
-            {currentModel.toUpperCase()}
-          </div>
-        </div>
-      )}
+      {showImageOnly && <ImageDisplay imageBoard={imageBoard} currentModel={currentModel} />}
     </div>
   );
 }
