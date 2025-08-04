@@ -1,4 +1,5 @@
 import { API_CONFIG, callOpenAI } from "./utils";
+import { logEvent } from "./logEvent";
 
 // JSON 응답 파싱 함수
 const parseJSONResponse = (content, fallback = null) => {
@@ -55,6 +56,12 @@ export const generateTextToGraph = async ({
   }
 
   const hasPrevious = previousSceneGraph && previousTextDescription;
+
+  logEvent("api.generate_text_to_graph.started", {
+    has_previous: hasPrevious,
+    text_length: newTextDescription.length,
+    previous_objects_count: previousSceneGraph?.objects?.length || 0
+  });
 
   const basePrompt = `
 You are a precise scene graph generator. Convert the given text description into a structured scene graph in strict JSON format.
@@ -147,9 +154,23 @@ Respond with JSON only:`;
       root: "object1",
     };
 
-    return parseJSONResponse(content, fallback);
+    const result = parseJSONResponse(content, fallback);
+    
+    logEvent("api.generate_text_to_graph.succeeded", {
+      objects_count: result.objects?.length || 0,
+      relationships_count: result.relationships?.length || 0,
+      root_object: result.root
+    });
+
+    return result;
   } catch (error) {
     console.error("generateTextToGraph Error:", error);
+    
+    logEvent("api.generate_text_to_graph.error", {
+      error_message: error.message,
+      text_description: newTextDescription
+    });
+    
     throw new Error(`Failed to generate scene graph: ${error.message}`);
   }
 };
@@ -164,6 +185,12 @@ export const generateSceneGraphToText = async ({
   }
 
   const hasPrevious = previousSceneGraph && previousTextDescription;
+
+  logEvent("api.generate_scene_graph_to_text.started", {
+    has_previous: hasPrevious,
+    objects_count: newSceneGraph.objects?.length || 0,
+    relationships_count: newSceneGraph.relationships?.length || 0
+  });
 
   const systemPrompt = `
 You are given:
@@ -200,9 +227,23 @@ Generate a natural description:`;
       [{ role: "user", content: systemPrompt }],
       512
     );
-    return content.trim();
+    
+    const result = content.trim();
+    
+    logEvent("api.generate_scene_graph_to_text.succeeded", {
+      text_length: result.length,
+      generated_text: result.substring(0, 100) // Log first 100 chars for debugging
+    });
+    
+    return result;
   } catch (error) {
     console.error("generateSceneGraphToText Error:", error);
+    
+    logEvent("api.generate_scene_graph_to_text.error", {
+      error_message: error.message,
+      objects_count: newSceneGraph.objects?.length || 0
+    });
+    
     throw new Error(`Failed to generate text description: ${error.message}`);
   }
 };
@@ -211,6 +252,10 @@ export const generateInstanceLabelFromDescription = async (textDescription) => {
   if (!textDescription || typeof textDescription !== "string") {
     throw new Error("Valid text description is required");
   }
+
+  logEvent("api.generate_instance_label_from_description.started", {
+    text_length: textDescription.length
+  });
 
   const systemPrompt = `
 Extract the main object/subject from the given description and return it as a simple label (1-2 words max).
@@ -229,11 +274,28 @@ Main object:`;
       [{ role: "user", content: systemPrompt }],
       50
     );
-    return content.trim().replace(/['"]/g, ""); // 따옴표 제거
+    
+    const result = content.trim().replace(/['"]/g, ""); // 따옴표 제거
+    
+    logEvent("api.generate_instance_label_from_description.succeeded", {
+      generated_label: result,
+      original_text: textDescription.substring(0, 50) // Log first 50 chars for context
+    });
+    
+    return result;
   } catch (error) {
     console.error("generateInstanceLabelFromDescription Error:", error);
+    
     // fallback으로 description의 첫 번째 단어 사용
     const firstWord = textDescription.split(" ")[0];
-    return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+    const fallbackLabel = firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+    
+    logEvent("api.generate_instance_label_from_description.fallback", {
+      error_message: error.message,
+      fallback_label: fallbackLabel,
+      original_text: textDescription.substring(0, 50)
+    });
+    
+    return fallbackLabel;
   }
 };

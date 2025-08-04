@@ -17,6 +17,7 @@ import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 import { generateImageFromInstanceData } from "../api/generateImage";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
+import ImageQualityRatingModal from "../components/modal/ImageQualityRatingModal";
 import { useImage } from "../context/ImageContext";
 import { logEvent } from "../api/logEvent";
 import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
@@ -51,6 +52,8 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
   const [editingNodeId, setEditingNodeId] = useState(null);
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
   const [toolbarVisible, setToolbarVisible] = useState(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [generatedImageForRating, setGeneratedImageForRating] = useState(null);
   const toolbarTimeoutRef = useRef(null);
 
   const { setImage } = useImage();
@@ -105,6 +108,10 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
   }, [isGenerating]);
 
   const handleAddNewNode = () => {
+    logEvent("layout_board.new_box_initiated", {
+      board_type: "baseline",
+      timestamp: new Date().toISOString(),
+    });
     setGhostNode({
       id: `ghost-${Date.now()}`,
       type: "simple",
@@ -292,6 +299,15 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
     setEditingNodeId(nodeId);
   }, []);
 
+  const handleRatingSubmit = (rating) => {
+    logEvent("image_quality_rated", {
+      rating: rating,
+      image_url: generatedImageForRating,
+      global_caption: globalCaption,
+    });
+    console.log("Image quality rating:", rating);
+  };
+
   const handleSaveEdit = useCallback((nodeId, newLabel) => {
     setNodes((prevNodes) => {
       return prevNodes.map(node => {
@@ -388,6 +404,8 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
         onImageGenerated(response.image);
         setImage(response.image);
         setImageBoard(response.image);
+        setGeneratedImageForRating(response.image);
+        setShowRatingModal(true);
         setGlobalCaption(response.globalCaption || "");
       } catch (err) {
         const durationMs = performance.now() - startTime;
@@ -704,6 +722,13 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           />
         </div>
       )}
+      
+      <ImageQualityRatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        imageUrl={generatedImageForRating}
+        onRatingSubmit={handleRatingSubmit}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import EditableLabel from "../nodeComponents/EditableLabel";
 import DeleteButton from "../nodeComponents/DeleteButton";
+import { logEvent } from "../../api/logEvent";
 
 const RelationshipNode = ({
   relationship,
@@ -16,10 +17,27 @@ const RelationshipNode = ({
   const targetObject = objects.find((obj) => obj.id === relationship.target);
 
   const handleEdit = (newValue) => {
+    logEvent("relationship_node.edited", {
+      relationship_id: `${relationship.source}-${relationship.target}`,
+      source_object_id: relationship.source,
+      target_object_id: relationship.target,
+      old_relation: relationship.relation,
+      new_relation: newValue,
+      source_object_name: sourceObject?.name,
+      target_object_name: targetObject?.name,
+    });
     onEdit?.(relationship.source, relationship.target, newValue);
   };
 
   const handleDelete = () => {
+    logEvent("relationship_node.deleted", {
+      relationship_id: `${relationship.source}-${relationship.target}`,
+      source_object_id: relationship.source,
+      target_object_id: relationship.target,
+      relation: relationship.relation,
+      source_object_name: sourceObject?.name,
+      target_object_name: targetObject?.name,
+    });
     onDelete?.(relationship.source, relationship.target);
   };
 
@@ -32,7 +50,17 @@ const RelationshipNode = ({
         position: "relative",
         // zIndex: 10,
       }}
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        logEvent("relationship_node.hovered", {
+          relationship_id: `${relationship.source}-${relationship.target}`,
+          source_object_id: relationship.source,
+          target_object_id: relationship.target,
+          relation: relationship.relation,
+          source_object_name: sourceObject?.name,
+          target_object_name: targetObject?.name,
+        });
+      }}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
@@ -40,14 +68,12 @@ const RelationshipNode = ({
           display: "flex",
           alignItems: "center",
           gap: compact ? "3px" : "4px",
-          // backgroundColor: "rgba(255, 255, 255, 0.9)",
+          border: "1px solid #86efac",
+          backgroundColor: isHovered ? "#bbf7d0" : "#dcfce7",
           borderRadius: "4px",
           padding: compact ? "1px 2px" : "2px 3px",
-          // boxShadow: isHovered
-          //   ? "0 2px 8px rgba(0, 0, 0, 0.15)"
-          //   : "0 1px 3px rgba(0, 0, 0, 0.1)",
-          // border: "1px solid rgba(255, 255, 255, 0.8)",
           backdropFilter: "blur(2px)",
+          transition: "all 0.2s ease",
         }}
       >
         {isEditable ? (
@@ -55,8 +81,8 @@ const RelationshipNode = ({
             value={relationship.relation}
             onSave={handleEdit}
             textStyle={{
-              border: "1px solid #86efac",
-              backgroundColor: isHovered ? "#bbf7d0" : "#dcfce7",
+              border: "none",
+              backgroundColor: "transparent",
               color: "#15803d",
               fontSize: compact ? "10px" : "11px",
               padding: compact ? "1px 3px" : "2px 4px",
@@ -82,8 +108,8 @@ const RelationshipNode = ({
         ) : (
           <div
             style={{
-              border: "1px solid #86efac",
-              backgroundColor: isHovered ? "#bbf7d0" : "#dcfce7",
+              border: "none",
+              backgroundColor: "transparent",
               color: "#15803d",
               fontSize: compact ? "10px" : "11px",
               padding: compact ? "1px 3px" : "2px 4px",

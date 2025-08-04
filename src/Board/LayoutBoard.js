@@ -21,6 +21,7 @@ import {
 // Model switching removed - always using FLUX
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
+import ImageQualityRatingModal from "../components/modal/ImageQualityRatingModal";
 import { useImage } from "../context/ImageContext";
 import { useClassContext } from "../context/ClassContext";
 import { logEvent } from "../api/logEvent";
@@ -72,6 +73,8 @@ function LayoutBoard({
   // const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
   const [hoveredObject, setHoveredObject] = useState(null);
   const [relationshipInput, setRelationshipInput] = useState(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [generatedImageForRating, setGeneratedImageForRating] = useState(null);
   // Always use FLUX model
   const currentModel = "flux";
 
@@ -343,6 +346,10 @@ function LayoutBoard({
   };
 
   const handleAddNewNode = () => {
+    logEvent("layout_board.new_box_initiated", {
+      board_type: "advanced",
+      timestamp: new Date().toISOString(),
+    });
     setGhostNode({
       id: `ghost-${Date.now()}`,
       type: "simple",
@@ -372,12 +379,22 @@ function LayoutBoard({
     e.stopPropagation();
 
     if (nodes.filter((n) => n.type !== "resizable").length >= LAYOUT_CONFIG.MAX_NODES) {
+      logEvent("layout_board.new_box_max_reached", {
+        max_nodes: LAYOUT_CONFIG.MAX_NODES,
+        current_nodes: nodes.filter((n) => n.type !== "resizable").length,
+      });
       alert(`최대 ${LAYOUT_CONFIG.MAX_NODES}개의 노드까지만 생성할 수 있습니다.`);
       setGhostNode(null);
       return;
     }
 
     const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+
+    logEvent("layout_board.new_box_positioned", {
+      position: position,
+      screen_position: { x: e.clientX, y: e.clientY },
+      board_type: "advanced",
+    });
 
     // 인라인 프롬프트 입력창 표시
     setInlinePrompt({
@@ -588,6 +605,8 @@ function LayoutBoard({
         onImageGenerated(response.image);
         setImage(response.image);
         setImageBoard(response.image);
+        setGeneratedImageForRating(response.image);
+        setShowRatingModal(true);
         setGlobalCaption(response.globalCaption || "");
 
         // Use integrated object detection results from backend
@@ -813,6 +832,15 @@ function LayoutBoard({
     setRelationshipInput(null);
   }, [relationshipInput, setEdges]);
 
+  const handleRatingSubmit = (rating) => {
+    logEvent("image_quality_rated", {
+      rating: rating,
+      image_url: generatedImageForRating,
+      global_caption: globalCaption,
+    });
+    console.log("Image quality rating:", rating);
+  };
+
   return (
     <div
       className="reactflow-wrapper"
@@ -944,6 +972,13 @@ function LayoutBoard({
       />
 
       {showImageOnly && <ImageDisplay imageBoard={imageBoard} currentModel={currentModel} />}
+      
+      <ImageQualityRatingModal
+        isOpen={showRatingModal}
+        onClose={() => setShowRatingModal(false)}
+        imageUrl={generatedImageForRating}
+        onRatingSubmit={handleRatingSubmit}
+      />
     </div>
   );
 }

@@ -662,7 +662,7 @@ export default function SceneGraphVisualizer({
                 backgroundColor:
                   highlightedTerm === `rel_${i}` ? "#fef3c7" : "transparent",
                 transition: "all 0.2s ease",
-                borderRadius: "3px"
+                borderRadius: "6px"
               }}
               onMouseEnter={() => {
                   setHoveredObject(`rel_${i}`);

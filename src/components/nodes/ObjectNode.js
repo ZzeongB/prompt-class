@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronRight, ChevronDown, X, Plus, ExternalLink } from "lucide-react";
 import { ToolbarButton } from "../nodeComponents/NodeToolbarMenu";
+import { logEvent } from "../../api/logEvent";
 
 const ObjectNode = ({
   object,
@@ -80,6 +81,13 @@ const ObjectNode = ({
       const deltaY = Math.abs(e.clientY - (dragPosition.y + dragOffset.y));
 
       if (deltaX > dragThreshold || deltaY > dragThreshold) {
+        logEvent("object_node.drag.started", {
+          object_id: object.id,
+          object_name: object.name,
+          parent_instance_id: parentInstanceId,
+          is_class_mode: isClassMode,
+        });
+        
         setDragStarted(true);
         setIsDragging(true);
         onDragStart?.(object, parentInstanceId);
@@ -113,6 +121,14 @@ const ObjectNode = ({
       const dropX = e.clientX;
       const dropY = e.clientY;
 
+      logEvent("object_node.drag.ended", {
+        object_id: object.id,
+        object_name: object.name,
+        parent_instance_id: parentInstanceId,
+        drop_position: { x: dropX, y: dropY },
+        is_class_mode: isClassMode,
+      });
+
       onDragEnd?.(object, parentInstanceId, { x: dropX, y: dropY });
 
       document.body.style.userSelect = "";
@@ -136,11 +152,24 @@ const ObjectNode = ({
 
   // 편집 관련 함수들
   const startEditing = (mode, initialValue = "") => {
+    logEvent("object_node.edit.started", {
+      object_id: object.id,
+      object_name: object.name,
+      edit_mode: mode,
+      is_class_mode: isClassMode,
+      parent_instance_id: parentInstanceId,
+    });
     setEditingMode(mode);
     setEditingValue(initialValue);
   };
 
   const cancelEditing = () => {
+    logEvent("object_node.edit.cancelled", {
+      object_id: object.id,
+      object_name: object.name,
+      edit_mode: editingMode,
+      is_class_mode: isClassMode,
+    });
     setEditingMode(null);
     setEditingValue("");
     setNewAttributeValue("");
@@ -151,6 +180,15 @@ const ObjectNode = ({
       cancelEditing();
       return;
     }
+
+    logEvent("object_node.edit.saved", {
+      object_id: object.id,
+      object_name: object.name,
+      edit_mode: editingMode,
+      new_value: editingValue,
+      is_class_mode: isClassMode,
+      parent_instance_id: parentInstanceId,
+    });
 
     if (editingMode === "name") {
       if (isClassMode) {
@@ -215,6 +253,15 @@ const ObjectNode = ({
   };
 
   const handleDeleteAttribute = (index) => {
+    logEvent("object_node.attribute.deleted", {
+      object_id: object.id,
+      object_name: object.name,
+      attribute_index: index,
+      attribute_value: object.attributes[index],
+      is_class_mode: isClassMode,
+      parent_instance_id: parentInstanceId,
+    });
+    
     const updated = object.attributes.filter((_, i) => i !== index);
     
     if (isClassMode) {
@@ -235,12 +282,29 @@ const ObjectNode = ({
   };
 
   const handleExtract = () => {
+    logEvent("object_node.extract.initiated", {
+      object_id: object.id,
+      object_name: object.name,
+      parent_instance_id: parentInstanceId,
+    });
+    
     if (
       window.confirm(
         `Extract "${object.name}" as a separate instance?\n\nThis will:\n• Create a new independent instance with this object\n• Connect it to the original instance via existing relationships`
       )
     ) {
+      logEvent("object_node.extract.confirmed", {
+        object_id: object.id,
+        object_name: object.name,
+        parent_instance_id: parentInstanceId,
+      });
       onExtract?.(object.id, parentInstanceId);
+    } else {
+      logEvent("object_node.extract.cancelled", {
+        object_id: object.id,
+        object_name: object.name,
+        parent_instance_id: parentInstanceId,
+      });
     }
   };
 
@@ -667,7 +731,15 @@ const ObjectNode = ({
       <div
         ref={dragRef}
         style={nodeStyle}
-        onMouseEnter={() => setIsHovered(true)}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          logEvent("object_node.hovered", {
+            object_id: object.id,
+            object_name: object.name,
+            parent_instance_id: parentInstanceId,
+            is_class_mode: isClassMode,
+          });
+        }}
         onMouseLeave={() => setIsHovered(false)}
         onMouseDown={handleMouseDown}
       >
@@ -788,6 +860,13 @@ const ObjectNode = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
+              logEvent("object_node.expand_collapse", {
+                object_id: object.id,
+                object_name: object.name,
+                action: expanded ? "collapse" : "expand",
+                parent_instance_id: parentInstanceId,
+                is_class_mode: isClassMode,
+              });
               setExpanded(!expanded);
             }}
             style={{

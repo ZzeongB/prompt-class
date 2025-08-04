@@ -41,7 +41,7 @@ export const createInstanceFromClass = async (classData, newValues = {}) => {
 
   const newInstance = {
     id: `instance-${uuidv4()}`,
-    instanceLabel: classData.name, //generateInstanceLabel(newValues),
+    instanceLabel: generateInstanceLabel(newValues),
     sceneGraph,
     textDescription,
     createdAt: new Date().toISOString(),
