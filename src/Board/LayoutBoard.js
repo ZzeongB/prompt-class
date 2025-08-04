@@ -22,7 +22,6 @@ import {
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import ImageQualityRatingModal from "../components/modal/ImageQualityRatingModal";
-import { useImage } from "../context/ImageContext";
 import { useClassContext } from "../context/ClassContext";
 import { logEvent } from "../api/logEvent";
 import {
@@ -30,6 +29,7 @@ import {
   TOP_OFFSET,
 } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
+import { loadBaseImages } from "../utils/imageUtils";
 import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 import {
   calculateBboxDimensions,
@@ -75,10 +75,10 @@ function LayoutBoard({
   const [relationshipInput, setRelationshipInput] = useState(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [generatedImageForRating, setGeneratedImageForRating] = useState(null);
+  const [baseImages, setBaseImages] = useState({});
   // Always use FLUX model
   const currentModel = "flux";
 
-  const { setImage } = useImage();
   const { instances, classes, setInstances } = useClassContext();
 
   const syncFromReactFlow = useRef(false);
@@ -152,6 +152,15 @@ function LayoutBoard({
       });
     });
   }, [selectedInstanceId]);
+
+  // Load base images on component mount
+  useEffect(() => {
+    const loadImages = async () => {
+      const images = await loadBaseImages();
+      setBaseImages(images);
+    };
+    loadImages();
+  }, []);
 
   // Load current model on component mount
   useEffect(() => {
@@ -603,7 +612,6 @@ function LayoutBoard({
         );
 
         onImageGenerated(response.image);
-        setImage(response.image);
         setImageBoard(response.image);
         setGeneratedImageForRating(response.image);
         setShowRatingModal(true);
@@ -840,6 +848,124 @@ function LayoutBoard({
     });
   };
 
+  const getBaseScenarios = () => [
+    {
+      id: 1,
+      caption: "A red tomato character",
+      baseImage: baseImages.tomato,
+      instances: [
+        {
+          id: "tomato-1",
+          label: "Tomato",
+          description: "A red tomato character",
+          position: { x: 83, y: 163 },
+          size: { width: 270, height: 348 }
+        }
+      ]
+    },
+    {
+      id: 2,
+      caption: "An animation-style racing car",
+      baseImage: baseImages.car,
+      instances: [
+        {
+          id: "car-1",
+          label: "Car",
+          description: "An animation-style racing car",
+          position: { x: 72, y: 261 },
+          size: { width: 280, height: 165 }
+        }
+      ]
+    },
+    {
+      id: 3,
+      caption: "Soccer player",
+      baseImage: baseImages.player,
+      instances: [
+        {
+          id: "player-1",
+          label: "Player",
+          description: "Soccer player",
+          position: { x: 100, y: 208 },
+          size: { width: 120, height: 328 }
+        }
+      ]
+    }
+  ];
+
+  const handleLoadBaseScenario = (scenarioId) => {
+    const baseScenarios = getBaseScenarios();
+    const scenario = baseScenarios.find(s => s.id === scenarioId);
+    if (!scenario) return;
+
+    // Clear existing nodes and instances
+    setNodes([]);
+    setInstances([]);
+    setGlobalCaption(scenario.caption);
+
+    // Create instances and nodes from scenario data
+    const newInstances = [];
+    const newNodes = [];
+
+    scenario.instances.forEach(instanceData => {
+      const sharedId = instanceData.id;
+      const position = screenToFlowPosition({
+        x: instanceData.position.x + LEFT_OFFSET,
+        y: instanceData.position.y + TOP_OFFSET
+      });
+
+      // Create instance for ClassContext
+      const instance = {
+        id: sharedId,
+        instanceLabel: instanceData.label,
+        textDescription: instanceData.description,
+        sceneGraph: { objects: [], relationships: [] },
+        createdAt: new Date().toISOString(),
+        isFromClass: false,
+        classId: null,
+        overrides: {},
+        isGenerating: false,
+      };
+
+      newInstances.push(instance);
+
+      // Create nodes for ReactFlow
+      const objNode = {
+        id: sharedId,
+        type: "simple",
+        position,
+        data: createNodeDataFromInstance(instance, selectedInstanceId),
+        style: { height: 40, width: 120 },
+      };
+
+      const resizableNode = {
+        id: `${sharedId}-resizable`,
+        type: "resizable",
+        position,
+        data: { ...objNode.data },
+        style: instanceData.size,
+      };
+
+      newNodes.push(resizableNode, objNode);
+    });
+
+    setInstances(newInstances);
+    setNodes(newNodes);
+
+    // Load base image if available
+    if (scenario.baseImage) {
+      setImageBoard(scenario.baseImage);
+      onImageGenerated(scenario.baseImage);
+    }
+
+    logEvent("base_scenario_loaded", {
+      scenarioId,
+      instanceCount: scenario.instances.length,
+      caption: scenario.caption,
+      baseImage: scenario.baseImage
+    });
+  };
+
   return (
     <div
       className="reactflow-wrapper"
@@ -885,6 +1011,7 @@ function LayoutBoard({
           </span>
         </CustomButton>
 
+
         <div
           style={{
             position: "absolute",
@@ -904,6 +1031,38 @@ function LayoutBoard({
             disabled={isGenerating}
           >
             {isGenerating ? "Generating" : "Generate"}
+          </CustomButton>
+        </div>
+
+
+        <div style={{
+          display: "flex",
+          gap: "8px",
+          marginTop: "8px",
+          justifyContent: "center",
+          position: "absolute",
+          bottom: "-80px",
+        }}>
+          <CustomButton
+            color="neutral"
+            size="sm"
+            onClick={() => handleLoadBaseScenario(1)}
+          >
+            Scenario 1
+          </CustomButton>
+          <CustomButton
+            color="neutral"
+            size="sm"
+            onClick={() => handleLoadBaseScenario(2)}
+          >
+            Scenario 2
+          </CustomButton>
+          <CustomButton
+            color="neutral"
+            size="sm"
+            onClick={() => handleLoadBaseScenario(3)}
+          >
+            Scenario 3
           </CustomButton>
         </div>
       </div>
@@ -971,7 +1130,7 @@ function LayoutBoard({
       />
 
       {showImageOnly && <ImageDisplay imageBoard={imageBoard} currentModel={currentModel} />}
-      
+
       <ImageQualityRatingModal
         isOpen={showRatingModal}
         onClose={() => setShowRatingModal(false)}

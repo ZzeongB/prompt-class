@@ -23,7 +23,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
           selected_rating: selectedRating,
           // image_url: imageUrl,
         });
-        alert("⚠️ 품질 평가가 필요합니다!\n\n생성된 이미지의 품질을 1-7점으로 평가한 후 '평가 완료' 버튼을 눌러주세요.");
+        alert("⚠️ 평가가 필요합니다!\n\n생성된 이미지를 1-7점으로 평가한 후 '평가 완료' 버튼을 눌러주세요.");
       }
     };
 
@@ -65,7 +65,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
     });
     
     // 경고 메시지 표시
-    alert("⚠️ 품질 평가가 필요합니다!\n\n생성된 이미지의 품질을 1-7점으로 평가한 후 '평가 완료' 버튼을 눌러주세요.");
+    alert("⚠️ 평가가 필요합니다!\n\n생성된 이미지를 1-7점으로 평가한 후 '평가 완료' 버튼을 눌러주세요.");
   };
 
   if (!isOpen) return null;
@@ -80,7 +80,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
     }}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>이미지 품질 평가</h3>
+          <h3>이미지 평가</h3>
           <button className="close-button disabled-close" onClick={handleCancel} title="평가를 완료해야 닫을 수 있습니다">
             ×
           </button>
@@ -92,7 +92,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
           </div>
           
           <div className="rating-section">
-            <p><strong>생성된 이미지의 품질을 1-7점으로 평가해주세요:</strong></p>
+            <p><strong>생성된 이미지가 의도한 대로 생성되었나요? 1-7점으로 평가해주세요:</strong></p>
             <p style={{ fontSize: '14px', color: '#666', margin: '8px 0 16px 0' }}>
               ※ 평가는 필수이며, 평가 완료 후에만 창을 닫을 수 있습니다.
             </p>

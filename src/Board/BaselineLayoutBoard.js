@@ -18,7 +18,6 @@ import { generateImageFromInstanceData } from "../api/generateImage";
 import ProgressBar from "../components/ProgressBar";
 import CustomButton from "../components/CustomButton";
 import ImageQualityRatingModal from "../components/modal/ImageQualityRatingModal";
-import { useImage } from "../context/ImageContext";
 import { logEvent } from "../api/logEvent";
 import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
 import { Edit2, Trash2 } from "lucide-react";
@@ -27,6 +26,7 @@ import {
   TOP_OFFSET,
 } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
+import { loadBaseImages } from "../utils/imageUtils";
 
 
 const edgeTypes = {
@@ -54,9 +54,17 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
   const [toolbarVisible, setToolbarVisible] = useState(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [generatedImageForRating, setGeneratedImageForRating] = useState(null);
+  const [baseImages, setBaseImages] = useState({});
   const toolbarTimeoutRef = useRef(null);
 
-  const { setImage } = useImage();
+  // Load base images on component mount
+  useEffect(() => {
+    const loadImages = async () => {
+      const images = await loadBaseImages();
+      setBaseImages(images);
+    };
+    loadImages();
+  }, []);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -278,18 +286,18 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
     setNodes((prevNodes) => {
       const nodeToDelete = prevNodes.find(n => n.id === nodeId);
       if (!nodeToDelete) return prevNodes;
-      
+
       const sharedId = nodeToDelete.data?.sharedId || nodeId;
       const nodesToDelete = prevNodes.filter(
         n => n.id === nodeId || n.data?.sharedId === sharedId || n.id === `${sharedId}-resizable`
       );
-      
+
       logEvent("baselineboard.node.delete", {
         nodeId,
         sharedId,
         deletedNodeIds: nodesToDelete.map(n => n.id)
       });
-      
+
       return prevNodes.filter(n => !nodesToDelete.includes(n));
     });
   }, [setNodes]);
@@ -304,6 +312,108 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
       rating: rating,
       // image_url: generatedImageForRating,
       global_caption: globalCaption,
+    });
+  };
+
+  const getBaseScenarios = () => [
+    {
+      id: 1,
+      caption: "A red tomato character",
+      baseImage: baseImages.tomato,
+      nodes: [
+        {
+          id: "tomato-1", label: "Tomato", position: { x: 83, y: 163 },
+          size: { width: 270, height: 348 }
+        }
+      ]
+    },
+    {
+      id: 2,
+      caption: "An animation-style racing car",
+      baseImage: baseImages.car,
+      nodes: [
+        {
+          id: "car-1", label: "Car", position: { x: 72, y: 261 },
+          size: { width: 280, height: 165 }
+        }
+      ]
+    },
+    {
+      id: 3,
+      caption: "Soccer player",
+      baseImage: baseImages.player,
+      nodes: [
+        {
+          id: "player-1", label: "Player",
+          position: { x: 100, y: 208 },
+          size: { width: 120, height: 328 }
+        }
+      ]
+    }
+  ];
+
+  const handleLoadBaseScenario = (scenarioId) => {
+    const baseScenarios = getBaseScenarios();
+    const scenario = baseScenarios.find(s => s.id === scenarioId);
+    if (!scenario) return;
+
+    // Clear existing nodes
+    setNodes([]);
+    setGlobalCaption(scenario.caption);
+
+    // Create nodes from scenario data
+    const newNodes = [];
+    scenario.nodes.forEach(nodeData => {
+      const sharedId = nodeData.id;
+      const position = screenToFlowPosition({
+        x: nodeData.position.x + LEFT_OFFSET,
+        y: nodeData.position.y + TOP_OFFSET
+      });
+
+      const objNode = {
+        id: sharedId,
+        type: "simple",
+        position,
+        data: {
+          label: nodeData.label,
+          sharedId,
+          instanceId: sharedId,
+          instanceLabel: nodeData.label,
+          isFromClass: false,
+          parentClassName: null,
+          hasOverrides: false,
+          isHighlighted: false,
+        },
+        style: { height: 40, width: 120 },
+      };
+
+      const resizableNode = {
+        id: `${sharedId}-resizable`,
+        type: "resizable",
+        position,
+        data: {
+          ...objNode.data,
+          textDescription: nodeData.label,
+        },
+        style: nodeData.size,
+      };
+
+      newNodes.push(resizableNode, objNode);
+    });
+
+    setNodes(newNodes);
+
+    // Load base image if available
+    if (scenario.baseImage) {
+      setImageBoard(scenario.baseImage);
+      onImageGenerated(scenario.baseImage);
+    }
+
+    logEvent("base_scenario_loaded", {
+      scenarioId,
+      nodeCount: scenario.nodes.length,
+      caption: scenario.caption,
+      baseImage: scenario.baseImage
     });
   };
 
@@ -335,9 +445,9 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
         return node;
       });
     });
-    
+
     setEditingNodeId(null);
-    
+
     logEvent("baselineboard.node.edit", {
       nodeId,
       newLabel
@@ -401,7 +511,6 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
         });
 
         onImageGenerated(response.image);
-        setImage(response.image);
         setImageBoard(response.image);
         setGeneratedImageForRating(response.image);
         setShowRatingModal(true);
@@ -481,6 +590,37 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
             {showImageOnly ? "Show Layout" : "Show Image Only"}
           </span>
         </CustomButton>
+
+        <div style={{
+          display: "flex",
+          gap: "8px",
+          marginTop: "8px",
+          justifyContent: "center",
+          position: "absolute",
+          bottom: "-80px",
+        }}>
+          <CustomButton
+            color="neutral"
+            size="sm"
+            onClick={() => handleLoadBaseScenario(1)}
+          >
+            Scenario 1
+          </CustomButton>
+          <CustomButton
+            color="neutral"
+            size="sm"
+            onClick={() => handleLoadBaseScenario(2)}
+          >
+            Scenario 2
+          </CustomButton>
+          <CustomButton
+            color="neutral"
+            size="sm"
+            onClick={() => handleLoadBaseScenario(3)}
+          >
+            Scenario 3
+          </CustomButton>
+        </div>
 
         <div
           style={{
@@ -721,7 +861,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           />
         </div>
       )}
-      
+
       <ImageQualityRatingModal
         isOpen={showRatingModal}
         onClose={() => setShowRatingModal(false)}
@@ -735,7 +875,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
 function BaselineLayoutBoardWithProvider({ onImageGenerated, onNodeSelect, selectedInstanceId }) {
   return (
     <ReactFlowProvider debounce={200}>
-      <BaselineLayoutBoard 
+      <BaselineLayoutBoard
         onImageGenerated={onImageGenerated}
         onNodeSelect={onNodeSelect}
         selectedInstanceId={selectedInstanceId}

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import BaselineLayoutBoardWithProvider from "./Board/BaselineLayoutBoard";
 import LayoutBoardWithProvider from "./Board/LayoutBoard";
-import { ImageProivder } from "./context/ImageContext";
 import { ClassProvider } from "./context/ClassContext";
 // import InstanceTreeBoard from "./Board/InstanceTreeBoard";
 import { ClassTreeBoard } from "./Board/ClassTreeBoard";
@@ -82,7 +81,6 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
       }}
     >
       <ClassProvider>
-        <ImageProivder>
           <div
             style={{
               width: "20px",
@@ -231,7 +229,6 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
           >
             {isBaseline ? "→ Switch to System 2" : "→ Switch to System 1"}
           </CustomButton>
-        </ImageProivder>
       </ClassProvider>
     </div>
   );

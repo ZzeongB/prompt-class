@@ -1,6 +1,7 @@
 import React from "react";
 
 const ImageDisplay = ({ imageBoard, currentModel }) => {
+  console.log("ImageDisplay", imageBoard);
   if (!imageBoard) return null;
 
   return (
