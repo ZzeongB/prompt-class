@@ -99,10 +99,10 @@ export const ClassProvider = ({ children }) => {
     setInstances(updatedInstances);
   };
 
-  const extractObjectFromInstance = (objectId, instanceId) => {
+  const extractObjectFromInstance = async (objectId, instanceId) => {
     const sourceInstance = instances.find(inst => inst.id === instanceId);
     try {
-      const { newInstance, updatedSourceInstance } = InstanceOps.extractObjectFromInstance(objectId, sourceInstance);
+      const { newInstance, updatedSourceInstance } = await InstanceOps.extractObjectFromInstance(objectId, sourceInstance);
       
       setInstances((prev) => [
         ...prev.filter(inst => inst.id !== instanceId),

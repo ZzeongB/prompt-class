@@ -154,7 +154,7 @@ export const duplicateInstance = (instanceData) => {
   };
 };
 
-export const extractObjectFromInstance = (objectId, sourceInstance) => {
+export const extractObjectFromInstance = async (objectId, sourceInstance) => {
   if (!sourceInstance.sceneGraph?.objects) {
     throw new Error("Source instance or sceneGraph not found");
   }
@@ -175,10 +175,26 @@ export const extractObjectFromInstance = (objectId, sourceInstance) => {
     relationships: []
   };
 
+  // Generate proper text description from scene graph
+  let textDescription = objectToExtract.name;
+  try {
+    textDescription = await generateSceneGraphTextDescription(newInstanceSceneGraph);
+  } catch (error) {
+    console.error("Failed to generate text description for extracted instance:", error);
+    // Fallback to object name with attributes if available
+    const attributes = objectToExtract.attributes || {};
+    const attributeStrings = Object.entries(attributes)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(", ");
+    textDescription = attributeStrings 
+      ? `${objectToExtract.name} (${attributeStrings})`
+      : objectToExtract.name;
+  }
+
   const newInstance = {
     id: newInstanceId,
     instanceLabel: `${objectToExtract.name}`,
-    textDescription: `${objectToExtract.name}`,
+    textDescription: textDescription,
     sceneGraph: newInstanceSceneGraph,
     isFromClass: false,
     classId: null,
@@ -194,6 +210,19 @@ export const extractObjectFromInstance = (objectId, sourceInstance) => {
       rel.source !== objectId && rel.target !== objectId
     )
   };
+
+  // Generate updated description for source instance
+  let updatedSourceDescription = sourceInstance.textDescription;
+  try {
+    if (updatedSourceSceneGraph.objects.length > 0) {
+      updatedSourceDescription = await generateSceneGraphTextDescription(updatedSourceSceneGraph);
+    } else {
+      updatedSourceDescription = "Empty scene";
+    }
+  } catch (error) {
+    console.error("Failed to generate updated description for source instance:", error);
+    // Keep original description as fallback
+  }
 
   const extractedRelationships = sourceInstance.sceneGraph.relationships.filter(rel => 
     rel.source === objectId || rel.target === objectId
@@ -225,6 +254,7 @@ export const extractObjectFromInstance = (objectId, sourceInstance) => {
   const updatedSourceInstance = {
     ...sourceInstance,
     sceneGraph: updatedSourceSceneGraph,
+    textDescription: updatedSourceDescription,
   };
 
   const newInstanceWithRelationships = {

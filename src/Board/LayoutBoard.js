@@ -281,41 +281,46 @@ function LayoutBoard({
 
   // Relationships → Edges 동기화
   useEffect(() => {
-    const newEdges = [];
-
-    instances.forEach((instance) => {
-      // 1. 기존 intra-instance relationships는 inter-instance edge를 생성하지 않음
-      // (inter-instance relationships는 extract로 생성된 것만 처리)
+    setEdges((currentEdges) => {
+      // 1. 기존 수동 연결 edges 보존 (extract가 아닌 것들)
+      const manualEdges = currentEdges.filter(edge => 
+        !edge.data?.isExtractedRelationship && 
+        !edge.id.startsWith('extract-')
+      );
 
       // 2. Extract로 생성된 inter-instance relationships 처리
-      if (instance.interInstanceRelationships) {
-        instance.interInstanceRelationships.forEach((rel) => {
-          const edgeId = `extract-${rel.source}-${rel.target}-${rel.relation}`;
-          // 중복 edge 방지
-          if (!newEdges.find((edge) => edge.id === edgeId)) {
-            newEdges.push({
-              id: edgeId,
-              source: rel.source,
-              target: rel.target,
-              type: "main",
-              data: {
-                relation: rel.relation,
-                isExtractedRelationship: true,
-              },
-              style: UI_CONFIG.EDGE_STYLES.DEFAULT,
-              label: rel.relation,
-              labelStyle: {
-                fontSize: "10px",
-                fontWeight: "500",
-                color: "#475569",
-              },
-            });
-          }
-        });
-      }
-    });
+      const extractEdges = [];
+      instances.forEach((instance) => {
+        if (instance.interInstanceRelationships) {
+          instance.interInstanceRelationships.forEach((rel) => {
+            const edgeId = `extract-${rel.source}-${rel.target}-${rel.relation}`;
+            // 중복 edge 방지
+            if (!extractEdges.find((edge) => edge.id === edgeId)) {
+              extractEdges.push({
+                id: edgeId,
+                source: rel.source,
+                target: rel.target,
+                type: "main",
+                data: {
+                  relation: rel.relation,
+                  isExtractedRelationship: true,
+                },
+                style: UI_CONFIG.EDGE_STYLES.DEFAULT,
+                label: rel.relation,
+                labelStyle: {
+                  fontSize: "10px",
+                  fontWeight: "500",
+                  color: "#475569",
+                },
+              });
+            }
+          });
+        }
+      });
 
-    setEdges(newEdges);
+      // 3. 수동 edges + extract edges 합치기
+      return [...manualEdges, ...extractEdges];
+    });
   }, [instances, setEdges]);
 
   // 새 인스턴스 추가
@@ -782,8 +787,8 @@ function LayoutBoard({
   // 엣지 연결 핸들러
   const onConnect = useCallback(
     (params) => {
-      // 엣지 ID 생성
-      const edgeId = `${params.source}-${params.target}`;
+      // UUID를 사용한 고유한 엣지 ID 생성 (같은 노드들 사이에도 여러 엣지 가능)
+      const edgeId = `edge-${uuidv4()}`;
 
       // 임시 엣지 생성 (관계명이 입력될 때까지)
       const tempEdge = {

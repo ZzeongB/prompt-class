@@ -214,8 +214,8 @@ export default function InstanceCard({
     ? classes.find((cls) => cls.id === instance.classId)
     : null;
 
-  const handleObjectExtract = (objectId, instanceId) => {
-    extractObjectFromInstance(objectId, instanceId);
+  const handleObjectExtract = async (objectId, instanceId) => {
+    await extractObjectFromInstance(objectId, instanceId);
   };
 
   const isEditing = isEditingText || isEditingGraph;
