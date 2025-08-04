@@ -6,35 +6,36 @@ const ClassCardToolbar = ({ isVisible, onCreateInstance, onDelete }) => {
     <div
       style={{
         position: "absolute",
-        top: "-36px", // 노드 위쪽에 배치
-        // right: "8px",
+        top: "-44px", // 높이 증가에 맞춰 조정
         display: isVisible ? "flex" : "none",
         alignItems: "center",
-        gap: "2px",
-        padding: "4px",
-        backgroundColor: "rgba(255, 255, 255, 0.8)",
-        borderRadius: "8px",
-        boxShadow:
-          "0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)",
-        border: "1px solid rgba(0, 0, 0, 0.05)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
+        gap: "4px",
+        padding: "6px 8px",
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        borderRadius: "10px",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06)",
+        border: "1px solid rgba(0, 0, 0, 0.08)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
         zIndex: 1000,
+        minHeight: "40px",
+        overflow: "visible",
+        whiteSpace: "nowrap",
       }}
     >
       <ToolbarButton
         title="Create Instance"
-        icon={<Plus size={12} />}
+        icon={<Plus size={14} />}
         onClick={onCreateInstance}
-        backgroundColor="rgba(34, 197, 94, 0.1)"
-        hoverColor="rgba(34, 197, 94, 0.15)"
+        tooltipPosition="top"
       />
 
       <ToolbarButton
         title="Delete Class"
-        icon={<Trash2 size={12} />}
+        icon={<Trash2 size={14} />}
         onClick={onDelete}
         danger={true}
+        tooltipPosition="top"
       />
     </div>
   );

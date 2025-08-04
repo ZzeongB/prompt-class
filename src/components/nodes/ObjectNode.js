@@ -347,7 +347,7 @@ const ObjectNode = ({
     width: "100%",
     height: "100%",
     boxSizing: "border-box",
-    overflow: "hidden",
+    position: "relative", // toolbar 위치 계산을 위해 추가
     cursor:
       isDraggable && editingMode === null
         ? isDragging
@@ -743,6 +743,14 @@ const ObjectNode = ({
         onMouseLeave={() => setIsHovered(false)}
         // onMouseDown={handleMouseDown}
       >
+        {/* Content wrapper with overflow control */}
+        <div style={{
+          width: "100%",
+          height: "100%",
+          overflow: "hidden", // 내용은 숨기되
+          display: "flex",
+          flexDirection: "column",
+        }}>
         {/* Attributes Section */}
         {expanded && attributeCount > 0 && (
           <div
@@ -810,52 +818,6 @@ const ObjectNode = ({
           }}
         >
           <div style={{ flex: 1 }}>{renderObjectName()}</div>
-
-          {/* Controls */}
-          {isEditable && editingMode === null && (
-            <div
-              style={{
-                display: "flex",
-                gap: "2px",
-                opacity: getElementOpacity("controls"),
-                flexShrink: 0,
-              }}
-            >
-              <ToolbarButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  startEditing("adding");
-                }}
-                title="Add Attribute"
-                icon={<Plus size={compact ? 8 : 10} />}
-                tooltipPosition="top"
-                size="compact"
-              />
-              {canExtract && !isClassMode && (
-                <ToolbarButton
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleExtract();
-                  }}
-                  title="Extract as Separate Instance"
-                  icon={<ExternalLink size={compact ? 8 : 10} />}
-                  tooltipPosition="top"
-                  size="compact"
-                />
-              )}
-              <ToolbarButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete?.(object.id);
-                }}
-                title="Delete Object"
-                icon={<X size={compact ? 8 : 10} />}
-                danger={true}
-                tooltipPosition="top"
-                size="compact"
-              />
-            </div>
-          )}
           
           <button
             onClick={(e) => {
@@ -886,6 +848,57 @@ const ObjectNode = ({
             {expanded ? <ChevronDown size={compact ? 8 : 10} /> : <ChevronRight size={compact ? 8 : 10} />}
           </button>
         </div>
+        </div> {/* Content wrapper 닫기 */}
+        
+        {/* Toolbar buttons positioned outside content flow */}
+        {isEditable && editingMode === null && (
+          <div
+            style={{
+              position: "absolute",
+              top: "-6px",
+              right: "-6px",
+              display: "flex",
+              gap: "2px",
+              opacity: getElementOpacity("controls"),
+              flexShrink: 0,
+              zIndex: 10,
+            }}
+          >
+            <ToolbarButton
+              onClick={(e) => {
+                e.stopPropagation();
+                startEditing("adding");
+              }}
+              title="Add Attribute"
+              icon={<Plus size={compact ? 8 : 10} />}
+              tooltipPosition="top"
+              size="compact"
+            />
+            {canExtract && !isClassMode && (
+              <ToolbarButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExtract();
+                }}
+                title="Extract as Separate Instance"
+                icon={<ExternalLink size={compact ? 8 : 10} />}
+                tooltipPosition="top"
+                size="compact"
+              />
+            )}
+            <ToolbarButton
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.(object.id);
+              }}
+              title="Delete Object"
+              icon={<X size={compact ? 8 : 10} />}
+              danger={true}
+              tooltipPosition="top"
+              size="compact"
+            />
+          </div>
+        )}
       </div>
 
       {/* Ghost Image */}

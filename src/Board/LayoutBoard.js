@@ -838,7 +838,6 @@ function LayoutBoard({
       image_url: generatedImageForRating,
       global_caption: globalCaption,
     });
-    console.log("Image quality rating:", rating);
   };
 
   return (

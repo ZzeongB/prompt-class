@@ -14,6 +14,27 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
     }
   }, [isOpen, imageUrl]);
 
+  // ESC 키 방지
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && isOpen) {
+        event.preventDefault();
+        logEvent("image_quality_modal.escape_attempted", {
+          selected_rating: selectedRating,
+          image_url: imageUrl,
+        });
+        alert("⚠️ 품질 평가가 필요합니다!\n\n생성된 이미지의 품질을 1-7점으로 평가한 후 '평가 완료' 버튼을 눌러주세요.");
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [isOpen, selectedRating, imageUrl]);
+
   const handleRatingClick = (rating) => {
     logEvent("image_quality_modal.rating_selected", {
       rating: rating,
@@ -37,13 +58,14 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
   };
 
   const handleCancel = () => {
-    logEvent("image_quality_modal.cancelled", {
+    logEvent("image_quality_modal.cancel_attempted", {
       selected_rating: selectedRating,
       image_url: imageUrl,
       timestamp: new Date().toISOString(),
     });
-    setSelectedRating(null);
-    onClose();
+    
+    // 경고 메시지 표시
+    alert("⚠️ 품질 평가가 필요합니다!\n\n생성된 이미지의 품질을 1-7점으로 평가한 후 '평가 완료' 버튼을 눌러주세요.");
   };
 
   if (!isOpen) return null;
@@ -59,7 +81,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>이미지 품질 평가</h3>
-          <button className="close-button" onClick={handleCancel}>
+          <button className="close-button disabled-close" onClick={handleCancel} title="평가를 완료해야 닫을 수 있습니다">
             ×
           </button>
         </div>
@@ -70,7 +92,10 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
           </div>
           
           <div className="rating-section">
-            <p>생성된 이미지의 품질을 1-7점으로 평가해주세요:</p>
+            <p><strong>생성된 이미지의 품질을 1-7점으로 평가해주세요:</strong></p>
+            <p style={{ fontSize: '14px', color: '#666', margin: '8px 0 16px 0' }}>
+              ※ 평가는 필수이며, 평가 완료 후에만 창을 닫을 수 있습니다.
+            </p>
             <div className="rating-buttons">
               {[1, 2, 3, 4, 5, 6, 7].map((rating) => (
                 <button
@@ -90,8 +115,8 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
         </div>
         
         <div className="modal-footer">
-          <button className="cancel-button" onClick={handleCancel}>
-            취소
+          <button className="cancel-button disabled-cancel" onClick={handleCancel} title="평가를 완료해야 닫을 수 있습니다">
+            평가 필수
           </button>
           <button 
             className="submit-button" 

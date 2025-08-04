@@ -11,9 +11,7 @@ import {
 } from './OverrideUtils';
 import { logEvent } from "../api/logEvent";
 
-export const generateInstanceLabel = (values) => {
-  console.log("Generating instance label from values:", values);
-  
+export const generateInstanceLabel = (values) => {  
   // Handle different types of values
   let labelString;
   if (typeof values === 'string') {

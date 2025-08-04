@@ -56,6 +56,16 @@
   background-color: #f5f5f5;
 }
 
+.disabled-close {
+  background-color: #ffc107 !important;
+  color: #212529 !important;
+  cursor: not-allowed !important;
+}
+
+.disabled-close:hover {
+  background-color: #ffca2c !important;
+}
+
 .modal-body {
   padding: 20px;
   overflow-y: auto;
@@ -151,6 +161,18 @@
 
 .cancel-button:hover {
   background-color: #e9ecef;
+}
+
+.disabled-cancel {
+  background-color: #ffc107 !important;
+  color: #212529 !important;
+  cursor: not-allowed !important;
+  border: 2px solid #ffc107 !important;
+}
+
+.disabled-cancel:hover {
+  background-color: #ffca2c !important;
+  transform: none !important;
 }
 
 .submit-button {

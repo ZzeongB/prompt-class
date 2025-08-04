@@ -305,7 +305,6 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
       image_url: generatedImageForRating,
       global_caption: globalCaption,
     });
-    console.log("Image quality rating:", rating);
   };
 
   const handleSaveEdit = useCallback((nodeId, newLabel) => {
