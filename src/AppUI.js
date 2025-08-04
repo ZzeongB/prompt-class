@@ -218,33 +218,19 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
 
           {/* <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} /> */}
 
-          <>
-            {isBaseline ? (
-              <BaselineLayoutBoardWithProvider onImageGenerated={() => { }} />
-            ) : (
-              <LayoutBoardWithProvider
-                onImageGenerated={() => { }}
-                newInstanceToAdd={null}
-                onInstanceAdded={() => { }}
-                selectedInstanceId={selectedInstanceId}
-                onNodeSelect={onInstanceSelect}
-              />
-            )}
-
-            <CustomButton
-              color="grey"
-              size="sm"
-              onClick={toggleSystem}
-              style={{
-                position: "fixed",
-                bottom: "20px",
-                right: "20px",
-                zIndex: 999,
-              }}
-            >
-              {isBaseline ? "→ Switch to System 2" : "→ Switch to System 1"}
-            </CustomButton>
-          </>
+          <CustomButton
+            color="grey"
+            size="sm"
+            onClick={toggleSystem}
+            style={{
+              position: "fixed",
+              bottom: "20px",
+              right: "20px",
+              zIndex: 999,
+            }}
+          >
+            {isBaseline ? "→ Switch to System 2" : "→ Switch to System 1"}
+          </CustomButton>
         </ImageProivder>
       </ClassProvider>
     </div>
