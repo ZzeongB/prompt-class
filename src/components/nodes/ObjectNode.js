@@ -752,7 +752,7 @@ const ObjectNode = ({
           flexDirection: "column",
         }}>
         {/* Attributes Section */}
-        {expanded && attributeCount > 0 && (
+        {expanded && (attributeCount > 0 || editingMode === "adding") && (
           <div
             style={{
               flex: 1,
@@ -762,18 +762,21 @@ const ObjectNode = ({
               gap: compact ? "1px" : "2px",
             }}
           >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: hasMultipleAttributes ? "1fr 1fr" : "1fr",
-                gap: compact ? "1px" : "2px",
-                width: "100%",
-              }}
-            >
-              {object.attributes?.map((attr, index) =>
-                renderAttribute(attr, index)
-              )}
-            </div>
+            {/* Existing Attributes */}
+            {attributeCount > 0 && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: hasMultipleAttributes ? "1fr 1fr" : "1fr",
+                  gap: compact ? "1px" : "2px",
+                  width: "100%",
+                }}
+              >
+                {object.attributes?.map((attr, index) =>
+                  renderAttribute(attr, index)
+                )}
+              </div>
+            )}
 
             {/* Add Attribute Input */}
             {editingMode === "adding" && (

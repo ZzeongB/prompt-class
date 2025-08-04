@@ -214,7 +214,7 @@ export default function SceneGraphVisualizer({
     );
 
     const gapX = maxNodeWidth + (compact ? 40 : 100);
-    const gapY = maxNodeHeight + (compact ? 20 : 30);
+    const gapY = maxNodeHeight + (compact ? 5 : 2);
 
     // 관계가 없거나 간단한 경우 그리드 레이아웃
     if (relationships.length === 0 || compact) {
