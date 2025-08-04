@@ -656,7 +656,7 @@ export default function SceneGraphVisualizer({
                 left: midX,
                 transform: "translate(-50%, -50%)",
                 pointerEvents: "auto",
-                zIndex: 10,
+                // zIndex: 10,
                 border:
                   highlightedTerm === `rel_${i}` ? "2px solid #f59e0b" : "none",
                 backgroundColor:

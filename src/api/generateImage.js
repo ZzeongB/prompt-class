@@ -60,6 +60,9 @@ export async function generateImageFromInstanceData(
       region_count: (refinedCaptions || sentences)?.length || 0,
       has_image: !!data.image,
       detected_objects_count: data.detectedObjects?.length || 0,
+      image_path: data.imagePath,
+      image_with_layout_path: data.imageWithLayoutPath,
+      timestamp_dir: data.timestampDir,
     });
 
     return {

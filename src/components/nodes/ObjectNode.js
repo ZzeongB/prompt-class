@@ -43,112 +43,112 @@ const ObjectNode = ({
   const dragThreshold = 5;
 
   // 드래그 관련 함수들
-  const handleMouseDown = (e) => {
-    if (!isDraggable || editingMode !== null) {
-      return;
-    }
+  // const handleMouseDown = (e) => {
+  //   if (!isDraggable || editingMode !== null) {
+  //     return;
+  //   }
 
-    const target = e.target;
-    if (
-      target.tagName === "BUTTON" ||
-      target.tagName === "INPUT" ||
-      target.closest("button") ||
-      target.closest("input")
-    ) {
-      return;
-    }
+  //   const target = e.target;
+  //   if (
+  //     target.tagName === "BUTTON" ||
+  //     target.tagName === "INPUT" ||
+  //     target.closest("button") ||
+  //     target.closest("input")
+  //   ) {
+  //     return;
+  //   }
 
-    const rect = dragRef.current.getBoundingClientRect();
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
+  //   const rect = dragRef.current.getBoundingClientRect();
+  //   const offsetX = e.clientX - rect.left;
+  //   const offsetY = e.clientY - rect.top;
 
-    setDragOffset({ x: offsetX, y: offsetY });
-    setDragPosition({ x: e.clientX - offsetX, y: e.clientY - offsetY });
-    setDragStarted(false);
+  //   setDragOffset({ x: offsetX, y: offsetY });
+  //   setDragPosition({ x: e.clientX - offsetX, y: e.clientY - offsetY });
+  //   setDragStarted(false);
 
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
+  //   document.addEventListener("mousemove", handleMouseMove);
+  //   document.addEventListener("mouseup", handleMouseUp);
+  // };
 
-  const handleMouseMove = (e) => {
-    if (!dragOffset) return;
+  // const handleMouseMove = (e) => {
+  //   if (!dragOffset) return;
 
-    const newX = e.clientX - dragOffset.x;
-    const newY = e.clientY - dragOffset.y;
+  //   const newX = e.clientX - dragOffset.x;
+  //   const newY = e.clientY - dragOffset.y;
 
-    if (!dragStarted) {
-      const deltaX = Math.abs(e.clientX - (dragPosition.x + dragOffset.x));
-      const deltaY = Math.abs(e.clientY - (dragPosition.y + dragOffset.y));
+  //   if (!dragStarted) {
+  //     const deltaX = Math.abs(e.clientX - (dragPosition.x + dragOffset.x));
+  //     const deltaY = Math.abs(e.clientY - (dragPosition.y + dragOffset.y));
 
-      if (deltaX > dragThreshold || deltaY > dragThreshold) {
-        logEvent("object_node.drag.started", {
-          object_id: object.id,
-          object_name: object.name,
-          parent_instance_id: parentInstanceId,
-          is_class_mode: isClassMode,
-        });
+  //     if (deltaX > dragThreshold || deltaY > dragThreshold) {
+  //       logEvent("object_node.drag.started", {
+  //         object_id: object.id,
+  //         object_name: object.name,
+  //         parent_instance_id: parentInstanceId,
+  //         is_class_mode: isClassMode,
+  //       });
         
-        setDragStarted(true);
-        setIsDragging(true);
-        onDragStart?.(object, parentInstanceId);
+  //       setDragStarted(true);
+  //       setIsDragging(true);
+  //       onDragStart?.(object, parentInstanceId);
 
-        document.body.style.userSelect = "none";
-        document.body.style.pointerEvents = "none";
+  //       document.body.style.userSelect = "none";
+  //       document.body.style.pointerEvents = "none";
 
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }
+  //       e.preventDefault();
+  //       e.stopPropagation();
+  //     }
+  //   }
 
-    if (dragStarted) {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragPosition({ x: newX, y: newY });
-    }
-  };
+  //   if (dragStarted) {
+  //     e.preventDefault();
+  //     e.stopPropagation();
+  //     setDragPosition({ x: newX, y: newY });
+  //   }
+  // };
 
-  const handleMouseUp = (e) => {
-    document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("mouseup", handleMouseUp);
+  // const handleMouseUp = (e) => {
+  //   document.removeEventListener("mousemove", handleMouseMove);
+  //   document.removeEventListener("mouseup", handleMouseUp);
 
-    if (dragStarted) {
-      e.preventDefault();
-      e.stopPropagation();
+  //   if (dragStarted) {
+  //     e.preventDefault();
+  //     e.stopPropagation();
 
-      setIsDragging(false);
-      setDragStarted(false);
+  //     setIsDragging(false);
+  //     setDragStarted(false);
 
-      const dropX = e.clientX;
-      const dropY = e.clientY;
+  //     const dropX = e.clientX;
+  //     const dropY = e.clientY;
 
-      logEvent("object_node.drag.ended", {
-        object_id: object.id,
-        object_name: object.name,
-        parent_instance_id: parentInstanceId,
-        drop_position: { x: dropX, y: dropY },
-        is_class_mode: isClassMode,
-      });
+  //     logEvent("object_node.drag.ended", {
+  //       object_id: object.id,
+  //       object_name: object.name,
+  //       parent_instance_id: parentInstanceId,
+  //       drop_position: { x: dropX, y: dropY },
+  //       is_class_mode: isClassMode,
+  //     });
 
-      onDragEnd?.(object, parentInstanceId, { x: dropX, y: dropY });
+  //     onDragEnd?.(object, parentInstanceId, { x: dropX, y: dropY });
 
-      document.body.style.userSelect = "";
-      document.body.style.pointerEvents = "";
-    } else {
-      setDragStarted(false);
-      setIsDragging(false);
-    }
+  //     document.body.style.userSelect = "";
+  //     document.body.style.pointerEvents = "";
+  //   } else {
+  //     setDragStarted(false);
+  //     setIsDragging(false);
+  //   }
 
-    setDragOffset(null);
-  };
+  //   setDragOffset(null);
+  // };
 
-  useEffect(() => {
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-      document.body.style.userSelect = "";
-      document.body.style.pointerEvents = "";
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     document.removeEventListener("mousemove", handleMouseMove);
+  //     document.removeEventListener("mouseup", handleMouseUp);
+  //     document.body.style.userSelect = "";
+  //     document.body.style.pointerEvents = "";
+  //   };
+  // }, []);
 
   // 편집 관련 함수들
   const startEditing = (mode, initialValue = "") => {
@@ -741,7 +741,7 @@ const ObjectNode = ({
           });
         }}
         onMouseLeave={() => setIsHovered(false)}
-        onMouseDown={handleMouseDown}
+        // onMouseDown={handleMouseDown}
       >
         {/* Attributes Section */}
         {expanded && attributeCount > 0 && (

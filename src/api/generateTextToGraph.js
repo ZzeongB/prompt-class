@@ -249,12 +249,20 @@ Generate a natural description:`;
 };
 
 export const generateInstanceLabelFromDescription = async (textDescription) => {
-  if (!textDescription || typeof textDescription !== "string") {
-    throw new Error("Valid text description is required");
+  if (!textDescription || typeof textDescription !== "string" || textDescription.trim() === "") {
+    const fallbackLabel = "Object";
+    logEvent("api.generate_instance_label_from_description.invalid_input", {
+      input_type: typeof textDescription,
+      input_value: textDescription,
+      fallback_label: fallbackLabel
+    });
+    return fallbackLabel;
   }
 
+  const trimmedDescription = textDescription.trim();
+  
   logEvent("api.generate_instance_label_from_description.started", {
-    text_length: textDescription.length
+    text_length: trimmedDescription.length
   });
 
   const systemPrompt = `

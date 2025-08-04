@@ -162,6 +162,7 @@ def generate():
         "global_caption": global_caption,
         "region_captions": region_caption_list,
         "region_bboxes": region_bboxes_list,
+        # "timestamp_dir": timestamp_dir,
     })
 
     try:
@@ -288,10 +289,22 @@ def generate():
                 "error": str(e)
             }, level="ERROR")
 
+    # Log final image generation completion with all paths
+    log_event("image_generation_completed", {
+        "image_path": image_path,
+        "image_with_layout_path": img_with_layout_save_name,
+        "timestamp_dir": timestamp_dir,
+        "global_caption": global_caption,
+        "detected_objects_count": len(detected_objects)
+    })
+
     return jsonify({
         "image": img_base64, 
         "globalCaption": global_caption,
-        "detectedObjects": detected_objects
+        "detectedObjects": detected_objects,
+        "imagePath": image_path,
+        "imageWithLayoutPath": img_with_layout_save_name,
+        "timestampDir": timestamp_dir
     })
 
 @app.route("/progress", methods=["GET"])

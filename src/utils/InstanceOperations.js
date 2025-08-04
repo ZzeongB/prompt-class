@@ -12,8 +12,33 @@ import {
 import { logEvent } from "../api/logEvent";
 
 export const generateInstanceLabel = (values) => {
-  const mainValue = Object.values(values)[0] || "New";
-  return mainValue.charAt(0).toUpperCase() + mainValue.slice(1);
+  console.log("Generating instance label from values:", values);
+  
+  // Handle different types of values
+  let labelString;
+  if (typeof values === 'string') {
+    labelString = values;
+  } else if (typeof values === 'object' && values !== null) {
+    // If it's an object (like scene graph), try to extract a meaningful name
+    if (values.objects && Array.isArray(values.objects) && values.objects.length > 0) {
+      // Scene graph case - use the first object's name
+      labelString = values.objects[0].name || "Object";
+    } else if (values.name) {
+      // Object with name property
+      labelString = values.name;
+    } else {
+      labelString = "Object";
+    }
+  } else {
+    labelString = String(values);
+  }
+  
+  // Ensure we have a valid string before calling charAt
+  if (typeof labelString !== 'string' || labelString.length === 0) {
+    return "New";
+  }
+  
+  return labelString.charAt(0).toUpperCase() + labelString.slice(1);
 };
 
 export const createInstanceFromClass = async (classData, newValues = {}) => {
