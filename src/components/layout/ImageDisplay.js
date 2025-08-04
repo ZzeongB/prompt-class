@@ -27,7 +27,7 @@ const ImageDisplay = ({ imageBoard, currentModel }) => {
         }}
       />
 
-      <div
+      {/* <div
         style={{
           position: "absolute",
           top: "10px",
@@ -42,7 +42,7 @@ const ImageDisplay = ({ imageBoard, currentModel }) => {
         }}
       >
         {currentModel.toUpperCase()}
-      </div>
+      </div> */}
     </div>
   );
 };

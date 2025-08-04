@@ -8,7 +8,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
   useEffect(() => {
     if (isOpen) {
       logEvent("image_quality_modal.opened", {
-        image_url: imageUrl,
+        // image_url: imageUrl,
         timestamp: new Date().toISOString(),
       });
     }
@@ -21,7 +21,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
         event.preventDefault();
         logEvent("image_quality_modal.escape_attempted", {
           selected_rating: selectedRating,
-          image_url: imageUrl,
+          // image_url: imageUrl,
         });
         alert("⚠️ 품질 평가가 필요합니다!\n\n생성된 이미지의 품질을 1-7점으로 평가한 후 '평가 완료' 버튼을 눌러주세요.");
       }
@@ -39,7 +39,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
     logEvent("image_quality_modal.rating_selected", {
       rating: rating,
       previous_rating: selectedRating,
-      image_url: imageUrl,
+      // image_url: imageUrl,
     });
     setSelectedRating(rating);
   };
@@ -48,7 +48,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
     if (selectedRating) {
       logEvent("image_quality_modal.rating_submitted", {
         rating: selectedRating,
-        image_url: imageUrl,
+        // image_url: imageUrl,
         timestamp: new Date().toISOString(),
       });
       onRatingSubmit(selectedRating);
@@ -60,7 +60,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
   const handleCancel = () => {
     logEvent("image_quality_modal.cancel_attempted", {
       selected_rating: selectedRating,
-      image_url: imageUrl,
+      // image_url: imageUrl,
       timestamp: new Date().toISOString(),
     });
     
@@ -74,7 +74,7 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
     <div className="modal-backdrop" onClick={() => {
       logEvent("image_quality_modal.backdrop_clicked", {
         selected_rating: selectedRating,
-        image_url: imageUrl,
+        // image_url: imageUrl,
       });
       handleCancel();
     }}>

@@ -302,7 +302,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
   const handleRatingSubmit = (rating) => {
     logEvent("image_quality_rated", {
       rating: rating,
-      image_url: generatedImageForRating,
+      // image_url: generatedImageForRating,
       global_caption: globalCaption,
     });
   };
