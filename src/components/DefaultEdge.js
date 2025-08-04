@@ -85,10 +85,10 @@ export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
         path={edgePath}
         markerEnd={markerEnd}
         style={{
-          stroke: "#cbd5e1",
+          stroke: "#64748b",
           strokeWidth: 1.5,
           strokeDasharray: "none",
-          opacity: isHovered ? 0.8 : 0.6,
+          opacity: 1,
           ...style,
         }}
       />
@@ -101,7 +101,6 @@ export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             pointerEvents: "all",
-            zIndex: 1000,
           }}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}

@@ -60,7 +60,7 @@ export const generateTextToGraph = async ({
 You are a precise scene graph generator. Convert the given text description into a structured scene graph in strict JSON format.
 
 PARSING RULES:
-1. OBJECTS: Identify concrete nouns (person, cat, table, car, tree, house, etc.)
+1. OBJECTS: Identify concrete nouns (person, cat, table, car, tree, house, arms, legs, eyes, mouth, etc.)
 2. ATTRIBUTES: Adjectives and descriptive words that modify objects (red, large, wooden, happy, etc.)
 3. RELATIONSHIPS: Spatial and semantic connections between objects (on, in, near, holding, wearing, etc.)
 

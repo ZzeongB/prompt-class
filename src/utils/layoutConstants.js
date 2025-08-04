@@ -14,12 +14,11 @@ export const UI_CONFIG = {
   BOUNDING_BOX_BACKGROUND: "rgba(255, 0, 0, 0.2)",
   EDGE_STYLES: {
     DEFAULT: {
-      stroke: "#cbd5e1",
-      strokeWidth: 1.5,
-      strokeDasharray: "5,5"
-    },
+      stroke: "#64748b",
+      strokeWidth: 2,
+      strokeDasharray: "none",},
     SOLID: {
-      stroke: "#cbd5e1", 
+      stroke: "#64748b", 
       strokeWidth: 1.5,
       strokeDasharray: "none"
     }

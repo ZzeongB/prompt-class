@@ -423,7 +423,7 @@ export default function InstanceCard({
               onClick={(e) => e.stopPropagation()}
               autoFocus
               style={{
-                // width: "200px",
+                width: "90%",
                 fontSize: "12px",
                 marginTop: "4px",
                 padding: "6px",
