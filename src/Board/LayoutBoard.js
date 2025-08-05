@@ -967,7 +967,6 @@ function LayoutBoard({
       scenarioId,
       instanceCount: scenario.instances.length,
       caption: scenario.caption,
-      baseImage: scenario.baseImage
     });
   };
 

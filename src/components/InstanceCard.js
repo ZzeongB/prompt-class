@@ -34,6 +34,7 @@ export default function InstanceCard({
   const [isExpanded, setIsExpanded] = useState(isSelected);
   const [isEditingText, setIsEditingText] = useState(false);
   const [isEditingGraph, setIsEditingGraph] = useState(false);
+  const [isCreatingClassLocal, setIsCreatingClassLocal] = useState(false);
   const [tempDescription, setTempDescription] = useState(
     instance.textDescription
   );
@@ -598,12 +599,31 @@ export default function InstanceCard({
               />
 
               <ToolbarButton
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
-                  handleCreateClass(instance, (msg) => alert(msg));
+                  setIsCreatingClassLocal(true);
+                  try {
+                    await handleCreateClass(instance, (msg) => alert(msg));
+                  } finally {
+                    setIsCreatingClassLocal(false);
+                  }
                 }}
-                title="Create Class"
-                icon={<Package size={12} />}
+                title={isCreatingClassLocal ? "Creating Class..." : "Create Class"}
+                icon={isCreatingClassLocal ? (
+                  <div style={{ 
+                    width: "12px", 
+                    height: "12px", 
+                    fontSize: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}>
+                    ⏳
+                  </div>
+                ) : (
+                  <Package size={12} />
+                )}
+                disabled={isCreatingClassLocal}
               />
 
               <ToolbarButton

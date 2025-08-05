@@ -113,6 +113,9 @@ export const updateClass = (classes, classId, updates) => {
 };
 
 export const deleteClass = (classes, instances, classId) => {
+  const classToDelete = classes.find((c) => c.id === classId);
+  const affectedInstances = instances.filter((instance) => instance.classId === classId);
+  
   const updatedClasses = classes.filter((c) => c.id !== classId);
   
   const updatedInstances = instances.map((instance) => {
@@ -125,6 +128,13 @@ export const deleteClass = (classes, instances, classId) => {
       };
     }
     return instance;
+  });
+
+  logEvent("class.deleted", {
+    class_id: classId,
+    class_name: classToDelete?.name || "Unknown",
+    affected_instances_count: affectedInstances.length,
+    placeholder_count: classToDelete?.placeholders ? Object.keys(classToDelete.placeholders).length : 0
   });
 
   return { updatedClasses, updatedInstances };

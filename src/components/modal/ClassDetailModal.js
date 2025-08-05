@@ -2,6 +2,7 @@ import SceneGraphVisualizer from "../SceneGraphVisualizer";
 import { ToolbarButton } from "../nodeComponents/NodeToolbarMenu";
 import { useClassContext } from "../../context/ClassContext";
 import { suggestPlaceholderValues } from "../../api/generatePlaceholders";
+import { logEvent } from "../../api/logEvent";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Plus,
@@ -65,6 +66,13 @@ const ClassDetailModal = ({
   const handleEdit = () => {
     setIsEditing(true);
     onEdit?.(classData);
+    
+    logEvent("class.edit.started", {
+      class_id: classData.id,
+      class_name: classData.name,
+      placeholder_count: Object.keys(classData.placeholders || {}).length,
+      object_count: classData.template?.sceneGraph?.objects ? Object.keys(classData.template.sceneGraph.objects).length : 0
+    });
   };
 
   const handleSaveEdit = async () => {
@@ -77,9 +85,24 @@ const ClassDetailModal = ({
         },
         placeholders: tempSceneData.placeholders,
       });
+      
+      logEvent("class.updated", {
+        class_id: classData.id,
+        class_name: classData.name,
+        placeholder_count: Object.keys(tempSceneData.placeholders || {}).length,
+        object_count: tempSceneData.sceneGraph?.objects ? Object.keys(tempSceneData.sceneGraph.objects).length : 0
+      });
+      
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to update class:", error);
+      
+      logEvent("class.update.failed", {
+        class_id: classData.id,
+        class_name: classData.name,
+        error_message: error.message
+      });
+      
       alert("Failed to save changes. Please try again.");
     } finally {
       setIsUpdating(false);

@@ -413,7 +413,6 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
       scenarioId,
       nodeCount: scenario.nodes.length,
       caption: scenario.caption,
-      baseImage: scenario.baseImage
     });
   };
 
