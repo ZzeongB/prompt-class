@@ -349,6 +349,19 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           size: { width: 120, height: 328 }
         }
       ]
+    },
+    {
+      id: 4,
+      caption: "Woman wearing yellow dress",
+      baseImage: baseImages.woman,
+      instances: [
+        {
+          id: "woman-1",
+          label: "Woman",
+          position: { x: 175, y: 181 },
+          size: { width: 86, height: 331 }
+        }
+      ]
     }
   ];
 
@@ -618,6 +631,13 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
             onClick={() => handleLoadBaseScenario(3)}
           >
             Scenario 3
+          </CustomButton>
+          <CustomButton
+            color="neutral"
+            size="sm"
+            onClick={() => handleLoadBaseScenario(4)}
+          >
+            Scenario 4
           </CustomButton>
         </div>
 

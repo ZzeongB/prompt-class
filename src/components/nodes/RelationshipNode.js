@@ -136,37 +136,6 @@ const RelationshipNode = ({
             tooltipPosition="top"
             size="compact"
           />
-          // <button
-          //   onClick={handleDelete}
-          //   style={{
-          //     background: "#fecaca",
-          //     border: "1px solid #f87171",
-          //     borderRadius: "3px",
-          //     width: compact ? "14px" : "16px",
-          //     height: compact ? "14px" : "16px",
-          //     display: "flex",
-          //     alignItems: "center",
-          //     justifyContent: "center",
-          //     fontSize: compact ? "10px" : "11px",
-          //     color: "#dc2626",
-          //     cursor: "pointer",
-          //     fontWeight: "bold",
-          //     transition: "all 0.2s ease",
-          //     opacity: 1 ,
-          //     transform:  "scale(1)",
-          //   }}
-          //   onMouseEnter={(e) => {
-          //     e.target.style.backgroundColor = "#f87171";
-          //     e.target.style.color = "white";
-          //   }}
-          //   onMouseLeave={(e) => {
-          //     e.target.style.backgroundColor = "#fecaca";
-          //     e.target.style.color = "#dc2626";
-          //   }}
-          //   title="Delete Relationship"
-          // >
-          //   ×
-          // </button>
         )}
       </div>
     </div>

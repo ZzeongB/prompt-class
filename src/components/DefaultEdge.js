@@ -110,7 +110,7 @@ export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
             <RelationshipNode
               relationship={relationship}
               objects={virtualObjects}
-              isEditable={true}
+              isEditable={isHovered}
               isHovered={isHovered}
               setIsHovered={setIsHovered}
               onEdit={(sourceId, targetId, updatedRelation) => {

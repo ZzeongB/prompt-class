@@ -284,8 +284,8 @@ function LayoutBoard({
   useEffect(() => {
     setEdges((currentEdges) => {
       // 현재 수동 edges를 ref에 저장
-      const currentManualEdges = currentEdges.filter(edge => 
-        !edge.data?.isExtractedRelationship && 
+      const currentManualEdges = currentEdges.filter(edge =>
+        !edge.data?.isExtractedRelationship &&
         !edge.id.startsWith('extract-')
       );
       manualEdgesRef.current = currentManualEdges;
@@ -331,13 +331,13 @@ function LayoutBoard({
 
       // 3. 수동 edges + extract edges 합치기
       const newEdges = [...manualEdges, ...extractEdges];
-      
+
       // 기존 edges와 동일한지 확인하여 불필요한 업데이트 방지
-      if (currentEdges.length === newEdges.length && 
-          currentEdges.every(edge => newEdges.find(newEdge => newEdge.id === edge.id))) {
+      if (currentEdges.length === newEdges.length &&
+        currentEdges.every(edge => newEdges.find(newEdge => newEdge.id === edge.id))) {
         return currentEdges;
       }
-      
+
       return newEdges;
     });
   }, [instances]);
@@ -831,8 +831,8 @@ function LayoutBoard({
       setEdges((eds) => {
         const newEdges = addEdge(tempEdge, eds);
         // 수동 edges ref 업데이트
-        manualEdgesRef.current = newEdges.filter(edge => 
-          !edge.data?.isExtractedRelationship && 
+        manualEdgesRef.current = newEdges.filter(edge =>
+          !edge.data?.isExtractedRelationship &&
           !edge.id.startsWith('extract-')
         );
         return newEdges;
@@ -856,8 +856,8 @@ function LayoutBoard({
       setEdges((eds) => {
         const filteredEdges = eds.filter((edge) => edge.id !== relationshipInput.edgeId);
         // 수동 edges ref 업데이트
-        manualEdgesRef.current = filteredEdges.filter(edge => 
-          !edge.data?.isExtractedRelationship && 
+        manualEdgesRef.current = filteredEdges.filter(edge =>
+          !edge.data?.isExtractedRelationship &&
           !edge.id.startsWith('extract-')
         );
         return filteredEdges;
@@ -887,13 +887,13 @@ function LayoutBoard({
           }
           : edge
       );
-      
+
       // 수동 edges ref 업데이트
-      manualEdgesRef.current = updatedEdges.filter(edge => 
-        !edge.data?.isExtractedRelationship && 
+      manualEdgesRef.current = updatedEdges.filter(edge =>
+        !edge.data?.isExtractedRelationship &&
         !edge.id.startsWith('extract-')
       );
-      
+
       return updatedEdges;
     });
 
@@ -948,6 +948,20 @@ function LayoutBoard({
           description: "Soccer player",
           position: { x: 100, y: 208 },
           size: { width: 120, height: 328 }
+        }
+      ]
+    },
+    {
+      id: 4,
+      caption: "woman",
+      baseImage: baseImages.woman,
+      instances: [
+        {
+          id: "woman-1",
+          label: "Woman",
+          description: "Woman wearing yellow dress",
+          position: { x: 175, y: 181 },
+          size: { width: 86, height: 331 }
         }
       ]
     }
@@ -1123,6 +1137,13 @@ function LayoutBoard({
           >
             Scenario 3
           </CustomButton>
+          <CustomButton
+            color="neutral"
+            size="sm"
+            onClick={() => handleLoadBaseScenario(4)}
+          >
+            Scenario 4
+          </CustomButton>
         </div>
       </div>
 
@@ -1142,8 +1163,8 @@ function LayoutBoard({
           setEdges((eds) => {
             const filteredEdges = eds.filter((edge) => edge.id !== relationshipInput?.edgeId);
             // 수동 edges ref 업데이트
-            manualEdgesRef.current = filteredEdges.filter(edge => 
-              !edge.data?.isExtractedRelationship && 
+            manualEdgesRef.current = filteredEdges.filter(edge =>
+              !edge.data?.isExtractedRelationship &&
               !edge.id.startsWith('extract-')
             );
             return filteredEdges;
@@ -1184,8 +1205,7 @@ function LayoutBoard({
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         />
       )}
-
-      <ObjectOverlay
+      {!showImageOnly && (<ObjectOverlay
         detectedObjects={detectedObjects}
         nodes={nodes}
         flowToScreenPosition={flowToScreenPosition}
@@ -1194,7 +1214,8 @@ function LayoutBoard({
         hoveredObject={hoveredObject}
         setHoveredObject={setHoveredObject}
         onObjectClick={handleObjectClick}
-      />
+      />)}
+
 
       {showImageOnly && <ImageDisplay imageBoard={imageBoard} currentModel={currentModel} />}
 
