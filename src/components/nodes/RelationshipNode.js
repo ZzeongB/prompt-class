@@ -2,6 +2,7 @@ import React from "react";
 import EditableLabel from "../nodeComponents/EditableLabel";
 import DeleteButton from "../nodeComponents/DeleteButton";
 import { logEvent } from "../../api/logEvent";
+
 import { ToolbarButton } from "../nodeComponents/NodeToolbarMenu";
 import { X } from "lucide-react";
 

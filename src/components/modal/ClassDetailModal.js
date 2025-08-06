@@ -506,7 +506,7 @@ const ClassDetailModal = ({
                   borderRadius: "6px",
                   overflow: "hidden",
                   backgroundColor: "#ffffff",
-                  height: "calc(90vh - 220px)",
+                  height: "calc(90vh - 230px)",
                   // minHeight: "300px"
                 }}>
                   {Object.keys(instanceValues).length > 0 && Object.values(instanceValues).some(v => v.trim()) ? (

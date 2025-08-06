@@ -39,7 +39,7 @@ function SimpleLayoutNode({ id, data, selected }) {
       {/* Target handles - visible when connecting */}
       <Handle
         type="target"
-        position={Position.Right}
+        position={Position.Left}
         style={{
           width: 8,
           height: 8,

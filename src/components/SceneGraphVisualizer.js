@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { Plus } from "lucide-react";
 import ObjectNode from "./nodes/ObjectNode";
 import RelationshipNode from "./nodes/RelationshipNode";
+import { ToolbarButton } from "./nodeComponents/NodeToolbarMenu";
 
 // 수정된 SceneGraphVisualizer - extract UI 제거
 export default function SceneGraphVisualizer({
@@ -26,6 +27,12 @@ export default function SceneGraphVisualizer({
   const [draggingObject, setDraggingObject] = useState(null);
   const [connectingMode, setConnectingMode] = useState(false);
   const [selectedSourceObject, setSelectedSourceObject] = useState(null);
+  
+  // 새로운 드래그 연결 시스템 상태
+  const [isDraggingConnection, setIsDraggingConnection] = useState(false);
+  const [dragConnectionSource, setDragConnectionSource] = useState(null);
+  const [dragLinePosition, setDragLinePosition] = useState({ x: 0, y: 0 });
+  const [dragStartPosition, setDragStartPosition] = useState({ x: 0, y: 0 });
 
   // 안전한 데이터 확인 - 하지만 sceneGraph가 있으면 우선 사용
   const safeSceneGraph = sceneGraph || {
@@ -156,6 +163,61 @@ export default function SceneGraphVisualizer({
   const handleToggleConnectMode = () => {
     setConnectingMode(!connectingMode);
     setSelectedSourceObject(null);
+  };
+
+  // 새로운 드래그 연결 핸들러들
+  const handleConnectionDragStart = (sourceObjectId, sourceParentId, startPosition) => {
+    console.log("Connection drag started", { sourceObjectId, startPosition });
+    setIsDraggingConnection(true);
+    setDragConnectionSource({ objectId: sourceObjectId, parentId: sourceParentId });
+    setDragStartPosition(startPosition || { x: 0, y: 0 });
+    // 드래그 라인 끝점을 시작점에서 약간 오프셋으로 초기화
+    const initialEndPosition = startPosition ? 
+      { x: startPosition.x + 10, y: startPosition.y + 10 } : 
+      { x: 10, y: 10 };
+    setDragLinePosition(initialEndPosition);
+
+    // 마우스 이동 이벤트 리스너 추가
+    document.addEventListener("mousemove", handleConnectionDragMove);
+  };
+
+  const handleConnectionDragMove = React.useCallback((e) => {
+    // isDraggingConnection 상태에 의존하지 않고 항상 업데이트
+    setDragLinePosition({ x: e.clientX, y: e.clientY });
+  }, [isDraggingConnection]);
+
+  // cleanup을 위한 useEffect 추가
+  React.useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleConnectionDragMove);
+    };
+  }, []);
+
+  const handleConnectionDragEnd = (sourceObjectId, targetObjectId, sourceParentId, targetParentId) => {
+    // 마우스 이벤트 리스너 제거
+    document.removeEventListener("mousemove", handleConnectionDragMove);
+
+    // 관계 생성 로직 - targetObjectId가 있을 때만
+    if (sourceObjectId && targetObjectId && sourceObjectId !== targetObjectId) {
+      const newRelationship = {
+        source: sourceObjectId,
+        target: targetObjectId,
+        relation: "connected to", // 기본 관계명
+      };
+
+      const updatedGraph = {
+        ...safeSceneGraph,
+        relationships: [...safeSceneGraph.relationships, newRelationship],
+      };
+
+      onSceneGraphChange(updatedGraph);
+    }
+
+    // 상태 리셋 (성공/실패 관계없이)
+    setIsDraggingConnection(false);
+    setDragConnectionSource(null);
+    setDragLinePosition({ x: 0, y: 0 });
+    setDragStartPosition({ x: 0, y: 0 });
   };
 
   // 드래그 이벤트 핸들러
@@ -392,40 +454,25 @@ export default function SceneGraphVisualizer({
     >
       {/* Add Object 버튼 */}
       {isEditable && (
-        <button
-          onClick={handleAddObject}
+        <div
           style={{
             position: "absolute",
             top: "8px",
             right: "36px",
-            background: "#e2e8f0",
-            color: "#64748b",
-            border: "none",
-            borderRadius: "4px",
-            padding: "4px 6px",
-            fontSize: "11px",
-            fontWeight: "400",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "3px",
-            opacity: "0.7",
-            transition: "opacity 0.2s ease",
             zIndex: 20,
           }}
-          onMouseEnter={(e) => {
-            e.target.style.opacity = "1";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.opacity = "0.7";
-          }}
         >
-          <Plus size={12} />
-          Add
-        </button>
+          <ToolbarButton
+            onClick={handleAddObject}
+            title="Add New Object"
+            icon={<span><Plus size={12}/> Add Object</span>}
+            tooltipPosition="bottom"
+            size="normal"
+          />
+        </div>
       )}
 
-      {/* Connect 모드 토글 버튼 */}
+      {/* Connect 모드 토글 버튼
       {isEditable && (
         <button
           onClick={handleToggleConnectMode}
@@ -455,9 +502,9 @@ export default function SceneGraphVisualizer({
         >
           ⟷
         </button>
-      )}
+      )} */}
 
-      {/* 연결 모드 안내 메시지 */}
+      {/* 연결 모드 안내 메시지
       {connectingMode && (
         <div
           style={{
@@ -479,7 +526,7 @@ export default function SceneGraphVisualizer({
             ? "Click target object to create relationship"
             : "Click source object to start connecting"}
         </div>
-      )}
+      )} */}
       {/* 실제 그래프 컨테이너 */}
       <div
         style={{
@@ -508,7 +555,7 @@ export default function SceneGraphVisualizer({
               refY="2.5"
               orient="auto"
             >
-              <polygon points="0 0, 5 2.5, 0 5" fill="#94a3b8" />
+              <polygon points="0 0, 5 2.5, 0 5" fill="#64748b" opacity="0.5" />
             </marker>
           </defs>
           {safeSceneGraph.relationships.map((rel, i) => {
@@ -537,10 +584,11 @@ export default function SceneGraphVisualizer({
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke="#cbd5e1"
-                strokeWidth={2}
+                stroke="#64748b"
+                strokeWidth={1.5}
                 markerEnd={`url(#arrowhead-${instanceId})`}
-                strokeDasharray="5,5"
+                strokeDasharray="none"
+                opacity="0.5"
               />
             );
           })}
@@ -616,6 +664,11 @@ export default function SceneGraphVisualizer({
                   compact={compact}
                   dimensions={getNodeDimensions(obj)}
                   canExtract={!isClassMode && safeSceneGraph.objects.length > 1}
+                  onConnectionDragStart={handleConnectionDragStart}
+                  onConnectionDragEnd={handleConnectionDragEnd}
+                  isConnectionTarget={isDraggingConnection && dragConnectionSource?.objectId !== obj.id}
+                  showConnectionHandles={isEditable}
+                  isDraggingConnectionFromThis={isDraggingConnection && dragConnectionSource?.objectId === obj.id}
                 />
               </div>
             </div>
@@ -694,6 +747,48 @@ export default function SceneGraphVisualizer({
           );
         })}
       </div>
+
+      {/* 드래그 중인 연결선 */}
+      {isDraggingConnection && (
+        <>
+          {console.log("Rendering drag line", { isDraggingConnection, dragStartPosition, dragLinePosition })}
+          <svg
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              pointerEvents: "none",
+              zIndex: 9999,
+            }}
+          >
+            <defs>
+              <marker
+                id="arrowhead-dragging"
+                markerWidth="5"
+                markerHeight="5"
+                refX="4"
+                refY="2.5"
+                orient="auto"
+              >
+                <polygon points="0 0, 5 2.5, 0 5" fill="#64748b" opacity="0.8" />
+              </marker>
+            </defs>
+            <line
+              x1={dragStartPosition.x}
+              y1={dragStartPosition.y}
+              x2={dragLinePosition.x}
+              y2={dragLinePosition.y}
+              stroke="#64748b"
+              strokeWidth="1.5"
+              strokeDasharray="5,5"
+              opacity="0.8"
+              markerEnd="url(#arrowhead-dragging)"
+            />
+          </svg>
+        </>
+      )}
     </div>
   );
 }

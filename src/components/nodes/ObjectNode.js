@@ -1,6 +1,6 @@
 // ObjectNode.js - 편집 상태 개선 버전
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronRight, ChevronDown, X, Plus, ExternalLink } from "lucide-react";
+import { ChevronRight, ChevronDown, X, Plus, ExternalLink, Circle } from "lucide-react";
 import { ToolbarButton } from "../nodeComponents/NodeToolbarMenu";
 import { logEvent } from "../../api/logEvent";
 
@@ -24,8 +24,12 @@ const ObjectNode = ({
   compact = false,
   dimensions,
   canExtract = false,
+  onConnectionDragStart,
+  onConnectionDragEnd,
+  isConnectionTarget = false,
+  showConnectionHandles = false,
+  isDraggingConnectionFromThis = false,
 }) => {
-  const [editValue, setEditValue] = useState(object.name);
   const [newAttributeValue, setNewAttributeValue] = useState("");
   const [expanded, setExpanded] = useState(true);
 
@@ -35,120 +39,12 @@ const ObjectNode = ({
 
   // 드래그 관련 상태
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
-  const [dragStarted, setDragStarted] = useState(false);
   const dragRef = useRef(null);
-  const ghostRef = useRef(null);
-  const dragThreshold = 5;
 
-  // 드래그 관련 함수들
-  // const handleMouseDown = (e) => {
-  //   if (!isDraggable || editingMode !== null) {
-  //     return;
-  //   }
-
-  //   const target = e.target;
-  //   if (
-  //     target.tagName === "BUTTON" ||
-  //     target.tagName === "INPUT" ||
-  //     target.closest("button") ||
-  //     target.closest("input")
-  //   ) {
-  //     return;
-  //   }
-
-  //   const rect = dragRef.current.getBoundingClientRect();
-  //   const offsetX = e.clientX - rect.left;
-  //   const offsetY = e.clientY - rect.top;
-
-  //   setDragOffset({ x: offsetX, y: offsetY });
-  //   setDragPosition({ x: e.clientX - offsetX, y: e.clientY - offsetY });
-  //   setDragStarted(false);
-
-  //   document.addEventListener("mousemove", handleMouseMove);
-  //   document.addEventListener("mouseup", handleMouseUp);
-  // };
-
-  // const handleMouseMove = (e) => {
-  //   if (!dragOffset) return;
-
-  //   const newX = e.clientX - dragOffset.x;
-  //   const newY = e.clientY - dragOffset.y;
-
-  //   if (!dragStarted) {
-  //     const deltaX = Math.abs(e.clientX - (dragPosition.x + dragOffset.x));
-  //     const deltaY = Math.abs(e.clientY - (dragPosition.y + dragOffset.y));
-
-  //     if (deltaX > dragThreshold || deltaY > dragThreshold) {
-  //       logEvent("object_node.drag.started", {
-  //         object_id: object.id,
-  //         object_name: object.name,
-  //         parent_instance_id: parentInstanceId,
-  //         is_class_mode: isClassMode,
-  //       });
-
-  //       setDragStarted(true);
-  //       setIsDragging(true);
-  //       onDragStart?.(object, parentInstanceId);
-
-  //       document.body.style.userSelect = "none";
-  //       document.body.style.pointerEvents = "none";
-
-  //       e.preventDefault();
-  //       e.stopPropagation();
-  //     }
-  //   }
-
-  //   if (dragStarted) {
-  //     e.preventDefault();
-  //     e.stopPropagation();
-  //     setDragPosition({ x: newX, y: newY });
-  //   }
-  // };
-
-  // const handleMouseUp = (e) => {
-  //   document.removeEventListener("mousemove", handleMouseMove);
-  //   document.removeEventListener("mouseup", handleMouseUp);
-
-  //   if (dragStarted) {
-  //     e.preventDefault();
-  //     e.stopPropagation();
-
-  //     setIsDragging(false);
-  //     setDragStarted(false);
-
-  //     const dropX = e.clientX;
-  //     const dropY = e.clientY;
-
-  //     logEvent("object_node.drag.ended", {
-  //       object_id: object.id,
-  //       object_name: object.name,
-  //       parent_instance_id: parentInstanceId,
-  //       drop_position: { x: dropX, y: dropY },
-  //       is_class_mode: isClassMode,
-  //     });
-
-  //     onDragEnd?.(object, parentInstanceId, { x: dropX, y: dropY });
-
-  //     document.body.style.userSelect = "";
-  //     document.body.style.pointerEvents = "";
-  //   } else {
-  //     setDragStarted(false);
-  //     setIsDragging(false);
-  //   }
-
-  //   setDragOffset(null);
-  // };
-
-  // useEffect(() => {
-  //   return () => {
-  //     document.removeEventListener("mousemove", handleMouseMove);
-  //     document.removeEventListener("mouseup", handleMouseUp);
-  //     document.body.style.userSelect = "";
-  //     document.body.style.pointerEvents = "";
-  //   };
-  // }, []);
+  // 연결 드래그 관련 상태
+  const [isConnectionDragging, setIsConnectionDragging] = useState(false);
+  const connectionHandleRef = useRef(null);
+  const dropTargetRef = useRef(null);
 
   // 편집 관련 함수들
   const startEditing = (mode, initialValue = "") => {
@@ -318,6 +214,86 @@ const ObjectNode = ({
     }
     return { category: trimmed, defaultValue: "?" };
   };
+
+  // 연결 드래그 핸들러들
+  const handleConnectionDragStart = (e) => {
+    e.stopPropagation();
+    setIsConnectionDragging(true);
+    
+    logEvent("object_node.connection_drag.started", {
+      object_id: object.id,
+      object_name: object.name,
+      parent_instance_id: parentInstanceId,
+      is_class_mode: isClassMode,
+    });
+
+    // 드래그 핸들의 화면상 위치 계산
+    const handleRect = connectionHandleRef.current?.getBoundingClientRect();
+    const startPosition = handleRect ? {
+      x: handleRect.left + handleRect.width / 2,
+      y: handleRect.top + handleRect.height / 2
+    } : { x: e.clientX, y: e.clientY };
+
+    onConnectionDragStart?.(object.id, parentInstanceId, startPosition);
+
+    document.addEventListener("mousemove", handleConnectionDragMove);
+    document.addEventListener("mouseup", handleConnectionDragEnd);
+    document.body.style.userSelect = "none";
+  };
+
+  const handleConnectionDragMove = (e) => {
+    // 연결선을 마우스 따라 그리기 위한 로직은 부모 컴포넌트에서 처리
+  };
+
+  const handleConnectionDragEnd = (e) => {
+    document.removeEventListener("mousemove", handleConnectionDragMove);
+    document.removeEventListener("mouseup", handleConnectionDragEnd);
+    document.body.style.userSelect = "";
+
+    // 드롭 대상 찾기
+    const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
+    const targetObjectNode = dropTarget?.closest('[data-connection-target]');
+    
+    let targetObjectId = null;
+    let targetParentId = null;
+    
+    if (targetObjectNode) {
+      targetObjectId = targetObjectNode.dataset.objectId;
+      targetParentId = targetObjectNode.dataset.parentInstanceId;
+      
+      if (targetObjectId && targetObjectId !== object.id) {
+        logEvent("object_node.connection_drag.completed", {
+          source_object_id: object.id,
+          target_object_id: targetObjectId,
+          source_parent_id: parentInstanceId,
+          target_parent_id: targetParentId,
+        });
+      } else {
+        logEvent("object_node.connection_drag.cancelled", {
+          reason: "same_object",
+          object_id: object.id,
+        });
+        targetObjectId = null; // 같은 객체인 경우 취소
+      }
+    } else {
+      logEvent("object_node.connection_drag.cancelled", {
+        reason: "no_target",
+        object_id: object.id,
+      });
+    }
+
+    // 성공/실패 관계없이 항상 호출 (부모에서 상태 리셋)
+    onConnectionDragEnd?.(object.id, targetObjectId, parentInstanceId, targetParentId);
+    setIsConnectionDragging(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleConnectionDragMove);
+      document.removeEventListener("mouseup", handleConnectionDragEnd);
+      document.body.style.userSelect = "";
+    };
+  }, []);
 
   // 요소별 투명도 계산
   const getElementOpacity = (elementType, elementIndex = null) => {
@@ -741,6 +717,9 @@ const ObjectNode = ({
           });
         }}
         onMouseLeave={() => setIsHovered(false)}
+        data-connection-target={isConnectionTarget ? "true" : undefined}
+        data-object-id={object.id}
+        data-parent-instance-id={parentInstanceId}
       // onMouseDown={handleMouseDown}
       >
         {/* Content wrapper with overflow control */}
@@ -915,39 +894,56 @@ const ObjectNode = ({
             />
           </div>
         )}
-      </div>
 
-      {/* Ghost Image */}
-      {isDragging && (
-        <div
-          ref={ghostRef}
-          style={{
-            position: "fixed",
-            top: dragPosition.y,
-            left: dragPosition.x,
-            width: dimensions?.width || "auto",
-            height: dimensions?.height || "auto",
-            opacity: 0.7,
-            pointerEvents: "none",
-            zIndex: 9999,
-            transform: "scale(0.9)",
-            boxShadow: "0 8px 25px rgba(0, 0, 0, 0.3)",
-            ...nodeStyle,
-          }}
-        >
+        {/* Connection Drag Handle - 오른쪽 중앙, 편집 모드 + 호버 시만 표시 (이 객체가 드래그 중이 아닐 때만) */}
+        {isEditable && editingMode === null && isHovered && showConnectionHandles && !isClassMode && !isDraggingConnectionFromThis && (
           <div
+            ref={connectionHandleRef}
+            onMouseDown={handleConnectionDragStart}
             style={{
-              fontSize: compact ? "11px" : "12px",
-              fontWeight: "500",
-              color: "#7f1d1d",
-              textAlign: "center",
-              padding: compact ? "4px" : "6px",
+              position: "absolute",
+              right: "-6px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              width: "8px",
+              height: "8px",
+              backgroundColor: "#3b82f6",
+              border: "2px solid white",
+              borderRadius: "50%",
+              cursor: "crosshair",
+              zIndex: 15,
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
             }}
+            title="Drag to connect to another object"
           >
-            {object.name}
+            <Circle size={8} color="#3b82f6" fill="#3b82f6" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }} />
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Connection Drop Target - 왼쪽 중앙, 다른 객체가 연결 드래그 중일 때만 표시 */}
+        {isConnectionTarget && showConnectionHandles && !isClassMode && (
+          <div
+            ref={dropTargetRef}
+            style={{
+              position: "absolute",
+              left: "-6px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              width: "8px",
+              height: "8px",
+              backgroundColor: "#10b981",
+              border: "2px solid white",
+              borderRadius: "50%",
+              zIndex: 15,
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+              animation: "pulse 1.5s ease-in-out infinite alternate",
+            }}
+            title="Drop connection here"
+          >
+            <Circle size={8} color="#10b981" fill="#10b981" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }} />
+          </div>
+        )}
+      </div>      
     </>
   );
 };
