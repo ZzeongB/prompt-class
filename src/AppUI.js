@@ -11,9 +11,8 @@ import { HelpCircle } from "lucide-react";
 import HelpModal from "./components/modal/HelpModal"; // 추가
 import InstanceBoard from "./Board/InstanceBoard";
 
-export default function AppUI({ isBaseline: initialIsBaseline }) {
+export default function AppUI({ isBaseline, language, onSystemComplete }) {
   const [imageSrc, setImageSrc] = useState("");
-  const [isBaseline, setIsBaseline] = useState(initialIsBaseline);
   const [showHelp, setShowHelp] = useState(false);
   const [newInstanceToAdd, setNewInstanceToAdd] = useState(null);
   const [selectedInstanceId, setSelectedInstanceId] = useState(null);
@@ -21,10 +20,6 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
   const onInstanceSelect = (instanceId) => {
     setSelectedInstanceId(instanceId);
   };
-
-  useEffect(() => {
-    sessionStorage.setItem("is_baseline", JSON.stringify(isBaseline));
-  }, [isBaseline]);
 
   useEffect(() => {
     const errorHandler = (e) => {
@@ -49,12 +44,12 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
     };
   }, []);
 
-  const toggleSystem = async () => {
-    const newState = !isBaseline;
-    setIsBaseline(newState);
-    await logEvent("system_switch", {
-      new_system: newState ? "system1" : "system2",
+  const handleSystemComplete = async () => {
+    await logEvent("system_completed", {
+      system: isBaseline ? "system1" : "system2",
+      completion_time: new Date().toISOString()
     });
+    onSystemComplete();
   };
 
   const handleAddInstance = (instanceData) => {
@@ -217,9 +212,9 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
           {/* <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} /> */}
 
           <CustomButton
-            color="grey"
+            color="object"
             size="sm"
-            onClick={toggleSystem}
+            onClick={handleSystemComplete}
             style={{
               position: "fixed",
               bottom: "20px",
@@ -227,7 +222,9 @@ export default function AppUI({ isBaseline: initialIsBaseline }) {
               zIndex: 999,
             }}
           >
-            {isBaseline ? "→ Switch to System 2" : "→ Switch to System 1"}
+            {language === "ko" 
+              ? `${isBaseline ? "시스템 1" : "시스템 2"} 완료` 
+              : `Complete ${isBaseline ? "System 1" : "System 2"}`}
           </CustomButton>
       </ClassProvider>
     </div>

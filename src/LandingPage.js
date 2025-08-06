@@ -3,6 +3,7 @@ import CustomButton from "./components/CustomButton";
 import { logEvent } from "./api/logEvent"; 
 
 export default function LandingPage({ onStart }) {
+  const [language, setLanguage] = useState("ko");
   const [userId, setUserId] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -11,7 +12,7 @@ export default function LandingPage({ onStart }) {
   const [genAITool, setGenAITool] = useState("");
   const [englishLevel, setEnglishLevel] = useState("");
 
-  const handleStart = async (isBaseline) => {
+  const handleStart = async () => {
     if (userId.trim() === "") {
       alert("사용자 ID를 입력해주세요.");
       return;
@@ -33,15 +34,14 @@ export default function LandingPage({ onStart }) {
     };
 
     sessionStorage.setItem("user_id", userId);
-    sessionStorage.setItem("is_baseline", JSON.stringify(isBaseline));
     sessionStorage.setItem("demographic_data", JSON.stringify(demographicData));
 
-    await logEvent("system_start", {
-      selected_system: isBaseline ? "system1" : "system2",
+    await logEvent("experiment_started", {
+      language: language,
       demographic_data: demographicData,
     });
 
-    onStart(isBaseline);
+    onStart(language);
   };
 
   return (
@@ -56,9 +56,29 @@ export default function LandingPage({ onStart }) {
         gap: "16px",
       }}
     >
-      <h1>Prompt System 실험</h1>
+      <h1>{language === "ko" ? "Prompt System 실험" : "Prompt System Experiment"}</h1>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "300px" }}>
+        
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold" }}>
+            {language === "ko" ? "언어 선택 / Language Selection" : "Language Selection / 언어 선택"}
+          </label>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            style={{
+              padding: "8px",
+              fontSize: "16px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              width: "100%"
+            }}
+          >
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+          </select>
+        </div>
         <input
           type="text"
           placeholder="사용자 ID 입력"
@@ -164,11 +184,8 @@ export default function LandingPage({ onStart }) {
       </div>
 
       <div style={{ display: "flex", gap: "12px", marginTop: "16px" }}>
-        <CustomButton color="object" onClick={() => handleStart(true)}>
-          System 1 시작하기
-        </CustomButton>
-        <CustomButton color="group" onClick={() => handleStart(false)}>
-          System 2 시작하기
+        <CustomButton color="object" onClick={handleStart}>
+          {language === "ko" ? "실험 시작하기" : "Start Experiment"}
         </CustomButton>
       </div>
     </div>
