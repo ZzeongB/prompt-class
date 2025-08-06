@@ -2,6 +2,8 @@ import React from "react";
 import EditableLabel from "../nodeComponents/EditableLabel";
 import DeleteButton from "../nodeComponents/DeleteButton";
 import { logEvent } from "../../api/logEvent";
+import { ToolbarButton } from "../nodeComponents/NodeToolbarMenu";
+import { X } from "lucide-react";
 
 const RelationshipNode = ({
   relationship,
@@ -124,38 +126,46 @@ const RelationshipNode = ({
           </div>
         )}
 
-        {isEditable && isHovered && (
-          <button
+        {isEditable && (
+          <ToolbarButton
             onClick={handleDelete}
-            style={{
-              background: "#fecaca",
-              border: "1px solid #f87171",
-              borderRadius: "3px",
-              width: compact ? "14px" : "16px",
-              height: compact ? "14px" : "16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: compact ? "10px" : "11px",
-              color: "#dc2626",
-              cursor: "pointer",
-              fontWeight: "bold",
-              transition: "all 0.2s ease",
-              opacity: isHovered ? 1 : 0,
-              transform: isHovered ? "scale(1)" : "scale(0.8)",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#f87171";
-              e.target.style.color = "white";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "#fecaca";
-              e.target.style.color = "#dc2626";
-            }}
             title="Delete Relationship"
-          >
-            ×
-          </button>
+            icon={<X size={compact ? 8 : 10} />}
+            danger={true}
+            tooltipPosition="top"
+            size="compact"
+          />
+          // <button
+          //   onClick={handleDelete}
+          //   style={{
+          //     background: "#fecaca",
+          //     border: "1px solid #f87171",
+          //     borderRadius: "3px",
+          //     width: compact ? "14px" : "16px",
+          //     height: compact ? "14px" : "16px",
+          //     display: "flex",
+          //     alignItems: "center",
+          //     justifyContent: "center",
+          //     fontSize: compact ? "10px" : "11px",
+          //     color: "#dc2626",
+          //     cursor: "pointer",
+          //     fontWeight: "bold",
+          //     transition: "all 0.2s ease",
+          //     opacity: 1 ,
+          //     transform:  "scale(1)",
+          //   }}
+          //   onMouseEnter={(e) => {
+          //     e.target.style.backgroundColor = "#f87171";
+          //     e.target.style.color = "white";
+          //   }}
+          //   onMouseLeave={(e) => {
+          //     e.target.style.backgroundColor = "#fecaca";
+          //     e.target.style.color = "#dc2626";
+          //   }}
+          //   title="Delete Relationship"
+          // >
+          //   ×
+          // </button>
         )}
       </div>
     </div>

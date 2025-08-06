@@ -87,7 +87,7 @@ const ObjectNode = ({
   //         parent_instance_id: parentInstanceId,
   //         is_class_mode: isClassMode,
   //       });
-        
+
   //       setDragStarted(true);
   //       setIsDragging(true);
   //       onDragStart?.(object, parentInstanceId);
@@ -232,7 +232,7 @@ const ObjectNode = ({
         const updated = [...object.attributes];
         updated[index] = defaultValue; // {} 플레이스홀더 대신 기본값 직접 사용
         const currentAttrs = [...(placeHolders[object.id]?.attr || [])];
-        
+
         currentAttrs[index] = { name: category, defaultvalue: defaultValue };
         const updatedPlaceHolders = {
           ...placeHolders,
@@ -261,9 +261,9 @@ const ObjectNode = ({
       is_class_mode: isClassMode,
       parent_instance_id: parentInstanceId,
     });
-    
+
     const updated = object.attributes.filter((_, i) => i !== index);
-    
+
     if (isClassMode) {
       // class mode에서는 placeHolders도 함께 업데이트
       const currentAttrs = placeHolders[object.id]?.attr || [];
@@ -287,7 +287,7 @@ const ObjectNode = ({
       object_name: object.name,
       parent_instance_id: parentInstanceId,
     });
-    
+
     if (
       window.confirm(
         `Extract "${object.name}" as a separate instance?\n\nThis will:\n• Create a new independent instance with this object\n• Connect it to the original instance via existing relationships`
@@ -362,8 +362,8 @@ const ObjectNode = ({
     boxShadow: isDragging
       ? "0 8px 25px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(59, 130, 246, 0.3)"
       : editingMode !== null
-      ? "0 0 0 2px rgba(59, 130, 246, 0.5)"
-      : "none",
+        ? "0 0 0 2px rgba(59, 130, 246, 0.5)"
+        : "none",
     display: "flex",
     flexDirection: "column",
   };
@@ -428,10 +428,10 @@ const ObjectNode = ({
     // Class mode rendering
     if (isClassMode) {
       const objectId = object.id;
-      
+
       let category = "unknown";
       let defaultValue = "?";
-      
+
       if (objectId && placeHolders && placeHolders[objectId] && placeHolders[objectId].attr) {
         // Index를 사용해서 정확한 attribute 매핑
         const attrPlaceholder = placeHolders[objectId].attr[index];
@@ -629,7 +629,7 @@ const ObjectNode = ({
       let category = "unknown";
       let defaultValue = "?";
       const objectId = object.id;
-      
+
       if (objectId && placeHolders && placeHolders[objectId] && placeHolders[objectId].name) {
         const namePlaceholder = placeHolders[objectId].name;
         category = namePlaceholder.name || "unknown";
@@ -741,7 +741,7 @@ const ObjectNode = ({
           });
         }}
         onMouseLeave={() => setIsHovered(false)}
-        // onMouseDown={handleMouseDown}
+      // onMouseDown={handleMouseDown}
       >
         {/* Content wrapper with overflow control */}
         <div style={{
@@ -751,108 +751,108 @@ const ObjectNode = ({
           display: "flex",
           flexDirection: "column",
         }}>
-        {/* Attributes Section */}
-        {expanded && (attributeCount > 0 || editingMode === "adding") && (
+          {/* Attributes Section */}
+          {expanded && (attributeCount > 0 || editingMode === "adding") && (
+            <div
+              style={{
+                flex: 1,
+                marginBottom: compact ? "2px" : "4px",
+                display: "flex",
+                flexDirection: "column",
+                gap: compact ? "1px" : "2px",
+              }}
+            >
+              {/* Existing Attributes */}
+              {attributeCount > 0 && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: hasMultipleAttributes ? "1fr 1fr" : "1fr",
+                    gap: compact ? "1px" : "2px",
+                    width: "100%",
+                  }}
+                >
+                  {object.attributes?.map((attr, index) =>
+                    renderAttribute(attr, index)
+                  )}
+                </div>
+              )}
+
+              {/* Add Attribute Input */}
+              {editingMode === "adding" && (
+                <input
+                  value={editingValue}
+                  onChange={(e) => setEditingValue(e.target.value)}
+                  onBlur={saveEditing}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveEditing();
+                    if (e.key === "Escape") cancelEditing();
+                  }}
+                  autoFocus
+                  placeholder={isClassMode ? "new label" : "new attribute"}
+                  style={{
+                    fontSize: compact ? "10px" : "11px",
+                    padding: compact ? "1px 2px" : "2px 3px",
+                    border: "2px solid #3b82f6",
+                    borderRadius: "4px",
+                    backgroundColor: "#ffffff",
+                    color: "#1f2937",
+                    fontFamily: "system-ui, -apple-system, sans-serif",
+                    fontWeight: "500",
+                    boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.1)",
+                    textAlign: "center",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    minHeight: compact ? "16px" : "18px",
+                  }}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Object Name and Controls Section */}
           <div
             style={{
-              flex: 1,
-              marginBottom: compact ? "2px" : "4px",
-              display: "flex",
-              flexDirection: "column",
-              gap: compact ? "1px" : "2px",
-            }}
-          >
-            {/* Existing Attributes */}
-            {attributeCount > 0 && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: hasMultipleAttributes ? "1fr 1fr" : "1fr",
-                  gap: compact ? "1px" : "2px",
-                  width: "100%",
-                }}
-              >
-                {object.attributes?.map((attr, index) =>
-                  renderAttribute(attr, index)
-                )}
-              </div>
-            )}
-
-            {/* Add Attribute Input */}
-            {editingMode === "adding" && (
-              <input
-                value={editingValue}
-                onChange={(e) => setEditingValue(e.target.value)}
-                onBlur={saveEditing}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") saveEditing();
-                  if (e.key === "Escape") cancelEditing();
-                }}
-                autoFocus
-                placeholder={isClassMode ? "new label" : "new attribute"}
-                style={{
-                  fontSize: compact ? "10px" : "11px",
-                  padding: compact ? "1px 2px" : "2px 3px",
-                  border: "2px solid #3b82f6",
-                  borderRadius: "4px",
-                  backgroundColor: "#ffffff",
-                  color: "#1f2937",
-                  fontFamily: "system-ui, -apple-system, sans-serif",
-                  fontWeight: "500",
-                  boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.1)",
-                  textAlign: "center",
-                  width: "100%",
-                  boxSizing: "border-box",
-                  minHeight: compact ? "16px" : "18px",
-                }}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Object Name and Controls Section */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: compact ? "2px" : "4px",
-            minHeight: compact ? "20px" : "24px",
-          }}
-        >
-          <div style={{ flex: 1 }}>{renderObjectName()}</div>
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              logEvent("object_node.expand_collapse", {
-                object_id: object.id,
-                object_name: object.name,
-                action: expanded ? "collapse" : "expand",
-                parent_instance_id: parentInstanceId,
-                is_class_mode: isClassMode,
-              });
-              setExpanded(!expanded);
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#7f1d1d",
-              opacity: getElementOpacity("controls"),
-              padding: "2px",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
+              justifyContent: "space-between",
+              gap: compact ? "2px" : "4px",
+              minHeight: compact ? "20px" : "24px",
             }}
-            title={expanded ? "Collapse" : "Expand"}
           >
-            {expanded ? <ChevronDown size={compact ? 8 : 10} /> : <ChevronRight size={compact ? 8 : 10} />}
-          </button>
-        </div>
+            <div style={{ flex: 1 }}>{renderObjectName()}</div>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                logEvent("object_node.expand_collapse", {
+                  object_id: object.id,
+                  object_name: object.name,
+                  action: expanded ? "collapse" : "expand",
+                  parent_instance_id: parentInstanceId,
+                  is_class_mode: isClassMode,
+                });
+                setExpanded(!expanded);
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#7f1d1d",
+                opacity: getElementOpacity("controls"),
+                padding: "2px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+              title={expanded ? "Collapse" : "Expand"}
+            >
+              {expanded ? <ChevronDown size={compact ? 8 : 10} /> : <ChevronRight size={compact ? 8 : 10} />}
+            </button>
+          </div>
         </div> {/* Content wrapper 닫기 */}
-        
+
         {/* Toolbar buttons positioned outside content flow */}
         {isEditable && editingMode === null && (
           <div
@@ -877,18 +877,6 @@ const ObjectNode = ({
               tooltipPosition="top"
               size="compact"
             />
-            {canExtract && !isClassMode && (
-              <ToolbarButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleExtract();
-                }}
-                title="Extract as Separate Instance"
-                icon={<ExternalLink size={compact ? 8 : 10} />}
-                tooltipPosition="top"
-                size="compact"
-              />
-            )}
             <ToolbarButton
               onClick={(e) => {
                 e.stopPropagation();
@@ -897,6 +885,31 @@ const ObjectNode = ({
               title="Delete Object"
               icon={<X size={compact ? 8 : 10} />}
               danger={true}
+              tooltipPosition="top"
+              size="compact"
+            />
+          </div>
+        )}
+        {!isEditable && canExtract && isHovered && !isClassMode && (
+          <div
+            style={{
+              position: "absolute",
+              top: "-6px",
+              right: "-6px",
+              display: "flex",
+              gap: "2px",
+              opacity: getElementOpacity("controls"),
+              flexShrink: 0,
+              zIndex: 10,
+            }}
+          >
+            <ToolbarButton
+              onClick={(e) => {
+                e.stopPropagation();
+                handleExtract();
+              }}
+              title="Extract as Separate Instance"
+              icon={<ExternalLink size={compact ? 8 : 10} />}
               tooltipPosition="top"
               size="compact"
             />
