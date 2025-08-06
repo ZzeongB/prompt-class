@@ -84,8 +84,8 @@ function ResizableNode({ id, data, nodeType, style }) {
     >
       <NodeResizer
         color={DARK_GREY_TRANS}
-        minWidth={50}
-        minHeight={50}
+        minWidth={20}
+        minHeight={20}
         onResizeEnd={(e, params) => handleResize(id, params)}
       />
       {/* {!data.baseline && !connection.inProgress && (

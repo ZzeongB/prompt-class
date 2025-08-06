@@ -322,7 +322,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
       baseImage: baseImages.tomato,
       nodes: [
         {
-          id: "tomato-1", label: "Tomato", position: { x: 83, y: 163 },
+          id: "tomato-1", label: "A red tomato character", position: { x: 83, y: 163 },
           size: { width: 270, height: 348 }
         }
       ]
@@ -333,20 +333,20 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
       baseImage: baseImages.car,
       nodes: [
         {
-          id: "car-1", label: "Car", position: { x: 72, y: 261 },
+          id: "car-1", label: "An animation-style racing car", position: { x: 72, y: 261 },
           size: { width: 280, height: 165 }
         }
       ]
     },
     {
       id: 3,
-      caption: "Soccer player",
+      caption: "Male tennis player",
       baseImage: baseImages.player,
       nodes: [
         {
-          id: "player-1", label: "Player",
-          position: { x: 100, y: 208 },
-          size: { width: 120, height: 328 }
+          id: "player-1", label: "Male tennis player",
+          position: { x: 66, y: 196 },
+          size: { width: 122, height: 298 }
         }
       ]
     },
@@ -354,10 +354,10 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
       id: 4,
       caption: "Woman wearing yellow dress",
       baseImage: baseImages.woman,
-      instances: [
+      nodes: [
         {
           id: "woman-1",
-          label: "Woman",
+          label: "Woman wearing yellow dress",
           position: { x: 175, y: 181 },
           size: { width: 86, height: 331 }
         }

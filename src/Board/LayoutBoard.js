@@ -939,15 +939,15 @@ function LayoutBoard({
     },
     {
       id: 3,
-      caption: "Soccer player",
+      caption: "Male tennis player",
       baseImage: baseImages.player,
       instances: [
         {
           id: "player-1",
           label: "Player",
-          description: "Soccer player",
-          position: { x: 100, y: 208 },
-          size: { width: 120, height: 328 }
+          description: "Male tennis player",
+          position: { x: 66, y: 196 },
+          size: { width: 122, height: 298 }
         }
       ]
     },

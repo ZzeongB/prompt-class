@@ -32,7 +32,7 @@ export const convertImageToBase64 = (imagePath) => {
 // 미리 정의된 베이스 이미지들을 로드하는 함수
 export const loadBaseImages = async () => {
   try {
-    const [tomato, car, player, woma ] = await Promise.all([
+    const [tomato, car, player, woman ] = await Promise.all([
       convertImageToBase64('/assets/base-images/tomato.png'),
       convertImageToBase64('/assets/base-images/car.png'),
       convertImageToBase64('/assets/base-images/player.png'),
@@ -42,14 +42,16 @@ export const loadBaseImages = async () => {
     return {
       tomato,
       car,
-      player
+      player,
+      woman
     };
   } catch (error) {
     console.error('Failed to load base images:', error);
     return {
       tomato: null,
       car: null,
-      player: null
+      player: null,
+      woman: null
     };
   }
 };
