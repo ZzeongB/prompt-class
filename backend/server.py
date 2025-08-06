@@ -55,7 +55,31 @@ filename = timestamp
 log_dir = "logs"
 os.makedirs(log_dir, exist_ok=True)
 
-# 로거 설정
+# 사용자별 로거 딕셔너리
+user_loggers = {}
+
+def get_user_logger(user_id: str):
+    """사용자 ID에 따른 로거 반환"""
+    if user_id not in user_loggers:
+        user_log_filename = os.path.join(log_dir, f"{user_id}_{timestamp}.log")
+        user_logger = logging.getLogger(f"user_{user_id}")
+        user_logger.setLevel(logging.INFO)
+        
+        # 핸들러가 이미 있는지 확인 (중복 방지)
+        if not user_logger.handlers:
+            handler = logging.FileHandler(user_log_filename)
+            handler.setLevel(logging.INFO)
+            formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+            handler.setFormatter(formatter)
+            user_logger.addHandler(handler)
+            user_logger.propagate = False  # 중복 로그 방지
+        
+        user_loggers[user_id] = user_logger
+        print(f"Created logger for user: {user_id}, log file: {user_log_filename}")
+    
+    return user_loggers[user_id]
+
+# 기본 로거 설정 (백워드 호환성을 위해)
 log_filename = os.path.join(log_dir, f"server_log_{timestamp}.log")
 logging.basicConfig(
     filename=log_filename,
@@ -101,19 +125,24 @@ progress_status = {
 }
 progress_lock = Lock()
 
-def log_event(event: str, details: dict, level: str = "INFO"):
+def log_event(event: str, details: dict, level: str = "INFO", user_id: str = "default"):
     log_entry = {
         "timestamp": datetime.utcnow().isoformat(),
         "event": event,
         "details": details,
         "platform": "backend",
+        "user_id": user_id,
     }
+    
+    # 사용자별 로거 사용
+    user_logger = get_user_logger(user_id)
+    
     if level == "INFO":
-        logger.info(json.dumps(log_entry))
+        user_logger.info(json.dumps(log_entry))
     elif level == "ERROR":
-        logger.error(json.dumps(log_entry))
+        user_logger.error(json.dumps(log_entry))
     else:
-        logger.debug(json.dumps(log_entry))
+        user_logger.debug(json.dumps(log_entry))
 
 def update_progress(self, step: int, timestep: int, callback_kwargs: dict):
     with progress_lock:
@@ -133,18 +162,19 @@ def generate_caption_route():
     sentences = data.get("sentences", [])
     global_caption = data.get("globalCaption", "")
     required_keywords = data.get("requiredKeywords", None)
+    user_id = data.get("user_id", "unknown")
 
     log_event("generate_caption_requested", {
         "sentences": sentences,
         "global_caption": global_caption,
         "required_keywords": required_keywords
-    })
+    }, user_id=user_id)
 
     result = generate_global_caption_and_refinements(sentences, global_caption, required_keywords)
 
     log_event("generate_caption_completed", {
         "refinements": result
-    })
+    }, user_id=user_id)
 
     return jsonify(result)
 
@@ -158,13 +188,14 @@ def generate():
     global_caption = data.get("global_caption")
     region_caption_list = data.get("region_caption_list")
     region_bboxes_list = data.get("region_bboxes_list")
+    user_id = data.get("user_id", "unknown")
 
     log_event("image_generation_requested", {
         "global_caption": global_caption,
         "region_captions": region_caption_list,
         "region_bboxes": region_bboxes_list,
         # "timestamp_dir": timestamp_dir,
-    })
+    }, user_id=user_id)
 
     try:
         with torch.no_grad():
@@ -182,7 +213,7 @@ def generate():
     except Exception as e:
         log_event("image_generation_failed", {
             "error": str(e)
-        }, level="ERROR")
+        }, level="ERROR", user_id=user_id)
         raise
 
     with progress_lock:
@@ -209,7 +240,7 @@ def generate():
 
     log_event("prompt_saved", {
         "path": prompt_path
-    })
+    }, user_id=user_id)
 
     for j, image in enumerate(images):
         image_path = os.path.join(timestamp_dir, "image.png")
@@ -217,7 +248,7 @@ def generate():
 
         log_event("image_saved", {
             "path": image_path
-        })
+        }, user_id=user_id)
 
         img_with_layout_save_name = os.path.join(timestamp_dir,"image_with_layout.png")
 
@@ -237,7 +268,7 @@ def generate():
 
         log_event("image_with_layout_saved", {
             "path": img_with_layout_save_name
-        })
+        }, user_id=user_id)
 
     # Perform object detection on generated image
     detected_objects = []
@@ -283,12 +314,12 @@ def generate():
             
             log_event("object_detection_integrated", {
                 "objects_count": len(detected_objects)
-            })
+            }, user_id=user_id)
             
         except Exception as e:
             log_event("object_detection_failed", {
                 "error": str(e)
-            }, level="ERROR")
+            }, level="ERROR", user_id=user_id)
 
     # Log final image generation completion with all paths
     log_event("image_generation_completed", {
@@ -297,7 +328,7 @@ def generate():
         "timestamp_dir": timestamp_dir,
         "global_caption": global_caption,
         "detected_objects_count": len(detected_objects)
-    })
+    }, user_id=user_id)
 
     return jsonify({
         "image": img_base64, 
@@ -319,11 +350,12 @@ def describe_region():
     base64_image = data.get("image", "")
     crop_box = data.get("crop_box", [])
     global_caption = data.get("global_caption", "")
+    user_id = data.get("user_id", "unknown")
 
     log_event("describe_requested", {
         "crop_box": crop_box,
         "global_caption": global_caption
-    })
+    }, user_id=user_id)
     
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
@@ -349,14 +381,14 @@ def describe_region():
 
     log_event("describe_region_saved", {
         "region_path": region_path
-    })
+    }, user_id=user_id)
 
     noun_phrase, description = generate_description(region, global_caption)
 
     log_event("describe_result", {
         "noun_phrase": noun_phrase,
         "description": description
-    })
+    }, user_id=user_id)
 
     return jsonify({"label": noun_phrase, "description": description})
 
@@ -367,11 +399,12 @@ def detect_objects():
     
     data = request.get_json()
     base64_image = data.get("image", "")
+    user_id = data.get("user_id", "unknown")
     
     if not base64_image:
         return jsonify({"error": "No image provided"}), 400
     
-    log_event("object_detection_requested", {})
+    log_event("object_detection_requested", {}, user_id=user_id)
     
     try:
         # Convert base64 to image
@@ -410,14 +443,14 @@ def detect_objects():
         
         log_event("object_detection_completed", {
             "objects_count": len(detected_objects)
-        })
+        }, user_id=user_id)
         
         return jsonify({"objects": detected_objects})
         
     except Exception as e:
         log_event("object_detection_failed", {
             "error": str(e)
-        }, level="ERROR")
+        }, level="ERROR", user_id=user_id)
         return jsonify({"error": str(e)}), 500
 
 @app.route("/switch-model", methods=["POST"])
@@ -448,7 +481,7 @@ def log_from_frontend():
         **details,
         "session_id": session_id,
         "user_id": user_id
-    })
+    }, user_id=user_id)
 
     return jsonify({"status": "ok"})
 
