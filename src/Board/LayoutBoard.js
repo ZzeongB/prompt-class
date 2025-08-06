@@ -83,6 +83,7 @@ function LayoutBoard({
 
   const syncFromReactFlow = useRef(false);
   const syncFromClassContext = useRef(false);
+  const manualEdgesRef = useRef([]);
 
   // Helper function to create node data from instance
   const createNodeDataFromInstance = (instance, selectedInstanceId) => {
@@ -279,14 +280,24 @@ function LayoutBoard({
     syncFromClassContext.current = false;
   }, [instances, classes, setNodes, selectedInstanceId]);
 
-  // Relationships → Edges 동기화
+  // 수동 edges 추적 및 업데이트
   useEffect(() => {
     setEdges((currentEdges) => {
-      // 1. 기존 수동 연결 edges 보존 (extract가 아닌 것들)
-      const manualEdges = currentEdges.filter(edge => 
+      // 현재 수동 edges를 ref에 저장
+      const currentManualEdges = currentEdges.filter(edge => 
         !edge.data?.isExtractedRelationship && 
         !edge.id.startsWith('extract-')
       );
+      manualEdgesRef.current = currentManualEdges;
+      return currentEdges;
+    });
+  }, [edges]);
+
+  // Relationships → Edges 동기화
+  useEffect(() => {
+    setEdges((currentEdges) => {
+      // 1. ref에서 수동 edges 가져오기 (더 안정적)
+      const manualEdges = manualEdgesRef.current || [];
 
       // 2. Extract로 생성된 inter-instance relationships 처리
       const extractEdges = [];
@@ -319,9 +330,17 @@ function LayoutBoard({
       });
 
       // 3. 수동 edges + extract edges 합치기
-      return [...manualEdges, ...extractEdges];
+      const newEdges = [...manualEdges, ...extractEdges];
+      
+      // 기존 edges와 동일한지 확인하여 불필요한 업데이트 방지
+      if (currentEdges.length === newEdges.length && 
+          currentEdges.every(edge => newEdges.find(newEdge => newEdge.id === edge.id))) {
+        return currentEdges;
+      }
+      
+      return newEdges;
     });
-  }, [instances, setEdges]);
+  }, [instances]);
 
   // 새 인스턴스 추가
   useEffect(() => {
@@ -800,10 +819,24 @@ function LayoutBoard({
           isTemporary: true,
         },
         style: UI_CONFIG.EDGE_STYLES.DEFAULT,
+        label: "related", // 임시 label 표시
+        labelStyle: {
+          fontSize: "10px",
+          fontWeight: "500",
+          color: "#475569",
+        },
       };
 
       // 엣지를 먼저 추가
-      setEdges((eds) => addEdge(tempEdge, eds));
+      setEdges((eds) => {
+        const newEdges = addEdge(tempEdge, eds);
+        // 수동 edges ref 업데이트
+        manualEdgesRef.current = newEdges.filter(edge => 
+          !edge.data?.isExtractedRelationship && 
+          !edge.id.startsWith('extract-')
+        );
+        return newEdges;
+      });
 
       // 관계 입력창 표시
       setRelationshipInput({
@@ -820,14 +853,22 @@ function LayoutBoard({
   const handleRelationshipSubmit = useCallback((relationshipText) => {
     if (!relationshipText || !relationshipText.trim() || !relationshipInput) {
       // 관계명이 없으면 엣지 삭제
-      setEdges((eds) => eds.filter((edge) => edge.id !== relationshipInput.edgeId));
+      setEdges((eds) => {
+        const filteredEdges = eds.filter((edge) => edge.id !== relationshipInput.edgeId);
+        // 수동 edges ref 업데이트
+        manualEdgesRef.current = filteredEdges.filter(edge => 
+          !edge.data?.isExtractedRelationship && 
+          !edge.id.startsWith('extract-')
+        );
+        return filteredEdges;
+      });
       setRelationshipInput(null);
       return;
     }
 
     // 엣지 업데이트 (임시 상태 해제, 관계명 설정)
-    setEdges((eds) =>
-      eds.map((edge) =>
+    setEdges((eds) => {
+      const updatedEdges = eds.map((edge) =>
         edge.id === relationshipInput.edgeId
           ? {
             ...edge,
@@ -837,10 +878,24 @@ function LayoutBoard({
               isTemporary: false,
             },
             style: UI_CONFIG.EDGE_STYLES.SOLID,
+            label: relationshipText.trim(), // label도 업데이트
+            labelStyle: {
+              fontSize: "10px",
+              fontWeight: "500",
+              color: "#475569",
+            },
           }
           : edge
-      )
-    );
+      );
+      
+      // 수동 edges ref 업데이트
+      manualEdgesRef.current = updatedEdges.filter(edge => 
+        !edge.data?.isExtractedRelationship && 
+        !edge.id.startsWith('extract-')
+      );
+      
+      return updatedEdges;
+    });
 
     setRelationshipInput(null);
   }, [relationshipInput, setEdges]);
@@ -1084,7 +1139,15 @@ function LayoutBoard({
         onSubmit={handleRelationshipSubmit}
         onCancel={() => {
           setRelationshipInput(null);
-          setEdges((eds) => eds.filter((edge) => edge.id !== relationshipInput?.edgeId));
+          setEdges((eds) => {
+            const filteredEdges = eds.filter((edge) => edge.id !== relationshipInput?.edgeId);
+            // 수동 edges ref 업데이트
+            manualEdgesRef.current = filteredEdges.filter(edge => 
+              !edge.data?.isExtractedRelationship && 
+              !edge.id.startsWith('extract-')
+            );
+            return filteredEdges;
+          });
         }}
       />
 

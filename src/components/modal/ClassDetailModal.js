@@ -66,7 +66,7 @@ const ClassDetailModal = ({
   const handleEdit = () => {
     setIsEditing(true);
     onEdit?.(classData);
-    
+
     logEvent("class.edit.started", {
       class_id: classData.id,
       class_name: classData.name,
@@ -85,24 +85,24 @@ const ClassDetailModal = ({
         },
         placeholders: tempSceneData.placeholders,
       });
-      
+
       logEvent("class.updated", {
         class_id: classData.id,
         class_name: classData.name,
         placeholder_count: Object.keys(tempSceneData.placeholders || {}).length,
         object_count: tempSceneData.sceneGraph?.objects ? Object.keys(tempSceneData.sceneGraph.objects).length : 0
       });
-      
+
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to update class:", error);
-      
+
       logEvent("class.update.failed", {
         class_id: classData.id,
         class_name: classData.name,
         error_message: error.message
       });
-      
+
       alert("Failed to save changes. Please try again.");
     } finally {
       setIsUpdating(false);
@@ -444,35 +444,37 @@ const ClassDetailModal = ({
             }}
           >
 
+            {
+              !showCreatePanel && (<div
+                style={{
+                  width: "100%",
+                  height: showCreatePanel ? "300px" : "400px",
+                  overflow: "hidden",
+                }}
+              >
+                <SceneGraphVisualizer
+                  sceneGraph={sceneData.sceneGraph}
+                  onSceneGraphChange={
+                    isEditing ? handleSceneGraphChange : handleDummyFunction
+                  }
+                  isEditable={isEditing}
+                  isClassMode={true}
+                  placeHolders={
+                    isEditing ? tempSceneData.placeholders : classData.placeholders
+                  }
+                />
+              </div>)
+            }
 
-            <div
-              style={{
-                width: "100%",
-                height: showCreatePanel ? "300px" : "400px",
-                overflow: "hidden",
-              }}
-            >
-              <SceneGraphVisualizer
-                sceneGraph={sceneData.sceneGraph}
-                onSceneGraphChange={
-                  isEditing ? handleSceneGraphChange : handleDummyFunction
-                }
-                isEditable={isEditing}
-                isClassMode={true}
-                placeHolders={
-                  isEditing ? tempSceneData.placeholders : classData.placeholders
-                }
-              />
-            </div>
 
             {/* Instance Preview Section - 클래스 그래프 아래에 표시 */}
             {showCreatePanel && (
               <div style={{
-                marginTop: "16px",
+                // marginTop: "16px",
                 padding: "16px",
                 backgroundColor: "#f8fafc",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px"
+                // border: "1px solid #e5e7eb",
+                // borderRadius: "8px"
               }}>
                 <h5 style={{
                   margin: "0 0 12px 0",
@@ -500,19 +502,22 @@ const ClassDetailModal = ({
                   </span>
                 </h5>
                 <div style={{
-                  height: "250px",
                   border: "1px solid #d1d5db",
                   borderRadius: "6px",
                   overflow: "hidden",
-                  backgroundColor: "#ffffff"
+                  backgroundColor: "#ffffff",
+                  height: "calc(90vh - 220px)",
+                  // minHeight: "300px"
                 }}>
                   {Object.keys(instanceValues).length > 0 && Object.values(instanceValues).some(v => v.trim()) ? (
-                    <SceneGraphVisualizer
-                      sceneGraph={generatePreviewSceneGraph()}
-                      isEditable={false}
-                      isClassMode={false}
-                      compact={false}
-                    />
+                    <div style={{ height: "100%", overflow: "auto" }}>
+                      <SceneGraphVisualizer
+                        sceneGraph={generatePreviewSceneGraph()}
+                        isEditable={false}
+                        isClassMode={false}
+                        compact={false}
+                      />
+                    </div>
                   ) : (
                     <div style={{
                       height: "100%",
@@ -593,18 +598,6 @@ const ClassDetailModal = ({
                 Updating instances...
               </div>
             )}
-          </div>
-
-          {/* Footer - 빈 공간으로 남겨둠 */}
-          <div
-            style={{
-              padding: "12px 20px",
-              borderTop: "1px solid #e5e7eb",
-              backgroundColor: "#f9fafb",
-              minHeight: "20px",
-            }}
-          >
-            {/* 버튼들은 이제 헤더에 있음 */}
           </div>
         </div>
 

@@ -42,6 +42,7 @@ try:
     import cv2
     import numpy as np
     OBJECT_DETECTION_AVAILABLE = True
+    print("Object detection module loaded successfully")
 except ImportError:
     OBJECT_DETECTION_AVAILABLE = False
     print("Warning: ultralytics not installed. Object detection features will be disabled.")
