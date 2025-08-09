@@ -121,104 +121,61 @@ export const surveyQuestions = {
       ]
     },
     section3: {
-      title: {
-        ko: "시스템별 기능 평가",
-        en: "System-Specific Features"
-      },
+      title: "시스템별 기능 평가",
       questions: [
         {
           id: "dg1_clarity",
-          question: {
-            ko: "이번 작업에서 필요한 모든 요소와 그 요소들 간의 관계를 명확하게 표현할 수 있었다.",
-            en: "I was able to clearly represent all necessary elements and their relationships for this task."
-          },
+          question: "이번 작업에서 필요한 모든 요소와 그 요소들 간의 관계를 명확하게 표현할 수 있었다.",
+          questionTranslation: "I was able to clearly represent all necessary elements and their relationships for this task.",
           scale: {
             min: 1,
             max: 7,
-            minLabel: {
-              ko: "전혀 그렇지 않음",
-              en: "Strongly Disagree"
-            },
-            maxLabel: {
-              ko: "매우 그렇다",
-              en: "Strongly Agree"
-            }
+            minLabel: "전혀 그렇지 않음",
+            maxLabel: "매우 그렇다"
           }
         },
         {
           id: "dg2_prompt_to_image",
-          question: {
-            ko: "내가 입력한 요소가 결과물의 어떤 부분과 연결되는지 명확하게 이해할 수 있었다.",
-            en: "I could clearly understand which elements of my input corresponded to specific parts of the output."
-          },
+          question: "내가 입력한 요소가 결과물의 어떤 부분과 연결되는지 명확하게 이해할 수 있었다.",
+          questionTranslation: "I could clearly understand which elements of my input corresponded to specific parts of the output.",
           scale: {
             min: 1,
             max: 7,
-            minLabel: {
-              ko: "전혀 그렇지 않음",
-              en: "Strongly Disagree"
-            },
-            maxLabel: {
-              ko: "매우 그렇다",
-              en: "Strongly Agree"
-            }
+            minLabel: "전혀 그렇지 않음",
+            maxLabel: "매우 그렇다"
           }
         },
         {
           id: "dg2_image_to_prompt",
-          question: {
-            ko: "결과물의 특정 부분을 변경하고 싶을 때 어떤 입력 요소를 수정해야 하는지 쉽게 파악할 수 있었다.",
-            en: "I could easily identify which input elements to modify when I wanted to change specific parts of the output."
-          },
+          question: "결과물의 특정 부분을 변경하고 싶을 때 어떤 입력 요소를 수정해야 하는지 쉽게 파악할 수 있었다.",
+          questionTranslation: "I could easily identify which input elements to modify when I wanted to change specific parts of the output.",
           scale: {
             min: 1,
             max: 7,
-            minLabel: {
-              ko: "전혀 그렇지 않음",
-              en: "Strongly Disagree"
-            },
-            maxLabel: {
-              ko: "매우 그렇다",
-              en: "Strongly Agree"
-            }
+            minLabel: "전혀 그렇지 않음",
+            maxLabel: "매우 그렇다"
           }
         },
         {
           id: "dg3_reusability",
-          question: {
-            ko: "내 작업을 다른 유사한 작업에 재사용하거나 변형하기 쉬웠다.",
-            en: "I found it easy to reuse or adapt my work for other similar tasks."
-          },
+          question: "내 작업을 다른 유사한 작업에 재사용하거나 변형하기 쉬웠다.",
+          questionTranslation: "I found it easy to reuse or adapt my work for other similar tasks.",
           scale: {
             min: 1,
             max: 7,
-            minLabel: {
-              ko: "전혀 그렇지 않음",
-              en: "Strongly Disagree"
-            },
-            maxLabel: {
-              ko: "매우 그렇다",
-              en: "Strongly Agree"
-            }
+            minLabel: "전혀 그렇지 않음",
+            maxLabel: "매우 그렇다"
           }
         },
         {
           id: "dg3_selective_edit",
-          question: {
-            ko: "다른 부분은 그대로 두고 원하는 부분만 선택적으로 수정할 수 있었다.",
-            en: "I was able to selectively modify only the parts I wanted while keeping everything else unchanged."
-          },
+          question: "다른 부분은 그대로 두고 원하는 부분만 선택적으로 수정할 수 있었다.",
+          questionTranslation: "I was able to selectively modify only the parts I wanted while keeping everything else unchanged.",
           scale: {
             min: 1,
             max: 7,
-            minLabel: {
-              ko: "전혀 그렇지 않음",
-              en: "Strongly Disagree"
-            },
-            maxLabel: {
-              ko: "매우 그렇다",
-              en: "Strongly Agree"
-            }
+            minLabel: "전혀 그렇지 않음",
+            maxLabel: "매우 그렇다"
           }
         }
       ]
