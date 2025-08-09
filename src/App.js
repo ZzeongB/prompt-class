@@ -12,6 +12,10 @@ export default function App() {
     const stored = sessionStorage.getItem("language");
     return stored || "ko";
   });
+  const [systemOrder, setSystemOrder] = useState(() => {
+    const stored = sessionStorage.getItem("system_order");
+    return stored || "system1_first";
+  });
   const [system1StartTime, setSystem1StartTime] = useState(null);
   const [system2StartTime, setSystem2StartTime] = useState(null);
 
@@ -23,23 +27,47 @@ export default function App() {
     sessionStorage.setItem("language", language);
   }, [language]);
 
-  const handleLandingComplete = (selectedLanguage) => {
+  useEffect(() => {
+    sessionStorage.setItem("system_order", systemOrder);
+  }, [systemOrder]);
+
+  const handleLandingComplete = (selectedLanguage, selectedSystemOrder) => {
     setLanguage(selectedLanguage);
-    setPhase("system1");
-    setSystem1StartTime(Date.now());
+    setSystemOrder(selectedSystemOrder);
+    
+    if (selectedSystemOrder === "system1_first") {
+      setPhase("system1");
+      setSystem1StartTime(Date.now());
+    } else {
+      setPhase("system2");
+      setSystem2StartTime(Date.now());
+    }
   };
 
   const handleSystem1Complete = () => {
-    setPhase("survey1");
+    if (systemOrder === "system1_first") {
+      setPhase("survey1");
+    } else {
+      setPhase("survey2");
+    }
   };
 
   const handleSurvey1Complete = () => {
-    setPhase("system2");
-    setSystem2StartTime(Date.now());
+    if (systemOrder === "system1_first") {
+      setPhase("system2");
+      setSystem2StartTime(Date.now());
+    } else {
+      setPhase("system1");
+      setSystem1StartTime(Date.now());
+    }
   };
 
   const handleSystem2Complete = () => {
-    setPhase("survey2");
+    if (systemOrder === "system2_first") {
+      setPhase("survey1");
+    } else {
+      setPhase("survey2");
+    }
   };
 
   const handleSurvey2Complete = () => {
@@ -48,6 +76,7 @@ export default function App() {
 
   const handleExperimentRestart = () => {
     setPhase("landing");
+    setSystemOrder("system1_first");
     setSystem1StartTime(null);
     setSystem2StartTime(null);
     sessionStorage.clear();
@@ -84,15 +113,26 @@ export default function App() {
   }
 
   if (phase === "survey1" || phase === "survey2") {
+    const getSystemTypeForSurvey = () => {
+      if (systemOrder === "system1_first") {
+        return phase === "survey1" ? "system1" : "system2";
+      } else {
+        return phase === "survey1" ? "system2" : "system1";
+      }
+    };
+
+    const getSystemDuration = () => {
+      const systemType = getSystemTypeForSurvey();
+      return systemType === "system1" 
+        ? Date.now() - system1StartTime 
+        : Date.now() - system2StartTime;
+    };
+
     return (
       <SurveyPage 
-        systemType={phase === "survey1" ? "system1" : "system2"}
+        systemType={getSystemTypeForSurvey()}
         language={language}
-        systemUsageDuration={
-          phase === "survey1" 
-            ? Date.now() - system1StartTime 
-            : Date.now() - system2StartTime
-        }
+        systemUsageDuration={getSystemDuration()}
         onComplete={phase === "survey1" ? handleSurvey1Complete : handleSurvey2Complete}
       />
     );

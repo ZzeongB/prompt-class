@@ -9,6 +9,7 @@ import {
   applyClassUpdatesToInstance,
   resetInstanceOverrides 
 } from './OverrideUtils';
+import { getLayoutBoxesFromNodes } from './boundingBox';
 import { logEvent } from "../api/logEvent";
 
 export const generateInstanceLabel = (values) => {  
@@ -300,4 +301,190 @@ export const updateInstancesFromClassTemplate = async (updatedClass, instances) 
 
   const results = await Promise.all(updatePromises);
   return results;
+};
+
+export const mergeInstancesIntoOne = async (instances, nodes, edges, flowToScreenPosition, leftOffset, topOffset) => {
+  if (instances.length < 2) {
+    throw new Error("최소 2개의 인스턴스가 필요합니다.");
+  }
+
+  logEvent("instance.merge.started", {
+    instanceCount: instances.length,
+    instanceIds: instances.map(inst => inst.id)
+  });
+
+  // 1. Calculate center position and combined bounding box using existing logic
+  let centerX = 0, centerY = 0;
+  let validPositions = 0;
+  let hasValidBbox = false;
+  
+  // Get nodes for selected instances
+  const selectedNodes = instances.map(instance => {
+    return nodes.find(n => n.data?.instanceId === instance.id && n.type === "resizable");
+  }).filter(Boolean);
+  
+  console.log("Selected nodes for merge:", selectedNodes);
+
+  // Use the existing getLayoutBoxesFromNodes function for accurate calculation
+  let bboxes = [];
+  if (selectedNodes.length > 0 && flowToScreenPosition) {
+    bboxes = getLayoutBoxesFromNodes(selectedNodes, flowToScreenPosition, leftOffset, topOffset);
+    console.log("Calculated bboxes using getLayoutBoxesFromNodes:", bboxes);
+    hasValidBbox = bboxes.length > 0;
+  }
+
+  // Calculate combined bounding box
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  bboxes.forEach(([x1, y1, x2, y2]) => {
+    minX = Math.min(minX, x1);
+    minY = Math.min(minY, y1);
+    maxX = Math.max(maxX, x2);
+    maxY = Math.max(maxY, y2);
+  });
+
+  // Calculate center positions for node placement
+  instances.forEach(instance => {
+    if (instance.nodePosition) {
+      centerX += instance.nodePosition.x;
+      centerY += instance.nodePosition.y;
+      validPositions++;
+    }
+  });
+  
+  // Calculate average center position
+  if (validPositions > 0) {
+    centerX /= validPositions;
+    centerY /= validPositions;
+  }
+
+  console.log("Final combined bbox:", { minX, minY, maxX, maxY });
+
+  // 2. Find relationships between selected instances from edges
+  const selectedInstanceIds = new Set(instances.map(inst => inst.id));
+  const interInstanceRelationships = edges.filter(edge => {
+    const sourceInstanceId = nodes.find(n => n.id === edge.source)?.data?.instanceId;
+    const targetInstanceId = nodes.find(n => n.id === edge.target)?.data?.instanceId;
+    
+    return selectedInstanceIds.has(sourceInstanceId) && 
+           selectedInstanceIds.has(targetInstanceId) &&
+           sourceInstanceId !== targetInstanceId; // 같은 instance 간의 edge는 제외
+  });
+  
+  console.log("Inter-instance relationships found:", interInstanceRelationships);
+
+  // 3. Collect all objects from all instances
+  const allObjects = [];
+  const allRelationships = [];
+  const objectIdMapping = new Map(); // old id -> new id mapping
+  const instanceToObjectMapping = new Map(); // instance id -> [object ids] mapping
+
+  instances.forEach(instance => {
+    const instanceObjectIds = [];
+    
+    if (instance.sceneGraph?.objects) {
+      instance.sceneGraph.objects.forEach(obj => {
+        const newObjectId = `object-${uuidv4()}`;
+        objectIdMapping.set(obj.id, newObjectId);
+        instanceObjectIds.push(newObjectId);
+        allObjects.push({
+          ...obj,
+          id: newObjectId
+        });
+      });
+    }
+    
+    instanceToObjectMapping.set(instance.id, instanceObjectIds);
+
+    // Add intra-instance relationships
+    if (instance.sceneGraph?.relationships) {
+      instance.sceneGraph.relationships.forEach(rel => {
+        // Update relationship IDs based on mapping
+        const newSourceId = objectIdMapping.get(rel.source);
+        const newTargetId = objectIdMapping.get(rel.target);
+        
+        if (newSourceId && newTargetId) {
+          allRelationships.push({
+            ...rel,
+            source: newSourceId,
+            target: newTargetId
+          });
+        }
+      });
+    }
+  });
+
+  // 4. Convert inter-instance relationships to object-level relationships
+  interInstanceRelationships.forEach(edge => {
+    const sourceInstanceId = nodes.find(n => n.id === edge.source)?.data?.instanceId;
+    const targetInstanceId = nodes.find(n => n.id === edge.target)?.data?.instanceId;
+    
+    const sourceObjectIds = instanceToObjectMapping.get(sourceInstanceId) || [];
+    const targetObjectIds = instanceToObjectMapping.get(targetInstanceId) || [];
+    
+    // Create relationships between objects of different instances
+    // For simplicity, connect the first object of source to first object of target
+    if (sourceObjectIds.length > 0 && targetObjectIds.length > 0) {
+      allRelationships.push({
+        source: sourceObjectIds[0],
+        target: targetObjectIds[0],
+        relation: edge.data?.relation || edge.label || "related_to"
+      });
+    }
+  });
+
+  // 5. Create new scene graph with merged objects and relationships
+  const mergedSceneGraph = {
+    objects: allObjects,
+    relationships: allRelationships
+  };
+  
+  console.log("Merged scene graph:", mergedSceneGraph);
+
+  // 6. Generate text description from merged scene graph
+  let textDescription = `Merged from: ${instances.map(inst => inst.instanceLabel).join(', ')}`;
+  try {
+    textDescription = await generateSceneGraphTextDescription(mergedSceneGraph);
+  } catch (error) {
+    console.error("Failed to generate text description for merged instance:", error);
+    // Fallback: combine descriptions
+    textDescription = instances.map(inst => inst.textDescription).join('. ');
+  }
+
+  // 7. Generate instance label
+  const instanceLabel = generateInstanceLabel(allObjects[0]?.name || "Merged Object");
+
+  // 8. Create merged instance
+  const mergedInstance = {
+    id: `instance-${uuidv4()}`,
+    instanceLabel,
+    textDescription,
+    sceneGraph: mergedSceneGraph,
+    isFromClass: false,
+    classId: null,
+    overrides: {},
+    createdAt: new Date().toISOString(),
+    originalSceneGraph: mergedSceneGraph,
+    // Store node position for proper placement
+    ...(validPositions > 0 && {
+      nodePosition: { x: centerX, y: centerY }
+    }),
+    // Preserve combined bounding box if available
+    ...(hasValidBbox && minX !== Infinity && {
+      detectedObject: {
+        bbox: [minX, minY, maxX, maxY],
+        label: instanceLabel,
+        confidence: Math.max(...instances.filter(inst => inst.detectedObject?.confidence).map(inst => inst.detectedObject.confidence), 0.5)
+      }
+    })
+  };
+
+  logEvent("instance.merged", {
+    mergedInstanceId: mergedInstance.id,
+    originalInstanceIds: instances.map(inst => inst.id),
+    objectCount: allObjects.length,
+    relationshipCount: allRelationships.length,
+    hasTextDescription: !!textDescription
+  });
+
+  return mergedInstance;
 };

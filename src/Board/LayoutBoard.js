@@ -79,6 +79,10 @@ function LayoutBoard({
   // Always use FLUX model
   const currentModel = "flux";
 
+  // Object merging state
+  const [isMergeMode, setIsMergeMode] = useState(false);
+  const [selectedObjectsForMerge, setSelectedObjectsForMerge] = useState([]);
+
   const { instances, classes, setInstances } = useClassContext();
 
   const syncFromReactFlow = useRef(false);
@@ -104,6 +108,7 @@ function LayoutBoard({
         instance.overrides && Object.keys(instance.overrides).length > 0,
       isHighlighted: selectedInstanceId === instance.id,
       isGenerating: instance.isGenerating || false,
+      isSelectedForMerge: selectedObjectsForMerge.includes(instance.id),
     };
   };
 
@@ -134,25 +139,25 @@ function LayoutBoard({
 
 
 
-  useEffect(() => {
-    setNodes((nds) => {
-      return nds.map((node) => {
-        if (node.type === "simple") {
-          const isHighlighted = node.data?.instanceId === selectedInstanceId;
+  // useEffect(() => {
+  //   setNodes((nds) => {
+  //     return nds.map((node) => {
+  //       if (node.type === "simple") {
+  //         const isHighlighted = node.data?.instanceId === selectedInstanceId;
 
-          // 항상 새 객체를 반환하여 ReactFlow가 변경을 감지하도록 함
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              isHighlighted,
-            },
-          };
-        }
-        return node;
-      });
-    });
-  }, [selectedInstanceId]);
+  //         // 항상 새 객체를 반환하여 ReactFlow가 변경을 감지하도록 함
+  //         return {
+  //           ...node,
+  //           data: {
+  //             ...node.data,
+  //             isHighlighted,
+  //           },
+  //         };
+  //       }
+  //       return node;
+  //     });
+  //   });
+  // }, [selectedInstanceId]);
 
   // Load base images on component mount
   useEffect(() => {
@@ -261,7 +266,7 @@ function LayoutBoard({
               style: resizableSize,
             };
 
-            updatedNodes.push(objNode, resizableNode);
+            updatedNodes.push(resizableNode, objNode);
           }
         });
 
@@ -784,15 +789,33 @@ function LayoutBoard({
   const handleNodeClick = useCallback(
     (_, node) => {
       if (node.type !== "resizable") {
-        onNodeSelect?.(node.data?.instanceId);
+        if (isMergeMode) {
+          // Merge mode: toggle object selection
+          const instanceId = node.data?.instanceId;
+          if (instanceId) {
+            setSelectedObjectsForMerge(prev => {
+              if (prev.includes(instanceId)) {
+                return prev.filter(id => id !== instanceId);
+              } else {
+                return [...prev, instanceId];
+              }
+            });
+          }
+        } else {
+          onNodeSelect?.(node.data?.instanceId);
+        }
       }
     },
-    [onNodeSelect]
+    [onNodeSelect, isMergeMode]
   );
 
   // 배경 클릭 시 선택 해제
   const handlePaneClick = useCallback(() => {
-    onNodeSelect?.(null);
+    if (isMergeMode) {
+      setSelectedObjectsForMerge([]);
+    } else {
+      onNodeSelect?.(null);
+    }
     // 인라인 프롬프트도 닫기
     if (inlinePrompt) {
       setInlinePrompt(null);
@@ -801,7 +824,7 @@ function LayoutBoard({
     if (relationshipInput) {
       setRelationshipInput(null);
     }
-  }, [onNodeSelect, inlinePrompt, relationshipInput]);
+  }, [onNodeSelect, inlinePrompt, relationshipInput, isMergeMode]);
 
   // 엣지 연결 핸들러
   const onConnect = useCallback(
@@ -906,6 +929,59 @@ function LayoutBoard({
       // image_url: generatedImageForRating,
       global_caption: globalCaption,
     });
+  };
+
+  const handleMergeObjects = async () => {
+    console.log("handleMergeObjects", selectedObjectsForMerge);
+    if (selectedObjectsForMerge.length < 2) {
+      alert("최소 2개의 객체를 선택해야 합니다.");
+      return;
+    }
+
+    try {
+      const selectedInstances = instances.filter(inst =>
+        selectedObjectsForMerge.includes(inst.id)
+      );
+
+      // Get current node positions for selected instances
+      const instancesWithNodeInfo = selectedInstances.map(instance => {
+        const node = nodes.find(n => n.data?.instanceId === instance.id && n.type === "resizable");
+        const simpleNode = nodes.find(n => n.data?.instanceId === instance.id && n.type === "simple");
+        
+        return {
+          ...instance,
+          nodePosition: node?.position || simpleNode?.position,
+          nodeSize: node?.style || { width: 50, height: 50 }
+        };
+      });
+
+      console.log("selected with node info", instancesWithNodeInfo)
+
+      // Import the merge function
+      const { mergeInstancesIntoOne } = await import('../utils/InstanceOperations');
+      const mergedInstance = await mergeInstancesIntoOne(instancesWithNodeInfo, nodes, edges, flowToScreenPosition, LEFT_OFFSET, TOP_OFFSET);
+      console.log("mergedInstance", mergedInstance)
+
+      // Add merged instance and remove original instances
+      const remainingInstances = instances.filter(inst =>
+        !selectedObjectsForMerge.includes(inst.id)
+      );
+      setInstances([...remainingInstances, mergedInstance]);
+
+      // Clear merge mode
+      setIsMergeMode(false);
+      setSelectedObjectsForMerge([]);
+
+      logEvent("objects_merged", {
+        originalCount: selectedObjectsForMerge.length,
+        mergedInstanceId: mergedInstance.id,
+        originalInstanceIds: selectedObjectsForMerge
+      });
+
+    } catch (error) {
+      console.error("Failed to merge objects:", error);
+      alert(`객체 병합 실패: ${error.message}`);
+    }
   };
 
   const getBaseScenarios = () => [
@@ -1054,23 +1130,31 @@ function LayoutBoard({
           display: "column",
         }}
       >
-        <CustomButton color="grey" size="sm" onClick={handleAddNewNode}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontWeight: "bold",
-            }}
-          >
-            Create New Box
-          </span>
-        </CustomButton>
-
+        {!isMergeMode &&
+          <CustomButton color="grey" size="sm" onClick={handleAddNewNode}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontWeight: "bold",
+              }}
+            >
+              Create New Box
+            </span>
+          </CustomButton>
+        }
         <CustomButton
-          color="grey"
+          color={isMergeMode ? "orange" : "grey"}
           size="sm"
-          onClick={() => setShowImageOnly(!showImageOnly)}
+          onClick={() => {
+            if (isMergeMode) {
+              setIsMergeMode(false);
+              setSelectedObjectsForMerge([]);
+            } else {
+              setIsMergeMode(true);
+            }
+          }}
         >
           <span
             style={{
@@ -1080,9 +1164,46 @@ function LayoutBoard({
               fontWeight: "bold",
             }}
           >
-            {showImageOnly ? "Show Layout" : "Show Image Only"}
+            {isMergeMode ? "Cancel Merge" : "Merge Objects"}
           </span>
         </CustomButton>
+
+        {isMergeMode && selectedObjectsForMerge.length >= 2 && (
+          <CustomButton
+            color="green"
+            size="sm"
+            onClick={handleMergeObjects}
+          >
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontWeight: "bold",
+              }}
+            >
+              Confirm Merge ({selectedObjectsForMerge.length})
+            </span>
+          </CustomButton>
+        )}
+
+        {!isMergeMode && (
+          <CustomButton
+            color="grey"
+            size="sm"
+            onClick={() => setShowImageOnly(!showImageOnly)}
+          >
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontWeight: "bold",
+              }}
+            >
+              {showImageOnly ? "Show Layout" : "Show Image Only"}
+            </span>
+          </CustomButton>)}
 
 
         <div
