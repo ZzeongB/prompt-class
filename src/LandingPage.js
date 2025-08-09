@@ -1,6 +1,6 @@
 import { useState } from "react";
 import CustomButton from "./components/CustomButton";
-import { logEvent } from "./api/logEvent"; 
+import { logEvent } from "./api/logEvent";
 
 export default function LandingPage({ onStart }) {
   const [language, setLanguage] = useState("ko");
@@ -19,9 +19,9 @@ export default function LandingPage({ onStart }) {
       return;
     }
 
-    if (age.trim() === "" || gender.trim() === "" || occupation.trim() === "" || 
-        genAIFreq.trim() === "" || genAITool.trim() === "" || englishLevel.trim() === "" ||
-        systemOrder.trim() === "") {
+    if (age.trim() === "" || gender.trim() === "" || occupation.trim() === "" ||
+      genAIFreq.trim() === "" || genAITool.trim() === "" || englishLevel.trim() === "" ||
+      systemOrder.trim() === "") {
       alert("모든 기본 정보를 입력해주세요.");
       return;
     }
@@ -63,6 +63,38 @@ export default function LandingPage({ onStart }) {
     onStart(language, "system1_first");
   };
 
+  const handleDevSystem1 = () => {
+    sessionStorage.setItem("user_id", "dev_user");
+    sessionStorage.setItem("demographic_data", JSON.stringify({
+      age: "25",
+      gender: "other",
+      occupation: "developer",
+      gen_ai_frequency: "daily",
+      gen_ai_tool: "ChatGPT",
+      english_level: "fluent",
+      system_order: "system1_first"
+    }));
+    sessionStorage.setItem("system_order", "system1_first");
+    sessionStorage.setItem("experiment_phase", "system1");
+    onStart(language, "direct_system1");
+  };
+
+  const handleDevSystem2 = () => {
+    sessionStorage.setItem("user_id", "dev_user");
+    sessionStorage.setItem("demographic_data", JSON.stringify({
+      age: "25",
+      gender: "other",
+      occupation: "developer",
+      gen_ai_frequency: "daily",
+      gen_ai_tool: "ChatGPT",
+      english_level: "fluent",
+      system_order: "system2_first"
+    }));
+    sessionStorage.setItem("system_order", "system2_first");
+    sessionStorage.setItem("experiment_phase", "system2");
+    onStart(language, "direct_system2");
+  };
+
   return (
     <div
       style={{
@@ -77,10 +109,10 @@ export default function LandingPage({ onStart }) {
         padding: "20px"
       }}
     >
-      <div style={{ 
-        display: "flex", 
-        flexDirection: "column", 
-        gap: "20px", 
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px",
         width: "100%",
         maxWidth: "500px",
         backgroundColor: "white",
@@ -90,16 +122,16 @@ export default function LandingPage({ onStart }) {
         alignSelf: "center",
         border: "1px solid #e8ecef"
       }}>
-        
+
         {/* Header */}
-        <div style={{ 
-          textAlign: "center", 
-          marginBottom: "5px" 
+        <div style={{
+          textAlign: "center",
+          marginBottom: "5px"
         }}>
-          <h1 style={{ 
-            margin: "0 0 8px 0", 
-            fontSize: "24px", 
-            fontWeight: "600", 
+          <h1 style={{
+            margin: "0 0 8px 0",
+            fontSize: "24px",
+            fontWeight: "600",
             color: "#2c3e50",
             letterSpacing: "0.5px"
           }}>
@@ -118,9 +150,9 @@ export default function LandingPage({ onStart }) {
 
         {/* Language Selection */}
         <div style={{ marginBottom: "5px" }}>
-          <label style={{ 
-            display: "block", 
-            marginBottom: "8px", 
+          <label style={{
+            display: "block",
+            marginBottom: "8px",
             fontWeight: "600",
             fontSize: "14px",
             color: "#2c3e50"
@@ -148,9 +180,9 @@ export default function LandingPage({ onStart }) {
 
         {/* User ID */}
         <div>
-          <label style={{ 
-            display: "block", 
-            marginBottom: "6px", 
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
             fontWeight: "600",
             fontSize: "14px",
             color: "#2c3e50"
@@ -174,12 +206,12 @@ export default function LandingPage({ onStart }) {
             }}
           />
         </div>
-        
+
         {/* Age */}
         <div>
-          <label style={{ 
-            display: "block", 
-            marginBottom: "6px", 
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
             fontWeight: "600",
             fontSize: "14px",
             color: "#2c3e50"
@@ -203,12 +235,12 @@ export default function LandingPage({ onStart }) {
             }}
           />
         </div>
-        
+
         {/* Gender */}
         <div>
-          <label style={{ 
-            display: "block", 
-            marginBottom: "6px", 
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
             fontWeight: "600",
             fontSize: "14px",
             color: "#2c3e50"
@@ -235,12 +267,12 @@ export default function LandingPage({ onStart }) {
             <option value="other">{language === "ko" ? "기타" : "Other"}</option>
           </select>
         </div>
-        
+
         {/* Occupation */}
         <div>
-          <label style={{ 
-            display: "block", 
-            marginBottom: "6px", 
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
             fontWeight: "600",
             fontSize: "14px",
             color: "#2c3e50"
@@ -264,12 +296,12 @@ export default function LandingPage({ onStart }) {
             }}
           />
         </div>
-        
+
         {/* AI Frequency */}
         <div>
-          <label style={{ 
-            display: "block", 
-            marginBottom: "6px", 
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
             fontWeight: "600",
             fontSize: "14px",
             color: "#2c3e50"
@@ -298,12 +330,12 @@ export default function LandingPage({ onStart }) {
             <option value="never">{language === "ko" ? "사용하지 않음" : "Never"}</option>
           </select>
         </div>
-        
+
         {/* AI Tool */}
         <div>
-          <label style={{ 
-            display: "block", 
-            marginBottom: "6px", 
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
             fontWeight: "600",
             fontSize: "14px",
             color: "#2c3e50"
@@ -327,12 +359,12 @@ export default function LandingPage({ onStart }) {
             }}
           />
         </div>
-        
+
         {/* English Level */}
         <div>
-          <label style={{ 
-            display: "block", 
-            marginBottom: "6px", 
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
             fontWeight: "600",
             fontSize: "14px",
             color: "#2c3e50"
@@ -360,19 +392,19 @@ export default function LandingPage({ onStart }) {
             <option value="beginner">{language === "ko" ? "초급" : "Beginner"}</option>
           </select>
         </div>
-        
+
         {/* System Order */}
-        <div style={{ 
-          marginTop: "10px", 
-          padding: "16px", 
-          border: "1px solid #dfe6e9", 
-          borderRadius: "8px", 
-          backgroundColor: "#f8f9fa" 
+        <div style={{
+          marginTop: "10px",
+          padding: "16px",
+          border: "1px solid #dfe6e9",
+          borderRadius: "8px",
+          backgroundColor: "#f8f9fa"
         }}>
-          <label style={{ 
-            display: "block", 
-            marginBottom: "12px", 
-            fontWeight: "600", 
+          <label style={{
+            display: "block",
+            marginBottom: "12px",
+            fontWeight: "600",
             fontSize: "14px",
             color: "#2c3e50"
           }}>
@@ -413,36 +445,31 @@ export default function LandingPage({ onStart }) {
           <CustomButton color="object" onClick={handleStart} style={{ width: "100%" }}>
             {language === "ko" ? "실험 시작하기" : "Start Experiment"}
           </CustomButton>
-          
+
           {/* Dev version button */}
-          <div style={{ 
-            borderTop: "1px solid #dfe6e9", 
-            paddingTop: "12px", 
-            textAlign: "center" 
+          <div style={{
+            borderTop: "1px solid #dfe6e9",
+            paddingTop: "12px",
+            textAlign: "center"
           }}>
-            <div style={{ 
-              fontSize: "12px", 
-              color: "#7f8c8d", 
-              marginBottom: "8px",
-              fontStyle: "italic"
-            }}>
-              {language === "ko" ? "개발자용 (설문 생략)" : "Developer Mode (Skip Survey)"}
+            <div style={{ }}>
+              <CustomButton
+                color="neutral"
+                onClick={handleDevSystem1}
+              >
+                dev.system1
+              </CustomButton>
+
+              <CustomButton
+                color="neutral"
+                onClick={handleDevSystem2}
+              >
+                dev.system2
+              </CustomButton>
             </div>
-            <CustomButton 
-              color="neutral" 
-              onClick={handleDevStart}
-              style={{ 
-                width: "100%", 
-                fontSize: "12px",
-                backgroundColor: "#6c757d",
-                border: "1px solid #6c757d"
-              }}
-            >
-              {language === "ko" ? "Dev 모드로 시작" : "Start in Dev Mode"}
-            </CustomButton>
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

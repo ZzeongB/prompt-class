@@ -11,7 +11,7 @@ import { HelpCircle } from "lucide-react";
 import HelpModal from "./components/modal/HelpModal"; // 추가
 import InstanceBoard from "./Board/InstanceBoard";
 
-export default function AppUI({ isBaseline, language, onSystemComplete }) {
+export default function AppUI({ isBaseline, language, onSystemComplete, onReturnHome }) {
   const [imageSrc, setImageSrc] = useState("");
   const [showHelp, setShowHelp] = useState(false);
   const [newInstanceToAdd, setNewInstanceToAdd] = useState(null);
@@ -50,6 +50,14 @@ export default function AppUI({ isBaseline, language, onSystemComplete }) {
       completion_time: new Date().toISOString()
     });
     onSystemComplete();
+  };
+
+  const handleReturnHome = async () => {
+    await logEvent("return_home", {
+      system: isBaseline ? "system1" : "system2",
+      return_time: new Date().toISOString()
+    });
+    onReturnHome && onReturnHome();
   };
 
   const handleAddInstance = (instanceData) => {
@@ -211,21 +219,34 @@ export default function AppUI({ isBaseline, language, onSystemComplete }) {
 
           {/* <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} /> */}
 
-          <CustomButton
-            color="object"
-            size="sm"
-            onClick={handleSystemComplete}
-            style={{
-              position: "fixed",
-              bottom: "20px",
-              right: "20px",
-              zIndex: 999,
-            }}
-          >
-            {language === "ko" 
-              ? `${isBaseline ? "시스템 1" : "시스템 2"} 완료` 
-              : `Complete ${isBaseline ? "System 1" : "System 2"}`}
-          </CustomButton>
+          <div style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            zIndex: 999,
+            display: "flex",
+            flexDirection: "column",
+            gap: "5px"
+          }}>
+            <CustomButton
+              color="neutral"
+              size="sm"
+              onClick={handleReturnHome}
+             
+            >
+              {language === "ko" ? "홈으로" : "Home"}
+            </CustomButton>
+            
+            <CustomButton
+              color="object"
+              size="sm"
+              onClick={handleSystemComplete}
+            >
+              {language === "ko" 
+                ? `${isBaseline ? "시스템 1" : "시스템 2"} 완료` 
+                : `Complete ${isBaseline ? "System 1" : "System 2"}`}
+            </CustomButton>
+          </div>
       </ClassProvider>
     </div>
   );

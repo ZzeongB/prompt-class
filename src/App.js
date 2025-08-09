@@ -35,7 +35,13 @@ export default function App() {
     setLanguage(selectedLanguage);
     setSystemOrder(selectedSystemOrder);
     
-    if (selectedSystemOrder === "system1_first") {
+    if (selectedSystemOrder === "direct_system1") {
+      setPhase("system1");
+      setSystem1StartTime(Date.now());
+    } else if (selectedSystemOrder === "direct_system2") {
+      setPhase("system2");
+      setSystem2StartTime(Date.now());
+    } else if (selectedSystemOrder === "system1_first") {
       setPhase("system1");
       setSystem1StartTime(Date.now());
     } else {
@@ -80,6 +86,11 @@ export default function App() {
     setSystem1StartTime(null);
     setSystem2StartTime(null);
     sessionStorage.clear();
+  };
+
+  const handleReturnHome = () => {
+    setPhase("landing");
+    // Keep the session data but return to landing page
   };
 
   if (phase === "complete") {
@@ -144,6 +155,7 @@ export default function App() {
         isBaseline={phase === "system1"}
         language={language}
         onSystemComplete={phase === "system1" ? handleSystem1Complete : handleSystem2Complete}
+        onReturnHome={handleReturnHome}
       />
     );
   }
