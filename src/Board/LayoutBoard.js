@@ -995,7 +995,13 @@ function LayoutBoard({
           label: "Tomato",
           description: "A red tomato character",
           position: { x: 83, y: 163 },
-          size: { width: 270, height: 348 }
+          size: { width: 270, height: 348 },
+          sceneGraph: {
+            objects: [
+              { id: "tomato-1", name: "tomato", attributes: ["red", "character"] }
+            ],
+            relationships: []
+          }
         }
       ]
     },
@@ -1009,7 +1015,13 @@ function LayoutBoard({
           label: "Car",
           description: "An animation-style racing car",
           position: { x: 72, y: 261 },
-          size: { width: 280, height: 165 }
+          size: { width: 280, height: 165 },
+          sceneGraph: {
+            objects: [
+              { id: "car-1", name: "car", attributes: ["animation-style", "racing"] }
+            ],
+            relationships: []
+          }
         }
       ]
     },
@@ -1023,7 +1035,13 @@ function LayoutBoard({
           label: "Player",
           description: "Male tennis player",
           position: { x: 66, y: 196 },
-          size: { width: 122, height: 298 }
+          size: { width: 122, height: 298 },
+          sceneGraph: {
+            objects: [
+              { id: "player-1", name: "player", attributes: ["male", "tennis"] }
+            ],
+            relationships: []
+          }
         }
       ]
     },
@@ -1037,7 +1055,14 @@ function LayoutBoard({
           label: "Woman",
           description: "Woman wearing yellow dress",
           position: { x: 175, y: 181 },
-          size: { width: 86, height: 331 }
+          size: { width: 86, height: 331 },
+          sceneGraph: {
+            objects: [
+              { id: "object-1", name: "woman", },
+              { id: "object-2", name: "dress", attributes: ["yellow"] }
+            ],
+            relationships: [{ source: "object-1", target: "object-2", relation: "wearing" }]
+          }
         }
       ]
     }
@@ -1069,7 +1094,7 @@ function LayoutBoard({
         id: sharedId,
         instanceLabel: instanceData.label,
         textDescription: instanceData.description,
-        sceneGraph: { objects: [], relationships: [] },
+        sceneGraph: instanceData.sceneGraph || { objects: [], relationships: [] },
         createdAt: new Date().toISOString(),
         isFromClass: false,
         classId: null,
