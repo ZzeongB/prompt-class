@@ -78,7 +78,12 @@ export const applyClassUpdatesToInstance = (
           let resolvedValue;
           if (hasAttrOverride) {
             // 오버라이드가 있으면 오버라이드 값 사용
-            resolvedValue = overrides.objects[obj.id].attributes[attrIndex];
+            const overrideValue = overrides.objects[obj.id].attributes[attrIndex];
+            if (overrideValue === "DELETE") {
+              // DELETE 마커는 null로 처리하여 렌더링에서 제외
+              return null;
+            }
+            resolvedValue = overrideValue;
           } else {
             // 오버라이드가 없으면 originalSceneGraph의 값 사용 (기본값)
             resolvedValue = originalObj?.attributes?.[attrIndex] ||
@@ -89,7 +94,7 @@ export const applyClassUpdatesToInstance = (
           return resolvedValue;
         }
         return attr;
-      });
+      }).filter(attr => attr !== null); // DELETE로 표시된 것들(null) 제거
 
       delete obj.defaultAttributes;
     }

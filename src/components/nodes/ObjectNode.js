@@ -158,17 +158,19 @@ const ObjectNode = ({
       parent_instance_id: parentInstanceId,
     });
 
-    const updated = object.attributes.filter((_, i) => i !== index);
+    // 배열에서 제거하는 대신 "DELETE" 마커로 표시
+    const updated = [...object.attributes];
+    updated[index] = "DELETE";
 
     if (isClassMode) {
       // class mode에서는 placeHolders도 함께 업데이트
-      const currentAttrs = placeHolders[object.id]?.attr || [];
-      const updatedAttrs = currentAttrs.filter((_, i) => i !== index);
+      const currentAttrs = [...(placeHolders[object.id]?.attr || [])];
+      currentAttrs[index] = { name: "DELETE", defaultvalue: "DELETE" };
       const updatedPlaceHolders = {
         ...placeHolders,
         [object.id]: {
           name: placeHolders[object.id]?.name || null,
-          attr: updatedAttrs
+          attr: currentAttrs
         }
       };
       onEdit?.(object.id, object.name, updated, updatedPlaceHolders);
@@ -346,6 +348,11 @@ const ObjectNode = ({
 
   // 렌더링 함수들
   const renderAttribute = (attr, index) => {
+    // DELETE 마커는 렌더링하지 않음
+    if (attr === "DELETE") {
+      return null;
+    }
+
     const isEditing = editingMode === `attribute-${index}`;
     const opacity = getElementOpacity("attribute", index);
 
@@ -753,7 +760,7 @@ const ObjectNode = ({
                 >
                   {object.attributes?.map((attr, index) =>
                     renderAttribute(attr, index)
-                  )}
+                  ).filter(Boolean)}
                 </div>
               )}
 
