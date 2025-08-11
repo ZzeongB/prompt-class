@@ -131,16 +131,28 @@ export const applySceneGraphDifferences = (baseSceneGraph, differences) => {
   return result;
 };
 
-export const generateSceneGraphTextDescription = async (sceneGraph) => {
+export const generateSceneGraphTextDescription = async (sceneGraph, previousSceneGraph = null, previousTextDescription = null) => {
   try {
     const { generateSceneGraphToText } = await import(
       "../api/generateTextToGraph"
     );
     return await generateSceneGraphToText({
       newSceneGraph: sceneGraph,
+      previousSceneGraph,
+      previousTextDescription,
     });
   } catch (error) {
     console.error("Failed to generate text description from sceneGraph:", error);
     return "";
   }
 };
+
+export const generateInstanceLabelFromDescription = async (description) => {
+  try {
+    const { generateInstanceLabelFromDescription } = await import("../api/generateTextToGraph");
+    return await generateInstanceLabelFromDescription(description);
+  } catch (error) {
+    console.error("Failed to generate instance label from description:", error);
+    return "Unnamed Instance";
+  }
+}

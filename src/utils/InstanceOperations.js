@@ -1,7 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
 import { 
   deepCloneSceneGraph, 
-  generateSceneGraphTextDescription 
+  generateSceneGraphTextDescription,
+  generateInstanceLabelFromDescription
 } from './SceneGraphUtils';
 import { resolvePlaceholdersInSceneGraph } from './PlaceholderUtils';
 import { 
@@ -56,16 +57,20 @@ export const createInstanceFromClass = async (classData, newValues = {}) => {
   );
 
   let textDescription = classData.template.textDescription || "";
+  let instanceLabel = generateInstanceLabel(newValues);
   try {
     textDescription = await generateSceneGraphTextDescription(sceneGraph);
+    instanceLabel = await generateInstanceLabelFromDescription(textDescription);
+    console.log("Generated text description:", textDescription, instanceLabel);
   } catch (error) {
     console.error("Failed to generate text description from sceneGraph:", error);
     textDescription = classData.template.textDescription || generateInstanceLabel(newValues);
+    instanceLabel = generateInstanceLabel(newValues);
   }
 
   const newInstance = {
     id: `instance-${uuidv4()}`,
-    instanceLabel: generateInstanceLabel(newValues),
+    instanceLabel: instanceLabel,
     sceneGraph,
     textDescription,
     createdAt: new Date().toISOString(),
@@ -283,7 +288,7 @@ export const updateInstancesFromClassTemplate = async (updatedClass, instances) 
     let newTextDescription = instance.textDescription;
     if (!instance.overrides.textDescription) {
       try {
-        newTextDescription = await generateSceneGraphTextDescription(newSceneGraph);
+        newTextDescription = await generateSceneGraphTextDescription(newSceneGraph, instance.sceneGraph, instance.textDescription);
       } catch (error) {
         console.error("Failed to update text description for instance:", instance.id, error);
         newTextDescription = updatedClass.template.textDescription || instance.textDescription;

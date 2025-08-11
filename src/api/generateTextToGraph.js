@@ -269,7 +269,7 @@ export const generateInstanceLabelFromDescription = async (textDescription) => {
 Extract the main object/subject from the given description and return it as a simple label (1-2 words max).
 
 Examples:
-- "A red car driving on the road" -> "Car"
+- "A red car driving on the road" -> "Red car"
 - "Smiling cactus in flower pot" -> "Cactus" 
 - "Beautiful sunset over mountains" -> "Sunset"
 
