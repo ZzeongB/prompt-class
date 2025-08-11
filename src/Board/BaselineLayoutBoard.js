@@ -587,7 +587,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
         </CustomButton>
 
         <CustomButton
-          color="grey"
+          color={showImageOnly ? "grey" : "neutral"}
           size="sm"
           onClick={() => setShowImageOnly(!showImageOnly)}
         >
@@ -599,10 +599,9 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
               fontWeight: "bold",
             }}
           >
-            {showImageOnly ? "Show Layout" : "Show Image Only"}
+            {showImageOnly ? "Show Layout" : "Show Image"}
           </span>
         </CustomButton>
-
         <div style={{
           display: "flex",
           gap: "8px",

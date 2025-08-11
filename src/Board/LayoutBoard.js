@@ -70,7 +70,7 @@ function LayoutBoard({
   const [showImageOnly, setShowImageOnly] = useState(false);
   const [inlinePrompt, setInlinePrompt] = useState(null);
   const [detectedObjects, setDetectedObjects] = useState([]);
-  // const [showBoundingBoxes, setShowBoundingBoxes] = useState(true);
+  const [showDetectedObjects, setShowDetectedObjects] = useState(true);
   const [hoveredObject, setHoveredObject] = useState(null);
   const [relationshipInput, setRelationshipInput] = useState(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -947,7 +947,7 @@ function LayoutBoard({
       const instancesWithNodeInfo = selectedInstances.map(instance => {
         const node = nodes.find(n => n.data?.instanceId === instance.id && n.type === "resizable");
         const simpleNode = nodes.find(n => n.data?.instanceId === instance.id && n.type === "simple");
-        
+
         return {
           ...instance,
           nodePosition: node?.position || simpleNode?.position,
@@ -1152,7 +1152,10 @@ function LayoutBoard({
           position: "absolute",
           bottom: "-40px",
           width: "100%",
-          display: "column",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          flexWrap: "nowrap",
         }}
       >
         {!isMergeMode &&
@@ -1213,22 +1216,42 @@ function LayoutBoard({
         )}
 
         {!isMergeMode && (
-          <CustomButton
-            color="grey"
-            size="sm"
-            onClick={() => setShowImageOnly(!showImageOnly)}
-          >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                fontWeight: "bold",
-              }}
+          <>
+            <CustomButton
+              color={showImageOnly ? "grey" : "neutral"}
+              size="sm"
+              onClick={() => setShowImageOnly(!showImageOnly)}
             >
-              {showImageOnly ? "Show Layout" : "Show Image Only"}
-            </span>
-          </CustomButton>)}
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: "bold",
+                }}
+              >
+                {showImageOnly ? "Show Layout" : "Show Image"}
+              </span>
+            </CustomButton>
+            
+            <CustomButton
+              color={showDetectedObjects ? "grey" : "neutral"}
+              size="sm"
+              onClick={() => setShowDetectedObjects(!showDetectedObjects)}
+            >
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: "bold",
+                }}
+              >
+                {showDetectedObjects ? "Hide Detections" : "Show Detections"}
+              </span>
+            </CustomButton>
+          </>
+        )}
 
 
         <div
@@ -1351,7 +1374,7 @@ function LayoutBoard({
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         />
       )}
-      {!showImageOnly && (<ObjectOverlay
+      {!showImageOnly && showDetectedObjects && (<ObjectOverlay
         detectedObjects={detectedObjects}
         nodes={nodes}
         flowToScreenPosition={flowToScreenPosition}
