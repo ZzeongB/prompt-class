@@ -5,7 +5,8 @@ export async function generateImageFromInstanceData(
   sentences,
   boxes,
   globalCaption_,
-  requiredKeywords
+  requiredKeywords,
+  userId = "P1"
 ) {
   try {
     logEvent("api.generate_image.started", {
@@ -18,7 +19,8 @@ export async function generateImageFromInstanceData(
     const { refinedCaptions, globalCaption } = await generateGlobalCaption(
       sentences,
       globalCaption_,
-      requiredKeywords || null
+      requiredKeywords || null,
+      userId
     );
 
     if (!refinedCaptions || refinedCaptions.length === 0) {
@@ -40,6 +42,7 @@ export async function generateImageFromInstanceData(
           global_caption: globalCaption,
           region_caption_list: refinedCaptions || sentences,
           region_bboxes_list: boxes,
+          user_id: userId,
         }),
       }
     );

@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 const sizeStyles = {
-  sm: { padding: "6px 12px", fontSize: "12px", borderRadius: "6px" },
+  sm: { padding: "6px 12px", fontSize: "11px", borderRadius: "6px" },
   md: { padding: "8px 16px", fontSize: "13px", borderRadius: "8px" },
   lg: { padding: "8px 18px", fontSize: "15px", borderRadius: "12px" },
 };

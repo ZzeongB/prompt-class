@@ -507,10 +507,13 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
       });
 
       try {
+        const userId = sessionStorage.getItem("user_id") || "P1";
         const response = await generateImageFromInstanceData(
           sentences,
           boxes,
-          globalCaption // global caption placeholder
+          globalCaption, // global caption placeholder
+          null, // requiredKeywords
+          userId
         );
 
         const durationMs = performance.now() - startTime;

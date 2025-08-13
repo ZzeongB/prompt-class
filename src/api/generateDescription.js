@@ -3,7 +3,8 @@ import { logEvent } from "./logEvent";
 export async function generateDescription(
   base64FullImage,
   crop_box,
-  global_caption
+  global_caption,
+  userId = "P1"
 ) {
   try {
     logEvent("api.generate_description.started", {
@@ -22,6 +23,7 @@ export async function generateDescription(
         image: base64Data, // 선택적으로 전체 이미지
         crop_box: crop_box, //[x1, y1, x2, y2],          // 선택 영역
         global_caption: global_caption, // 선택적으로 전체 이미지에 대한 설명
+        user_id: userId,
       }),
     });
 

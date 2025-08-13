@@ -634,10 +634,13 @@ function LayoutBoard({
             );
           });
 
+        const userId = sessionStorage.getItem("user_id") || "P1";
         const response = await generateImageFromInstanceData(
           sentences,
           boxes,
-          globalCaption
+          globalCaption,
+          null, // requiredKeywords
+          userId
         );
 
         onImageGenerated(response.image);
@@ -679,10 +682,12 @@ function LayoutBoard({
 
     try {
       // 1. Generate description for the clicked object
+      const userId = sessionStorage.getItem("user_id") || "P1";
       const descriptionResult = await generateDescription(
         imageBoard,
         obj.bbox,
-        globalCaption
+        globalCaption,
+        userId
       );
 
       logEvent("object_description_generated", {

@@ -225,8 +225,9 @@ def generate():
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
     
-    # ✅ 세션 디렉토리 생성
-    timestamp_dir = os.path.join(save_root, timestamp)
+    # ✅ 사용자별 디렉토리 생성
+    user_dir = os.path.join(save_root, user_id)
+    timestamp_dir = os.path.join(user_dir, timestamp)
     os.makedirs(timestamp_dir, exist_ok=True)
 
     # ✅ Prompt 저장
@@ -360,8 +361,9 @@ def describe_region():
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
-    # ✅ 세션 디렉토리 생성
-    timestamp_dir = os.path.join(save_root, timestamp)
+    # ✅ 사용자별 디렉토리 생성
+    user_dir = os.path.join(save_root, user_id)
+    timestamp_dir = os.path.join(user_dir, timestamp)
     os.makedirs(timestamp_dir, exist_ok=True)
 
     # ✅ Prompt 저장

@@ -5,24 +5,11 @@ import { logEvent } from '../../api/logEvent';
 const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) => {
   const [selectedRating, setSelectedRating] = useState(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      logEvent("image_quality_modal.opened", {
-        // image_url: imageUrl,
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }, [isOpen, imageUrl]);
-
   // ESC 키 방지
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape' && isOpen) {
         event.preventDefault();
-        logEvent("image_quality_modal.escape_attempted", {
-          selected_rating: selectedRating,
-          // image_url: imageUrl,
-        });
         alert("⚠️ 평가가 필요합니다!\n\n생성된 이미지를 1-7점으로 평가한 후 '평가 완료' 버튼을 눌러주세요.");
       }
     };
@@ -36,11 +23,6 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
   }, [isOpen, selectedRating, imageUrl]);
 
   const handleRatingClick = (rating) => {
-    logEvent("image_quality_modal.rating_selected", {
-      rating: rating,
-      previous_rating: selectedRating,
-      // image_url: imageUrl,
-    });
     setSelectedRating(rating);
   };
 
@@ -58,12 +40,6 @@ const ImageQualityRatingModal = ({ isOpen, onClose, imageUrl, onRatingSubmit }) 
   };
 
   const handleCancel = () => {
-    logEvent("image_quality_modal.cancel_attempted", {
-      selected_rating: selectedRating,
-      // image_url: imageUrl,
-      timestamp: new Date().toISOString(),
-    });
-    
     // 경고 메시지 표시
     alert("⚠️ 평가가 필요합니다!\n\n생성된 이미지를 1-7점으로 평가한 후 '평가 완료' 버튼을 눌러주세요.");
   };
