@@ -38,7 +38,7 @@ function SimpleLayoutNode({ id, data, selected }) {
           : shouldHighlight
           ? "0 8px 20px -4px rgba(59, 130, 246, 0.5)"
           : "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
-        minWidth: "100px",
+        minWidth: "80px",
         textAlign: "center",
         transform: (isSelectedForMerge || shouldHighlight) ? "scale(1.05)" : "scale(1)",
       }}

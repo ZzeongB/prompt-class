@@ -8,9 +8,15 @@ export default function LandingPage({ onStart }) {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [occupation, setOccupation] = useState("");
-  const [genAIFreq, setGenAIFreq] = useState("");
-  const [genAITool, setGenAITool] = useState("");
+  const [aiToolTypes, setAiToolTypes] = useState([]);
+  const [aiFrequency, setAiFrequency] = useState("");
+  const [aiPurposes, setAiPurposes] = useState([]);
+  const [aiProficiency, setAiProficiency] = useState("");
   const [englishLevel, setEnglishLevel] = useState("");
+  const [programmingDuration, setProgrammingDuration] = useState("");
+  const [programmingLanguages, setProgrammingLanguages] = useState([]);
+  const [programmingContexts, setProgrammingContexts] = useState([]);
+  const [programmingProficiency, setProgrammingProficiency] = useState("");
   const [systemOrder, setSystemOrder] = useState("");
 
   const handleStart = async () => {
@@ -20,7 +26,10 @@ export default function LandingPage({ onStart }) {
     }
 
     if (age.trim() === "" || gender.trim() === "" || occupation.trim() === "" ||
-      genAIFreq.trim() === "" || genAITool.trim() === "" || englishLevel.trim() === "" ||
+      aiToolTypes.length === 0 || aiFrequency.trim() === "" || aiPurposes.length === 0 ||
+      aiProficiency.trim() === "" || englishLevel.trim() === "" ||
+      programmingDuration.trim() === "" || programmingLanguages.length === 0 ||
+      programmingContexts.length === 0 || programmingProficiency.trim() === "" ||
       systemOrder.trim() === "") {
       alert("모든 기본 정보를 입력해주세요.");
       return;
@@ -30,9 +39,15 @@ export default function LandingPage({ onStart }) {
       age: age.trim(),
       gender: gender.trim(),
       occupation: occupation.trim(),
-      gen_ai_frequency: genAIFreq.trim(),
-      gen_ai_tool: genAITool.trim(),
+      ai_tool_types: aiToolTypes,
+      ai_frequency: aiFrequency.trim(),
+      ai_purposes: aiPurposes,
+      ai_proficiency: aiProficiency.trim(),
       english_level: englishLevel.trim(),
+      programming_duration: programmingDuration.trim(),
+      programming_languages: programmingLanguages,
+      programming_contexts: programmingContexts,
+      programming_proficiency: programmingProficiency.trim(),
       system_order: systemOrder.trim()
     };
 
@@ -54,9 +69,15 @@ export default function LandingPage({ onStart }) {
       age: "25",
       gender: "other",
       occupation: "developer",
-      gen_ai_frequency: "daily",
-      gen_ai_tool: "ChatGPT",
+      ai_tool_types: ["text"],
+      ai_frequency: "daily",
+      ai_purposes: ["work"],
+      ai_proficiency: "5",
       english_level: "fluent",
+      programming_duration: "1-3",
+      programming_languages: ["javascript"],
+      programming_contexts: ["web"],
+      programming_proficiency: "4",
       system_order: "system1_first"
     }));
     sessionStorage.setItem("system_order", "system1_first");
@@ -69,9 +90,15 @@ export default function LandingPage({ onStart }) {
       age: "25",
       gender: "other",
       occupation: "developer",
-      gen_ai_frequency: "daily",
-      gen_ai_tool: "ChatGPT",
+      ai_tool_types: ["text"],
+      ai_frequency: "daily",
+      ai_purposes: ["work"],
+      ai_proficiency: "5",
       english_level: "fluent",
+      programming_duration: "1-3",
+      programming_languages: ["javascript"],
+      programming_contexts: ["web"],
+      programming_proficiency: "4",
       system_order: "system1_first"
     }));
     sessionStorage.setItem("system_order", "system1_first");
@@ -85,9 +112,15 @@ export default function LandingPage({ onStart }) {
       age: "25",
       gender: "other",
       occupation: "developer",
-      gen_ai_frequency: "daily",
-      gen_ai_tool: "ChatGPT",
+      ai_tool_types: ["text"],
+      ai_frequency: "daily",
+      ai_purposes: ["work"],
+      ai_proficiency: "5",
       english_level: "fluent",
+      programming_duration: "1-3",
+      programming_languages: ["javascript"],
+      programming_contexts: ["web"],
+      programming_proficiency: "4",
       system_order: "system2_first"
     }));
     sessionStorage.setItem("system_order", "system2_first");
@@ -297,68 +330,6 @@ export default function LandingPage({ onStart }) {
           />
         </div>
 
-        {/* AI Frequency */}
-        <div>
-          <label style={{
-            display: "block",
-            marginBottom: "6px",
-            fontWeight: "600",
-            fontSize: "14px",
-            color: "#2c3e50"
-          }}>
-            {language === "ko" ? "생성형 AI 사용 빈도" : "Generative AI Usage Frequency"}
-          </label>
-          <select
-            value={genAIFreq}
-            onChange={(e) => setGenAIFreq(e.target.value)}
-            style={{
-              padding: "10px",
-              fontSize: "14px",
-              borderRadius: "6px",
-              border: "1px solid #dfe6e9",
-              width: "100%",
-              backgroundColor: "white",
-              outline: "none",
-              transition: "border-color 0.2s ease"
-            }}
-          >
-            <option value="">{language === "ko" ? "생성형 AI 사용 빈도" : "Select Frequency"}</option>
-            <option value="daily">{language === "ko" ? "매일" : "Daily"}</option>
-            <option value="weekly">{language === "ko" ? "주 2-3회" : "2-3 times per week"}</option>
-            <option value="monthly">{language === "ko" ? "월 2-3회" : "2-3 times per month"}</option>
-            <option value="rarely">{language === "ko" ? "거의 사용하지 않음" : "Rarely"}</option>
-            <option value="never">{language === "ko" ? "사용하지 않음" : "Never"}</option>
-          </select>
-        </div>
-
-        {/* AI Tool */}
-        <div>
-          <label style={{
-            display: "block",
-            marginBottom: "6px",
-            fontWeight: "600",
-            fontSize: "14px",
-            color: "#2c3e50"
-          }}>
-            {language === "ko" ? "주로 사용하는 생성형 AI 도구" : "Primary Generative AI Tool"}
-          </label>
-          <input
-            type="text"
-            placeholder={language === "ko" ? "예: ChatGPT, Claude, 없음" : "e.g., ChatGPT, Claude, None"}
-            value={genAITool}
-            onChange={(e) => setGenAITool(e.target.value)}
-            style={{
-              padding: "10px",
-              fontSize: "14px",
-              borderRadius: "6px",
-              border: "1px solid #dfe6e9",
-              width: "96%",
-              backgroundColor: "white",
-              outline: "none",
-              transition: "border-color 0.2s ease"
-            }}
-          />
-        </div>
 
         {/* English Level */}
         <div>
@@ -391,6 +362,303 @@ export default function LandingPage({ onStart }) {
             <option value="intermediate">{language === "ko" ? "중급" : "Intermediate"}</option>
             <option value="beginner">{language === "ko" ? "초급" : "Beginner"}</option>
           </select>
+        </div>
+
+
+        {/* AI Tool Types */}
+        <div>
+          <label style={{
+            display: "block",
+            marginBottom: "8px",
+            fontWeight: "600",
+            fontSize: "14px",
+            color: "#2c3e50"
+          }}>
+            {language === "ko" ? "어떤 종류의 생성형 AI 도구를 사용해 보셨습니까?" : "Which types of generative AI tools have you used?"}
+          </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {[
+              { value: "text", label: language === "ko" ? "텍스트 생성" : "Text generation" },
+              { value: "image", label: language === "ko" ? "이미지 생성" : "Image generation" },
+              { value: "video", label: language === "ko" ? "비디오 생성" : "Video generation" },
+              { value: "audio", label: language === "ko" ? "오디오 생성" : "Audio generation" },
+              { value: "none", label: language === "ko" ? "없음" : "None" }
+            ].map((option) => (
+              <label key={option.value} style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={aiToolTypes.includes(option.value)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setAiToolTypes([...aiToolTypes, option.value]);
+                    } else {
+                      setAiToolTypes(aiToolTypes.filter(type => type !== option.value));
+                    }
+                  }}
+                  style={{ marginRight: "8px" }}
+                />
+                <span style={{ fontSize: "14px", color: "#34495e" }}>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* AI Frequency */}
+        <div>
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
+            fontWeight: "600",
+            fontSize: "14px",
+            color: "#2c3e50"
+          }}>
+            {language === "ko" ? "생성형 AI 도구를 얼마나 자주 사용하십니까?" : "How often do you use generative AI tools?"}
+          </label>
+          <select
+            value={aiFrequency}
+            onChange={(e) => setAiFrequency(e.target.value)}
+            style={{
+              padding: "10px",
+              fontSize: "14px",
+              borderRadius: "6px",
+              border: "1px solid #dfe6e9",
+              width: "100%",
+              backgroundColor: "white",
+              outline: "none",
+              transition: "border-color 0.2s ease"
+            }}
+          >
+            <option value="">{language === "ko" ? "빈도 선택" : "Select Frequency"}</option>
+            <option value="daily">{language === "ko" ? "매일" : "Daily"}</option>
+            <option value="weekly">{language === "ko" ? "주간" : "Weekly"}</option>
+            <option value="monthly">{language === "ko" ? "월간" : "Monthly"}</option>
+            <option value="rarely">{language === "ko" ? "거의 사용하지 않음" : "Rarely"}</option>
+            <option value="never">{language === "ko" ? "사용하지 않음" : "Never"}</option>
+          </select>
+        </div>
+
+        {/* AI Purposes */}
+        <div>
+          <label style={{
+            display: "block",
+            marginBottom: "8px",
+            fontWeight: "600",
+            fontSize: "14px",
+            color: "#2c3e50"
+          }}>
+            {language === "ko" ? "어떤 목적으로 생성형 AI 도구를 사용하십니까?" : "For what purposes do you use generative AI tools?"}
+          </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {[
+              { value: "work", label: language === "ko" ? "업무" : "Work" },
+              { value: "study", label: language === "ko" ? "학습" : "Study" },
+              { value: "creative", label: language === "ko" ? "창작 프로젝트" : "Creative projects" },
+              { value: "entertainment", label: language === "ko" ? "오락" : "Entertainment" },
+              { value: "other", label: language === "ko" ? "기타" : "Other" }
+            ].map((option) => (
+              <label key={option.value} style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={aiPurposes.includes(option.value)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setAiPurposes([...aiPurposes, option.value]);
+                    } else {
+                      setAiPurposes(aiPurposes.filter(purpose => purpose !== option.value));
+                    }
+                  }}
+                  style={{ marginRight: "8px" }}
+                />
+                <span style={{ fontSize: "14px", color: "#34495e" }}>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* AI Proficiency */}
+        <div>
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
+            fontWeight: "600",
+            fontSize: "14px",
+            color: "#2c3e50"
+          }}>
+            {language === "ko" ? "생성형 AI 도구 사용 전반적인 숙련도를 어떻게 평가하시겠습니까?" : "How would you rate your overall proficiency in using generative AI tools?"}
+          </label>
+          <div style={{ marginBottom: "6px", fontSize: "12px", color: "#7f8c8d" }}>
+            {language === "ko" ? "1 (매우 미숙함) ~ 7 (매우 숙련됨)" : "1 (Very unskilled) ~ 7 (Very skilled)"}
+          </div>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "space-between" }}>
+            {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+              <label key={num} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name="aiProficiency"
+                  value={num.toString()}
+                  checked={aiProficiency === num.toString()}
+                  onChange={(e) => setAiProficiency(e.target.value)}
+                  style={{ marginBottom: "4px" }}
+                />
+                <span style={{ fontSize: "12px", color: "#34495e" }}>{num}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Programming Duration */}
+        <div>
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
+            fontWeight: "600",
+            fontSize: "14px",
+            color: "#2c3e50"
+          }}>
+            {language === "ko" ? "얼마나 오래 프로그래밍을 해오셨습니까?" : "How long have you been programming?"}
+          </label>
+          <select
+            value={programmingDuration}
+            onChange={(e) => setProgrammingDuration(e.target.value)}
+            style={{
+              padding: "10px",
+              fontSize: "14px",
+              borderRadius: "6px",
+              border: "1px solid #dfe6e9",
+              width: "100%",
+              backgroundColor: "white",
+              outline: "none",
+              transition: "border-color 0.2s ease"
+            }}
+          >
+            <option value="">{language === "ko" ? "기간 선택" : "Select Duration"}</option>
+            <option value="never">{language === "ko" ? "전혀 하지 않음" : "Never"}</option>
+            <option value="<1">{language === "ko" ? "1년 미만" : "< 1 year"}</option>
+            <option value="1-3">{language === "ko" ? "1-3년" : "1–3 years"}</option>
+            <option value=">3">{language === "ko" ? "3년 이상" : "> 3 years"}</option>
+          </select>
+        </div>
+
+        {/* Programming Languages */}
+        <div>
+          <label style={{
+            display: "block",
+            marginBottom: "8px",
+            fontWeight: "600",
+            fontSize: "14px",
+            color: "#2c3e50"
+          }}>
+            {language === "ko" ? "어떤 프로그래밍 언어에 익숙하십니까?" : "Which programming languages are you familiar with?"}
+          </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "200px", overflowY: "auto" }}>
+            {[
+              { value: "javascript", label: "JavaScript" },
+              { value: "python", label: "Python" },
+              { value: "java", label: "Java" },
+              { value: "cpp", label: "C++" },
+              { value: "c", label: "C" },
+              { value: "csharp", label: "C#" },
+              { value: "php", label: "PHP" },
+              { value: "typescript", label: "TypeScript" },
+              { value: "swift", label: "Swift" },
+              { value: "kotlin", label: "Kotlin" },
+              { value: "go", label: "Go" },
+              { value: "rust", label: "Rust" },
+              { value: "ruby", label: "Ruby" },
+              { value: "r", label: "R" },
+              { value: "matlab", label: "MATLAB" },
+              { value: "none", label: language === "ko" ? "없음" : "None" }
+            ].map((option) => (
+              <label key={option.value} style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={programmingLanguages.includes(option.value)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setProgrammingLanguages([...programmingLanguages, option.value]);
+                    } else {
+                      setProgrammingLanguages(programmingLanguages.filter(lang => lang !== option.value));
+                    }
+                  }}
+                  style={{ marginRight: "8px" }}
+                />
+                <span style={{ fontSize: "14px", color: "#34495e" }}>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Programming Contexts */}
+        <div>
+          <label style={{
+            display: "block",
+            marginBottom: "8px",
+            fontWeight: "600",
+            fontSize: "14px",
+            color: "#2c3e50"
+          }}>
+            {language === "ko" ? "어떤 상황에서 프로그래밍을 사용하셨습니까?" : "In which contexts have you used programming?"}
+          </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {[
+              { value: "data", label: language === "ko" ? "데이터 분석" : "Data analysis" },
+              { value: "web", label: language === "ko" ? "웹 개발" : "Web development" },
+              { value: "research", label: language === "ko" ? "연구" : "Research" },
+              { value: "games", label: language === "ko" ? "게임" : "Games" },
+              { value: "mobile", label: language === "ko" ? "모바일 앱" : "Mobile apps" },
+              { value: "automation", label: language === "ko" ? "자동화/스크립팅" : "Automation/Scripting" },
+              { value: "ml", label: language === "ko" ? "머신러닝/AI" : "Machine Learning/AI" },
+              { value: "other", label: language === "ko" ? "기타" : "Other" },
+              { value: "none", label: language === "ko" ? "없음" : "None" }
+            ].map((option) => (
+              <label key={option.value} style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={programmingContexts.includes(option.value)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setProgrammingContexts([...programmingContexts, option.value]);
+                    } else {
+                      setProgrammingContexts(programmingContexts.filter(context => context !== option.value));
+                    }
+                  }}
+                  style={{ marginRight: "8px" }}
+                />
+                <span style={{ fontSize: "14px", color: "#34495e" }}>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Programming Proficiency */}
+        <div>
+          <label style={{
+            display: "block",
+            marginBottom: "6px",
+            fontWeight: "600",
+            fontSize: "14px",
+            color: "#2c3e50"
+          }}>
+            {language === "ko" ? "프로그래밍 숙련도를 어떻게 평가하시겠습니까?" : "How would you rate your programming proficiency?"}
+          </label>
+          <div style={{ marginBottom: "6px", fontSize: "12px", color: "#7f8c8d" }}>
+            {language === "ko" ? "1 (매우 미숙함) ~ 7 (매우 숙련됨)" : "1 (Very unskilled) ~ 7 (Very skilled)"}
+          </div>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "space-between" }}>
+            {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+              <label key={num} style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name="programmingProficiency"
+                  value={num.toString()}
+                  checked={programmingProficiency === num.toString()}
+                  onChange={(e) => setProgrammingProficiency(e.target.value)}
+                  style={{ marginBottom: "4px" }}
+                />
+                <span style={{ fontSize: "12px", color: "#34495e" }}>{num}</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         {/* System Order */}
@@ -452,7 +720,7 @@ export default function LandingPage({ onStart }) {
             paddingTop: "12px",
             textAlign: "center"
           }}>
-            <div style={{ }}>
+            <div style={{}}>
               <CustomButton
                 color="neutral"
                 onClick={handleDevSystem1}

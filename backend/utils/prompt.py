@@ -33,7 +33,7 @@ Corrected region descriptions:
 3. an astronaut drinking coffee inside a volcano
 
 Global image description:
-a surreal scene featuring a mole with poop on its head, a pink elephant flying over a green river, and an astronaut drinking coffee inside a volcano
+a scene featuring a mole with poop on its head, a pink elephant flying over a green river, and an astronaut drinking coffee inside a volcano
 
 # Now process the following input:
 
