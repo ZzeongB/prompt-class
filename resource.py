@@ -5,7 +5,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
 # 연산 크기 설정
-size = 40960  # 필요 시 더 키워서 GPU 메모리 사용량 증가
+size = 20480  # 필요 시 더 키워서 GPU 메모리 사용량 증가
 a = torch.randn(size, size, device=device)
 b = torch.randn(size, size, device=device)
 
