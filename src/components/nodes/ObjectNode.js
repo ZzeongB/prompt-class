@@ -537,9 +537,6 @@ const ObjectNode = ({
             padding: compact ? "1px 3px" : "2px 4px",
             fontSize: compact ? "10px" : "11px",
             fontWeight: 500,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
             boxSizing: "border-box",
             cursor: isEditable ? "pointer" : "default",
             textAlign: "center",
@@ -548,6 +545,8 @@ const ObjectNode = ({
             alignItems: "center",
             justifyContent: "center",
             flex: 1,
+            whiteSpace: "normal",
+            wordWrap: "break-word",
           }}
           onDoubleClick={() => {
             if (isEditable && editingMode === null) {
@@ -688,9 +687,6 @@ const ObjectNode = ({
         }}
         style={{
           cursor: isEditable ? "pointer" : "default",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
           opacity,
           transition: "opacity 0.2s ease",
           fontSize: compact ? "11px" : "12px",
@@ -701,6 +697,8 @@ const ObjectNode = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          whiteSpace: "normal",
+          wordWrap: "break-word",
         }}
         title={object.name}
       >
@@ -738,7 +736,7 @@ const ObjectNode = ({
           flexDirection: "column",
         }}>
           {/* Attributes Section */}
-          {expanded && (attributeCount > 0 || editingMode === "adding") && (
+          {(expanded || editingMode !== null) && (attributeCount > 0 || editingMode === "adding") && (
             <div
               style={{
                 flex: 1,
@@ -811,30 +809,33 @@ const ObjectNode = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                logEvent("object_node.expand_collapse", {
-                  object_id: object.id,
-                  object_name: object.name,
-                  action: expanded ? "collapse" : "expand",
-                  parent_instance_id: parentInstanceId,
-                  is_class_mode: isClassMode,
-                });
-                setExpanded(!expanded);
+                if (editingMode === null) {
+                  logEvent("object_node.expand_collapse", {
+                    object_id: object.id,
+                    object_name: object.name,
+                    action: expanded ? "collapse" : "expand",
+                    parent_instance_id: parentInstanceId,
+                    is_class_mode: isClassMode,
+                  });
+                  setExpanded(!expanded);
+                }
               }}
               style={{
                 background: "none",
                 border: "none",
-                cursor: "pointer",
+                cursor: editingMode === null ? "pointer" : "default",
                 color: "#7f1d1d",
-                opacity: getElementOpacity("controls"),
+                opacity: editingMode === null ? getElementOpacity("controls") : 0.3,
                 padding: "2px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
               }}
-              title={expanded ? "Collapse" : "Expand"}
+              title={editingMode === null ? (expanded ? "Collapse" : "Expand") : "Cannot collapse while editing"}
+              disabled={editingMode !== null}
             >
-              {expanded ? <ChevronDown size={compact ? 8 : 10} /> : <ChevronRight size={compact ? 8 : 10} />}
+              {(expanded || editingMode !== null) ? <ChevronDown size={compact ? 8 : 10} /> : <ChevronRight size={compact ? 8 : 10} />}
             </button>
           </div>
         </div> {/* Content wrapper 닫기 */}
