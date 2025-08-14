@@ -29,7 +29,7 @@ import {
   TOP_OFFSET,
 } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
-import { loadBaseImages } from "../utils/imageUtils";
+import { loadBaseImages, convertImageToBase64 } from "../utils/imageUtils";
 import { getNormalizedBox } from "../utils/node/getNormalizedBox";
 import {
   calculateBboxDimensions,
@@ -57,6 +57,7 @@ function LayoutBoard({
   onInstanceAdded,
   onNodeSelect,
   selectedInstanceId,
+  isTutorial
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -82,6 +83,9 @@ function LayoutBoard({
   // Object merging state
   const [isMergeMode, setIsMergeMode] = useState(false);
   const [selectedObjectsForMerge, setSelectedObjectsForMerge] = useState([]);
+
+  // Tutorial state
+  const [tutorialClickCount, setTutorialClickCount] = useState(0);
 
   const { instances, classes, setInstances } = useClassContext();
 
@@ -577,10 +581,44 @@ function LayoutBoard({
     }
   }, [inlinePrompt, setInstances, setNodes]);
 
+  const handleTutorialClick = async () => {
+    if (tutorialClickCount >= 3) {
+      // 3번째 클릭 후에는 더 이상 클릭되지 않음
+      return;
+    }
+
+    const nextClickCount = tutorialClickCount + 1;
+    setTutorialClickCount(nextClickCount);
+
+    // 순서대로 이미지를 표시
+    const tutorialImagePath = `/assets/tutorial/${nextClickCount}.png`;
+    console.log("tutorialImagePath", tutorialImagePath)
+    const tutorialImage = await Promise.resolve(convertImageToBase64(tutorialImagePath));
+    console.log("tutorialImage", tutorialImage)
+    setImageBoard(tutorialImage);
+    onImageGenerated(tutorialImage);
+    setGeneratedImageForRating(tutorialImage);
+    setShowRatingModal(true);
+
+    // count 1에서 detected object 추가
+    if (nextClickCount === 1) {
+      const tutorialDetectedObject = {
+        label: "ball",
+        confidence: 0.95,
+        bbox: [39, 446, 83, 486] // x, y, x+width, y+height format
+      };
+      setDetectedObjects([tutorialDetectedObject]);
+    }
+    else {
+      setDetectedObjects([]);
+    }
+  }
+
   const handleClick = async () => {
     setProgress(0);
     setIsGenerating(true);
     setErrorMessage("");
+    setDetectedObjects([]); // Reset detected objects when starting new generation
 
     setTimeout(async () => {
       try {
@@ -1238,7 +1276,7 @@ function LayoutBoard({
                 {showImageOnly ? "Show Layout" : "Show Image"}
               </span>
             </CustomButton>
-            
+
             <CustomButton
               color={showDetectedObjects ? "grey" : "neutral"}
               size="sm"
@@ -1272,12 +1310,12 @@ function LayoutBoard({
         >
           <ProgressBar now={progress} errorMessage={errorMessage} />
           <CustomButton
-            onClick={handleClick}
+            onClick={isTutorial ? handleTutorialClick : handleClick}
             color="purpleBlue"
             size="lg"
             disabled={isGenerating}
           >
-            {isGenerating ? "Generating" : "Generate"}
+            {isTutorial ? "GENERATE" : isGenerating ? "Generating" : "Generate"}
           </CustomButton>
         </div>
 
@@ -1409,6 +1447,7 @@ export default function LayoutBoardWithProvider({
   onInstanceAdded,
   onNodeSelect,
   selectedInstanceId,
+  isTutorial,
 }) {
   return (
     <ReactFlowProvider debounce={200}>
@@ -1418,6 +1457,7 @@ export default function LayoutBoardWithProvider({
         onInstanceAdded={onInstanceAdded}
         onNodeSelect={onNodeSelect}
         selectedInstanceId={selectedInstanceId}
+        isTutorial={isTutorial}
       />
     </ReactFlowProvider>
   );

@@ -11,7 +11,7 @@ import { HelpCircle } from "lucide-react";
 import HelpModal from "./components/modal/HelpModal"; // 추가
 import InstanceBoard from "./Board/InstanceBoard";
 
-export default function AppUI({ isBaseline, language, onSystemComplete, onReturnHome }) {
+export default function AppUI({ isBaseline, language, onSystemComplete, onReturnHome, isTutorial=false }) {
   const [imageSrc, setImageSrc] = useState("");
   const [showHelp, setShowHelp] = useState(false);
   const [newInstanceToAdd, setNewInstanceToAdd] = useState(null);
@@ -139,6 +139,7 @@ export default function AppUI({ isBaseline, language, onSystemComplete, onReturn
                 {isBaseline ? (
                   <BaselineLayoutBoardWithProvider
                     onImageGenerated={setImageSrc}
+                    isTutorial={isTutorial}
                   />
                 ) : (
                   <LayoutBoardWithProvider
@@ -146,6 +147,7 @@ export default function AppUI({ isBaseline, language, onSystemComplete, onReturn
                     newInstanceToAdd={newInstanceToAdd}
                     onInstanceAdded={handleInstanceAdded}
                     onNodeSelect={onInstanceSelect}
+                    isTutorial={isTutorial}
                   />
                 )}
               </div>

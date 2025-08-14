@@ -128,6 +128,50 @@ export default function LandingPage({ onStart }) {
     onStart(language, "direct_system2");
   };
 
+  const handleTutorialSystem1 = () => {
+    sessionStorage.setItem("user_id", "tut_user");
+    sessionStorage.setItem("demographic_data", JSON.stringify({
+      age: "25",
+      gender: "other",
+      occupation: "developer",
+      ai_tool_types: ["text"],
+      ai_frequency: "daily",
+      ai_purposes: ["work"],
+      ai_proficiency: "5",
+      english_level: "fluent",
+      programming_duration: "1-3",
+      programming_languages: ["javascript"],
+      programming_contexts: ["web"],
+      programming_proficiency: "4",
+      system_order: "system1_first"
+    }));
+    sessionStorage.setItem("system_order", "system1_first");
+    sessionStorage.setItem("experiment_phase", "system1");
+    onStart(language, "tutorial_system1");
+  }
+
+  const handleTutorialSystem2 = () => {
+    sessionStorage.setItem("user_id", "tut_user");
+    sessionStorage.setItem("demographic_data", JSON.stringify({
+      age: "25",
+      gender: "other",
+      occupation: "developer",
+      ai_tool_types: ["text"],
+      ai_frequency: "daily",
+      ai_purposes: ["work"],
+      ai_proficiency: "5",
+      english_level: "fluent",
+      programming_duration: "1-3",
+      programming_languages: ["javascript"],
+      programming_contexts: ["web"],
+      programming_proficiency: "4",
+      system_order: "system2_first"
+    }));
+    sessionStorage.setItem("system_order", "system2_first");
+    sessionStorage.setItem("experiment_phase", "system2");
+    onStart(language, "tutorial_system2");
+  }
+
   return (
     <div
       style={{
@@ -733,6 +777,21 @@ export default function LandingPage({ onStart }) {
                 onClick={handleDevSystem2}
               >
                 dev.system2
+              </CustomButton>
+            </div>
+            <div>
+              <CustomButton
+                color="neutral"
+                onClick={handleTutorialSystem1}
+              >
+                tutorial.system1
+              </CustomButton>
+
+              <CustomButton
+                color="neutral"
+                onClick={handleTutorialSystem2}
+              >
+                tutorial.system2
               </CustomButton>
             </div>
           </div>

@@ -34,8 +34,14 @@ export default function App() {
   const handleLandingComplete = (selectedLanguage, selectedSystemOrder) => {
     setLanguage(selectedLanguage);
     setSystemOrder(selectedSystemOrder);
-    
-    if (selectedSystemOrder === "direct_system1") {
+
+    if (selectedSystemOrder === "tutorial_system1") {
+      setPhase("tutorial_system1");
+      setSystem1StartTime(Date.now());
+    } else if (selectedSystemOrder === "tutorial_system2") {
+      setPhase("tutorial_system2");
+      setSystem2StartTime(Date.now());
+    } else if (selectedSystemOrder === "direct_system1") {
       setPhase("system1");
       setSystem1StartTime(Date.now());
     } else if (selectedSystemOrder === "direct_system2") {
@@ -106,7 +112,7 @@ export default function App() {
       }}>
         <h1>{language === "ko" ? "실험 완료!" : "Experiment Complete!"}</h1>
         <p>{language === "ko" ? "참여해주셔서 감사합니다." : "Thank you for your participation."}</p>
-        <button 
+        <button
           onClick={handleExperimentRestart}
           style={{
             padding: "12px 24px",
@@ -134,13 +140,13 @@ export default function App() {
 
     const getSystemDuration = () => {
       const systemType = getSystemTypeForSurvey();
-      return systemType === "system1" 
-        ? Date.now() - system1StartTime 
+      return systemType === "system1"
+        ? Date.now() - system1StartTime
         : Date.now() - system2StartTime;
     };
 
     return (
-      <SurveyPage 
+      <SurveyPage
         systemType={getSystemTypeForSurvey()}
         language={language}
         systemUsageDuration={getSystemDuration()}
@@ -151,10 +157,22 @@ export default function App() {
 
   if (phase === "system1" || phase === "system2") {
     return (
-      <AppUI 
+      <AppUI
         isBaseline={phase === "system1"}
         language={language}
         onSystemComplete={phase === "system1" ? handleSystem1Complete : handleSystem2Complete}
+        onReturnHome={handleReturnHome}
+      />
+    );
+  }
+
+  if (phase === "tutorial_system1" || phase === "tutorial_system2") {
+    return (
+      <AppUI
+        isBaseline={phase === "tutorial_system1"}
+        isTutorial={true}
+        language={language}
+        onSystemComplete={handleReturnHome}
         onReturnHome={handleReturnHome}
       />
     );

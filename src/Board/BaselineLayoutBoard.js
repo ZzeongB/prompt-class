@@ -26,7 +26,7 @@ import {
   TOP_OFFSET,
 } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
-import { loadBaseImages } from "../utils/imageUtils";
+import { loadBaseImages, convertImageToBase64 } from "../utils/imageUtils";
 
 
 const edgeTypes = {
@@ -37,7 +37,7 @@ const nodeTypes = {
   resizable: ResizableNode,
 };
 
-function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceId }) {
+function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceId, isTutorial }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, , onEdgesChange] = useEdgesState([]);
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
@@ -56,6 +56,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
   const [generatedImageForRating, setGeneratedImageForRating] = useState(null);
   const [baseImages, setBaseImages] = useState({});
   const toolbarTimeoutRef = useRef(null);
+  const [tutorialClickCount, setTutorialClickCount] = useState(0);
 
   // Load base images on component mount
   useEffect(() => {
@@ -466,6 +467,24 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
     });
   }, [setNodes]);
 
+  const handleTutorialClick = async () => {
+    if (tutorialClickCount >= 1) {
+      // 3번째 클릭 후에는 더 이상 클릭되지 않음
+      return;
+    }
+
+    const nextClickCount = tutorialClickCount + 1;
+    setTutorialClickCount(nextClickCount);
+
+    // 순서대로 이미지를 표시
+    const tutorialImagePath = `/assets/tutorial/${nextClickCount}.png`;
+    const tutorialImage = await Promise.resolve(convertImageToBase64(tutorialImagePath));
+    setImageBoard(tutorialImage);
+    onImageGenerated(tutorialImage);
+    setGeneratedImageForRating(tutorialImage);
+    setShowRatingModal(true);
+  }
+
   const handleClick = async () => {
     setProgress(0);
     setIsGenerating(true);
@@ -657,12 +676,12 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           <ProgressBar now={progress} errorMessage={errorMessage} />
 
           <CustomButton
-            onClick={handleClick}
+            onClick={isTutorial ? handleTutorialClick : handleClick}
             color="purpleBlue"
             size="lg"
             disabled={isGenerating}
           >
-            {isGenerating ? "Generating" : "Generate"}
+            {isTutorial ? "GENERATE" : isGenerating ? "Generating" : "Generate"}
           </CustomButton>
         </div>
       </div>
@@ -893,13 +912,14 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
   );
 }
 
-function BaselineLayoutBoardWithProvider({ onImageGenerated, onNodeSelect, selectedInstanceId }) {
+function BaselineLayoutBoardWithProvider({ onImageGenerated, onNodeSelect, selectedInstanceId, isTutorial }) {
   return (
     <ReactFlowProvider debounce={200}>
       <BaselineLayoutBoard
         onImageGenerated={onImageGenerated}
         onNodeSelect={onNodeSelect}
         selectedInstanceId={selectedInstanceId}
+        isTutorial={isTutorial}
       />
     </ReactFlowProvider>
   );
