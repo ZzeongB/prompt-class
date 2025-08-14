@@ -37,6 +37,12 @@ const colorStyles = {
     borderColor: "#c0c0c0",
     shadowColor: "rgba(0, 0, 0, 0.05)",
   },
+  green: {
+    backgroundColor: "#c8e6c9",
+    color: "#1a1a1a",
+    borderColor: "#a5d6a7",
+    shadowColor: "rgba(200, 230, 201, 0.15)",
+  },
 };
 
 export default function CustomButton({

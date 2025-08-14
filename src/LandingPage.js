@@ -768,6 +768,7 @@ export default function LandingPage({ onStart }) {
               <CustomButton
                 color="neutral"
                 onClick={handleDevSystem1}
+                style={{ width: "150px" }}
               >
                 dev.system1
               </CustomButton>
@@ -775,21 +776,24 @@ export default function LandingPage({ onStart }) {
               <CustomButton
                 color="neutral"
                 onClick={handleDevSystem2}
+                style={{ width: "150px" }}
               >
                 dev.system2
               </CustomButton>
             </div>
             <div>
               <CustomButton
-                color="neutral"
+                color="green"
                 onClick={handleTutorialSystem1}
+                style={{ width: "150px" }}
               >
                 tutorial.system1
               </CustomButton>
 
               <CustomButton
-                color="neutral"
+                color="green"
                 onClick={handleTutorialSystem2}
+                style={{ width: "150px" }}
               >
                 tutorial.system2
               </CustomButton>
