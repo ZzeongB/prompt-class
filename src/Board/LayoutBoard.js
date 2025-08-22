@@ -1051,8 +1051,7 @@ function LayoutBoard({
         labelStyle: edge.labelStyle
       }))
     };
-
-    console.log("nodes", nodes)
+    setGlobalCaption("");
 
     saveScene(slotNumber, sceneData);
     
@@ -1273,7 +1272,7 @@ function LayoutBoard({
           position: "absolute",
           bottom: "-110px",
         }}>
-          {[1, 2, 3, 4].map((slotNumber) => {
+          {[1, 2, 3, 4, 5, 6].map((slotNumber) => {
             const hasScene = savedScenes[slotNumber];
             return (
               <div key={slotNumber} style={{ display: "flex", flexDirection: "column", gap: "2px", minHeight: "60px" }}>
