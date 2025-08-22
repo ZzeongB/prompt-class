@@ -17,6 +17,7 @@ export const useClassContext = () => {
 export const ClassProvider = ({ children }) => {
   const [classes, setClasses] = useState([]);
   const [instances, setInstances] = useState([]);
+  const [savedScenes, setSavedScenes] = useState({});
 
 
   const createClass = async (instanceData) => {
@@ -121,9 +122,32 @@ export const ClassProvider = ({ children }) => {
     setInstances((prev) => prev.filter((i) => i.id !== instanceId));
   };
 
+  const saveScene = (slotNumber, sceneData) => {
+    setSavedScenes(prev => ({
+      ...prev,
+      [slotNumber]: {
+        ...sceneData,
+        savedAt: new Date().toISOString()
+      }
+    }));
+  };
+
+  const loadScene = (slotNumber) => {
+    return savedScenes[slotNumber] || null;
+  };
+
+  const clearScene = (slotNumber) => {
+    setSavedScenes(prev => {
+      const newScenes = { ...prev };
+      delete newScenes[slotNumber];
+      return newScenes;
+    });
+  };
+
   const contextValue = {
     classes,
     instances,
+    savedScenes,
     createClass,
     updateClass,
     deleteClass,
@@ -134,6 +158,9 @@ export const ClassProvider = ({ children }) => {
     extractObjectFromInstance,
     deleteInstance,
     setInstances,
+    saveScene,
+    loadScene,
+    clearScene,
     onInstanceExtracted: null, // 콜백을 위한 플레이스홀더
   };
 

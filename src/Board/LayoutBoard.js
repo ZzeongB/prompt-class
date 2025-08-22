@@ -87,7 +87,7 @@ function LayoutBoard({
   // Tutorial state
   const [tutorialClickCount, setTutorialClickCount] = useState(0);
 
-  const { instances, classes, setInstances } = useClassContext();
+  const { instances, classes, setInstances, savedScenes, saveScene, loadScene, clearScene } = useClassContext();
 
   const syncFromReactFlow = useRef(false);
   const syncFromClassContext = useRef(false);
@@ -1027,161 +1027,106 @@ function LayoutBoard({
     }
   };
 
-  const getBaseScenarios = () => [
-    {
-      id: 1,
-      caption: "A red tomato character",
-      baseImage: baseImages.tomato,
-      instances: [
-        {
-          id: "tomato-1",
-          label: "Tomato",
-          description: "A red tomato character",
-          position: { x: 83, y: 163 },
-          size: { width: 270, height: 348 },
-          sceneGraph: {
-            objects: [
-              { id: "tomato-1", name: "tomato", attributes: ["red", "character"] }
-            ],
-            relationships: []
-          }
-        }
-      ]
-    },
-    {
-      id: 2,
-      caption: "An animation-style racing car",
-      baseImage: baseImages.car,
-      instances: [
-        {
-          id: "car-1",
-          label: "Car",
-          description: "An animation-style racing car",
-          position: { x: 72, y: 261 },
-          size: { width: 280, height: 165 },
-          sceneGraph: {
-            objects: [
-              { id: "car-1", name: "car", attributes: ["animation-style", "racing"] }
-            ],
-            relationships: []
-          }
-        }
-      ]
-    },
-    {
-      id: 3,
-      caption: "Male tennis player",
-      baseImage: baseImages.player,
-      instances: [
-        {
-          id: "player-1",
-          label: "Player",
-          description: "Male tennis player",
-          position: { x: 66, y: 196 },
-          size: { width: 122, height: 298 },
-          sceneGraph: {
-            objects: [
-              { id: "player-1", name: "player", attributes: ["male", "tennis"] }
-            ],
-            relationships: []
-          }
-        }
-      ]
-    },
-    {
-      id: 4,
-      caption: "woman",
-      baseImage: baseImages.woman,
-      instances: [
-        {
-          id: "woman-1",
-          label: "Woman",
-          description: "Woman wearing yellow dress",
-          position: { x: 175, y: 181 },
-          size: { width: 86, height: 331 },
-          sceneGraph: {
-            objects: [
-              { id: "object-1", name: "woman", },
-              { id: "object-2", name: "dress", attributes: ["yellow"] }
-            ],
-            relationships: [{ source: "object-1", target: "object-2", relation: "wearing" }]
-          }
-        }
-      ]
-    }
-  ];
 
-  const handleLoadBaseScenario = (scenarioId) => {
-    const baseScenarios = getBaseScenarios();
-    const scenario = baseScenarios.find(s => s.id === scenarioId);
-    if (!scenario) return;
+  const handleSaveScene = (slotNumber) => {
+    const sceneData = {
+      image: imageBoard,
+      globalCaption,
+      instances: instances.map(instance => ({ ...instance })),
+      nodes: nodes.map(node => ({
+        id: node.id,
+        type: node.type,
+        position: node.position,
+        data: node.data,
+        style: node.measured
+      })),
+      edges: edges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: edge.type,
+        data: edge.data,
+        style: edge.style,
+        label: edge.label,
+        labelStyle: edge.labelStyle
+      }))
+    };
 
-    // Clear existing nodes and instances
-    setNodes([]);
-    setInstances([]);
-    setGlobalCaption(scenario.caption);
+    console.log("nodes", nodes)
 
-    // Create instances and nodes from scenario data
-    const newInstances = [];
-    const newNodes = [];
-
-    scenario.instances.forEach(instanceData => {
-      const sharedId = instanceData.id;
-      const position = screenToFlowPosition({
-        x: instanceData.position.x + LEFT_OFFSET,
-        y: instanceData.position.y + TOP_OFFSET
-      });
-
-      // Create instance for ClassContext
-      const instance = {
-        id: sharedId,
-        instanceLabel: instanceData.label,
-        textDescription: instanceData.description,
-        sceneGraph: instanceData.sceneGraph || { objects: [], relationships: [] },
-        createdAt: new Date().toISOString(),
-        isFromClass: false,
-        classId: null,
-        overrides: {},
-        isGenerating: false,
-      };
-
-      newInstances.push(instance);
-
-      // Create nodes for ReactFlow
-      const objNode = {
-        id: sharedId,
-        type: "simple",
-        position,
-        data: createNodeDataFromInstance(instance, selectedInstanceId),
-        style: { height: 40, width: 120 },
-      };
-
-      const resizableNode = {
-        id: `${sharedId}-resizable`,
-        type: "resizable",
-        position,
-        data: { ...objNode.data },
-        style: instanceData.size,
-      };
-
-      newNodes.push(resizableNode, objNode);
-    });
-
-    setInstances(newInstances);
-    setNodes(newNodes);
-
-    // Load base image if available
-    if (scenario.baseImage) {
-      setImageBoard(scenario.baseImage);
-      onImageGenerated(scenario.baseImage);
-    }
-
-    logEvent("base_scenario_loaded", {
-      scenarioId,
-      instanceCount: scenario.instances.length,
-      caption: scenario.caption,
+    saveScene(slotNumber, sceneData);
+    
+    logEvent("scene_saved", {
+      slotNumber,
+      instanceCount: instances.length,
+      nodeCount: nodes.length,
+      edgeCount: edges.length
     });
   };
+
+  const handleLoadScene = (slotNumber) => {
+    const sceneData = loadScene(slotNumber);
+    if (!sceneData) return;
+
+    // Clear existing data first
+    setNodes([]);
+    setInstances([]);
+    setEdges([]);
+    
+    // Load scene data
+    setImageBoard(sceneData.image);
+    setGlobalCaption(sceneData.globalCaption || "");
+    
+    // Load instances first
+    const loadedInstances = sceneData.instances || [];
+    setInstances(loadedInstances);
+    
+    // Recreate nodes with proper positioning and sizing
+    const newNodes = [];
+    loadedInstances.forEach(instance => {
+      const savedNode = sceneData.nodes?.find(n => n.id === instance.id);
+      const savedResizableNode = sceneData.nodes?.find(n => n.id === `${instance.id}-resizable`);
+      
+      if (savedNode && savedResizableNode) {
+        // Use saved position and size data
+        const nodeData = createNodeDataFromInstance(instance, selectedInstanceId);
+        
+        const objNode = {
+          id: instance.id,
+          type: "simple",
+          position: savedNode.position,
+          data: nodeData,
+          style: savedNode.style || { height: 40, width: 120 },
+        };
+
+        const resizableNode = {
+          id: `${instance.id}-resizable`,
+          type: "resizable",
+          position: savedResizableNode.position,
+          data: { ...nodeData },
+          style: savedResizableNode.style || { width: 50, height: 50 },
+        };
+
+        newNodes.push(resizableNode, objNode);
+      }
+    });
+    
+    setNodes(newNodes);
+    setEdges(sceneData.edges || []);
+    
+    // Update image board in parent component
+    if (sceneData.image) {
+      onImageGenerated(sceneData.image);
+    }
+
+    logEvent("scene_loaded", {
+      slotNumber,
+      instanceCount: sceneData.instances?.length || 0,
+      nodeCount: newNodes.length,
+      edgeCount: sceneData.edges?.length || 0
+    });
+  };
+
 
   return (
     <div
@@ -1322,40 +1267,34 @@ function LayoutBoard({
 
         <div style={{
           display: "flex",
-          gap: "8px",
+          gap: "1px",
           marginTop: "8px",
           justifyContent: "center",
           position: "absolute",
-          bottom: "-80px",
+          bottom: "-110px",
         }}>
-          <CustomButton
-            color="neutral"
-            size="sm"
-            onClick={() => handleLoadBaseScenario(1)}
-          >
-            Scenario 1
-          </CustomButton>
-          <CustomButton
-            color="neutral"
-            size="sm"
-            onClick={() => handleLoadBaseScenario(2)}
-          >
-            Scenario 2
-          </CustomButton>
-          <CustomButton
-            color="neutral"
-            size="sm"
-            onClick={() => handleLoadBaseScenario(3)}
-          >
-            Scenario 3
-          </CustomButton>
-          <CustomButton
-            color="neutral"
-            size="sm"
-            onClick={() => handleLoadBaseScenario(4)}
-          >
-            Scenario 4
-          </CustomButton>
+          {[1, 2, 3, 4].map((slotNumber) => {
+            const hasScene = savedScenes[slotNumber];
+            return (
+              <div key={slotNumber} style={{ display: "flex", flexDirection: "column", gap: "2px", minHeight: "60px" }}>
+                <CustomButton
+                  color={hasScene ? "green" : "neutral"}
+                  size="sm"
+                  onClick={() => handleSaveScene(slotNumber)}
+                >
+                  Save {slotNumber}
+                </CustomButton>
+                <CustomButton
+                  color={hasScene ? "blue" : "grey"}
+                  size="sm"
+                  onClick={() => hasScene && handleLoadScene(slotNumber)}
+                  disabled={!hasScene}
+                >
+                  Load {slotNumber}
+                </CustomButton>
+              </div>
+            );
+          })}
         </div>
       </div>
 
