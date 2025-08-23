@@ -1,6 +1,7 @@
 // InstanceBoard.js - 모든 인스턴스 상세 정보 표시
 import React, { useState, useMemo } from "react";
 import { Plus } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
 import ObjectNode from "./nodes/ObjectNode";
 import RelationshipNode from "./nodes/RelationshipNode";
 import { ToolbarButton } from "./nodeComponents/NodeToolbarMenu";
@@ -92,7 +93,7 @@ export default function SceneGraphVisualizer({
 
   // Object 추가 기능
   const handleAddObject = () => {
-    const newId = `object${safeSceneGraph.objects.length + 1}`;
+    const newId = uuidv4();
     const updatedGraph = {
       ...safeSceneGraph,
       objects: [

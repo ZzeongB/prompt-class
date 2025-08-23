@@ -286,13 +286,12 @@ export const updateInstancesFromClassTemplate = async (updatedClass, instances) 
     );
 
     let newTextDescription = instance.textDescription;
-    if (!instance.overrides.textDescription) {
-      try {
-        newTextDescription = await generateSceneGraphTextDescription(newSceneGraph, instance.sceneGraph, instance.textDescription);
-      } catch (error) {
-        console.error("Failed to update text description for instance:", instance.id, error);
-        newTextDescription = updatedClass.template.textDescription || instance.textDescription;
-      }
+    // Always update text description when class is updated, regardless of overrides
+    try {
+      newTextDescription = await generateSceneGraphTextDescription(newSceneGraph, instance.sceneGraph, instance.textDescription);
+    } catch (error) {
+      console.error("Failed to update text description for instance:", instance.id, error);
+      newTextDescription = updatedClass.template.textDescription || instance.textDescription;
     } 
 
     const updatedInstance = {

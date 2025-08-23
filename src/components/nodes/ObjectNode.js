@@ -904,7 +904,7 @@ const ObjectNode = ({
         )}
 
         {/* Connection Drag Handle - 오른쪽 중앙, 편집 모드 + 호버 시만 표시 (이 객체가 드래그 중이 아닐 때만) */}
-        {isEditable && editingMode === null && isHovered && showConnectionHandles && !isClassMode && !isDraggingConnectionFromThis && (
+        {isEditable && editingMode === null && isHovered && showConnectionHandles && !isDraggingConnectionFromThis && (
           <div
             ref={connectionHandleRef}
             onMouseDown={handleConnectionDragStart}
@@ -929,7 +929,7 @@ const ObjectNode = ({
         )}
 
         {/* Connection Drop Target - 왼쪽 중앙, 다른 객체가 연결 드래그 중일 때만 표시 */}
-        {isConnectionTarget && showConnectionHandles && !isClassMode && (
+        {isConnectionTarget && showConnectionHandles && (
           <div
             ref={dropTargetRef}
             style={{
