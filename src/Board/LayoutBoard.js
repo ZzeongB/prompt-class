@@ -142,6 +142,18 @@ function LayoutBoard({
   };
 
 
+  useEffect(() => {
+    setNodes((prev) => {
+      // 선택 해제 or 대상 선택
+      return prev.map((n) => {
+        const isTarget = !!selectedInstanceId && n.id === selectedInstanceId;
+
+        // React Flow에서 선택을 반영하려면 node.selected를 써야 함
+        if (n.selected === isTarget) return n; // 불필요한 리렌더 방지
+        return { ...n, selected: isTarget };
+      });
+    });
+  }, [selectedInstanceId, setNodes]);
 
   // useEffect(() => {
   //   setNodes((nds) => {
@@ -1054,7 +1066,7 @@ function LayoutBoard({
     setGlobalCaption("");
 
     saveScene(slotNumber, sceneData);
-    
+
     logEvent("scene_saved", {
       slotNumber,
       instanceCount: instances.length,
@@ -1071,25 +1083,25 @@ function LayoutBoard({
     setNodes([]);
     setInstances([]);
     setEdges([]);
-    
+
     // Load scene data
     setImageBoard(sceneData.image);
     setGlobalCaption(sceneData.globalCaption || "");
-    
+
     // Load instances first
     const loadedInstances = sceneData.instances || [];
     setInstances(loadedInstances);
-    
+
     // Recreate nodes with proper positioning and sizing
     const newNodes = [];
     loadedInstances.forEach(instance => {
       const savedNode = sceneData.nodes?.find(n => n.id === instance.id);
       const savedResizableNode = sceneData.nodes?.find(n => n.id === `${instance.id}-resizable`);
-      
+
       if (savedNode && savedResizableNode) {
         // Use saved position and size data
         const nodeData = createNodeDataFromInstance(instance, selectedInstanceId);
-        
+
         const objNode = {
           id: instance.id,
           type: "simple",
@@ -1109,10 +1121,10 @@ function LayoutBoard({
         newNodes.push(resizableNode, objNode);
       }
     });
-    
+
     setNodes(newNodes);
     setEdges(sceneData.edges || []);
-    
+
     // Update image board in parent component
     if (sceneData.image) {
       onImageGenerated(sceneData.image);
@@ -1387,6 +1399,7 @@ export default function LayoutBoardWithProvider({
   selectedInstanceId,
   isTutorial,
 }) {
+  console.log("LayoutBoardWithProvider selectedInstanceId:", selectedInstanceId);
   return (
     <ReactFlowProvider debounce={200}>
       <LayoutBoard
