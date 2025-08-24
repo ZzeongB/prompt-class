@@ -233,7 +233,7 @@ function LayoutBoard({
 
         instances.forEach((instance) => {
           const nodeIndex = updatedNodes.findIndex(
-            (n) => n.data?.instanceId === instance.id
+            (n) => n.id === instance.id
           );
           const resizableIndex = updatedNodes.findIndex(
             (n) => n.id === `${instance.id}-resizable`
