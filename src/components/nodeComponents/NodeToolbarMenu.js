@@ -82,6 +82,7 @@ export const ToolbarButton = ({
   const [showTooltip, setShowTooltip] = useState(false);
   const [buttonRect, setButtonRect] = useState(null);
   const buttonRef = useRef(null);
+  const timeoutRef = useRef(null);
 
   const updateButtonRect = () => {
     if (buttonRef.current) {
@@ -89,7 +90,15 @@ export const ToolbarButton = ({
     }
   };
 
+  const clearTooltipTimeout = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  };
+
   const handleMouseEnter = (e) => {
+    clearTooltipTimeout();
     if (!disabled) {
       e.target.style.backgroundColor = danger ? "#fee2e2" : "#f8fafc";
       e.target.style.borderColor = danger ? "#fca5a5" : "#cbd5e1";
@@ -99,18 +108,26 @@ export const ToolbarButton = ({
   };
 
   const handleMouseLeave = (e) => {
+    clearTooltipTimeout();
     if (!disabled) {
       e.target.style.backgroundColor = danger ? "#fef2f2" : "white";
       e.target.style.borderColor = "#e2e8f0";
     }
-    setShowTooltip(false);
+    // 약간의 지연을 두고 툴팁 숨기기
+    timeoutRef.current = setTimeout(() => {
+      setShowTooltip(false);
+    }, 100);
   };
+
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => clearTooltipTimeout();
+  }, []);
 
   return (
     <>
       <button
         ref={buttonRef}
-        onClick={disabled ? undefined : onClick}
         disabled={disabled}
         style={{
           padding: size === "compact" ? "4px" : "8px",
@@ -130,8 +147,22 @@ export const ToolbarButton = ({
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onFocus={handleMouseEnter}
-        onBlur={handleMouseLeave}
+        onFocus={() => {
+          clearTooltipTimeout();
+          updateButtonRect();
+          setShowTooltip(true);
+        }}
+        onBlur={() => {
+          clearTooltipTimeout();
+          setShowTooltip(false);
+        }}
+        onClick={(e) => {
+          clearTooltipTimeout();
+          setShowTooltip(false);
+          if (!disabled && onClick) {
+            onClick(e);
+          }
+        }}
       >
         {icon}
       </button>
