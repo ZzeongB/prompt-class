@@ -224,7 +224,6 @@ export default function InstanceCard({
   const handleSave = async () => {
     logEvent("instance.save", {
       instance_id: instance.id,
-      instance_label: newLabel,
     })
     const textChanged =
       String(tempDescription || "").trim() !==
