@@ -222,6 +222,10 @@ export default function InstanceCard({
   const isEditing = isEditingText || isEditingGraph;
 
   const handleSave = async () => {
+    logEvent("instance.save", {
+      instance_id: instance.id,
+      instance_label: newLabel,
+    })
     const textChanged =
       String(tempDescription || "").trim() !==
       String(instance.textDescription || "").trim();
@@ -610,9 +614,9 @@ export default function InstanceCard({
                 }}
                 title={isCreatingClassLocal ? "Creating Class..." : "Create Class"}
                 icon={isCreatingClassLocal ? (
-                  <div style={{ 
-                    width: "12px", 
-                    height: "12px", 
+                  <div style={{
+                    width: "12px",
+                    height: "12px",
                     fontSize: "12px",
                     display: "flex",
                     alignItems: "center",

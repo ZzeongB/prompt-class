@@ -856,6 +856,9 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
                   title="Edit label"
                   icon={<Edit2 size={12} />}
                   onClick={() => {
+                    logEvent("baselineboard.node.edit_started", {
+                      nodeId: node.id,
+                    });
                     const currentLabel = node.data?.label || node.data?.instanceLabel || "";
                     const newLabel = prompt("Edit label:", currentLabel);
                     if (newLabel !== null && newLabel.trim() !== "" && newLabel !== currentLabel) {
