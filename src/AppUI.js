@@ -148,6 +148,7 @@ export default function AppUI({ isBaseline, language, onSystemComplete, onReturn
                     onInstanceAdded={handleInstanceAdded}
                     onNodeSelect={onInstanceSelect}
                     isTutorial={isTutorial}
+                    selectedInstanceId={selectedInstanceId}
                   />
                 )}
               </div>

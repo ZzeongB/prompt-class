@@ -142,6 +142,10 @@ const ClassDetailModal = ({
   const handleShowCreatePanel = () => {
     setShowCreatePanel(true);
     initializeInstanceCreation();
+    logEvent("class.instance_creation.started", {
+      class_id: classData.id,
+      class_name: classData.name
+    });
   };
 
   const initializeInstanceCreation = async () => {
@@ -205,6 +209,10 @@ const ClassDetailModal = ({
   const handleCancelCreate = () => {
     setShowCreatePanel(false);
     setInstanceValues({});
+    logEvent("class.instance_creation.cancelled", {
+      class_id: classData.id,
+      class_name: classData.name
+    });
   };
 
   const handleInstanceValueChange = (placeholder, value) => {
