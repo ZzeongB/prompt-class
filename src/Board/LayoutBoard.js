@@ -1275,7 +1275,7 @@ function LayoutBoard({
               </span>
             </CustomButton>
 
-            <CustomButton
+            {/* <CustomButton
               color="teal"
               size="sm"
               onClick={handleExportScene}
@@ -1290,7 +1290,7 @@ function LayoutBoard({
               >
                 Export Scene
               </span>
-            </CustomButton>
+            </CustomButton> */}
           </>
         )}
 

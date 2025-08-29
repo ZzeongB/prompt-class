@@ -18,7 +18,7 @@ const EvaluationPage = ({ onReturnHome, onSystemComplete, isBaseline = false, la
   
   const completedEvaluations = evaluations.length;
 
-  const totalPrompts = 1;
+  const totalPrompts = 12; // 12 scenes total: Set A (1-6), Set B (7-12)
 
   // Reset progress when system changes
   useEffect(() => {

@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { evaluationQuestions, responseOptions } from '../config/evaluationQuestions';
+import { evaluationQuestionsSetA, evaluationQuestionsSetB, responseOptions } from '../config/evaluationQuestions';
 
 const EvaluationPanel = ({ promptData, onEvaluationComplete, isBaseline }) => {
   const [responses, setResponses] = useState({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  
+  // Select question set based on scene ID
+  // Scenes 1-6: Set A, Scenes 7-12: Set B
+  const getQuestionSet = (sceneId) => {
+    if (!sceneId) return evaluationQuestionsSetA;
+    return sceneId <= 6 ? evaluationQuestionsSetA : evaluationQuestionsSetB;
+  };
+  
+  const currentQuestions = getQuestionSet(promptData?.id);
 
   // Reset responses when promptData changes (new scene)
   useEffect(() => {
@@ -44,14 +53,15 @@ const EvaluationPanel = ({ promptData, onEvaluationComplete, isBaseline }) => {
     const evaluationData = {
       promptId: promptData.id,
       responses: responses,
-      completedAt: new Date().toISOString()
+      completedAt: new Date().toISOString(),
+      questionSetUsed: promptData.id <= 6 ? 'Target 1' : 'Target 2',
     };
     
     onEvaluationComplete(evaluationData);
   };
 
   const completedResponses = Object.keys(responses).length;
-  const totalQuestions = evaluationQuestions.length;
+  const totalQuestions = currentQuestions.length;
   const isComplete = completedResponses === totalQuestions;
 
   if (!promptData) {
@@ -82,53 +92,6 @@ const EvaluationPanel = ({ promptData, onEvaluationComplete, isBaseline }) => {
         overflowY: 'auto'
       }}
     >
-      <div
-        style={{
-          marginBottom: '20px',
-          paddingBottom: '16px',
-          borderBottom: '1px solid #e2e8f0'
-        }}
-      >
-        <h3
-          style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#1e293b',
-            marginBottom: '8px'
-          }}
-        >
-          Evaluation: {promptData.title}
-        </h3>
-        
-        <div
-          style={{
-            fontSize: '12px',
-            color: '#64748b',
-            marginBottom: '12px'
-          }}
-        >
-          Progress: {completedResponses}/{totalQuestions} questions answered
-        </div>
-        
-        <div
-          style={{
-            width: '100%',
-            height: '6px',
-            backgroundColor: '#e2e8f0',
-            borderRadius: '3px',
-            overflow: 'hidden'
-          }}
-        >
-          <div
-            style={{
-              width: `${(completedResponses / totalQuestions) * 100}%`,
-              height: '100%',
-              backgroundColor: isComplete ? '#22c55e' : '#3b82f6',
-              transition: 'all 0.3s ease'
-            }}
-          />
-        </div>
-      </div>
 
       <div
         style={{
@@ -137,7 +100,7 @@ const EvaluationPanel = ({ promptData, onEvaluationComplete, isBaseline }) => {
           gap: '20px'
         }}
       >
-        {evaluationQuestions.map((question, index) => (
+        {currentQuestions.map((question, index) => (
           <div
             key={question.id}
             style={{

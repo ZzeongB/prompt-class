@@ -45,24 +45,24 @@ function EvaluationLayoutBoard({ currentSceneId, selectedInstanceId, isBaseline 
     }
   }, [currentSceneId]);
 
-  // Highlight selected nodes
-  useEffect(() => {
-    setNodes((nds) => {
-      return nds.map((node) => {
-        if (node.type === "simple") {
-          const isHighlighted = node.data?.instanceId === selectedInstanceId;
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              isHighlighted,
-            },
-          };
-        }
-        return node;
-      });
-    });
-  }, [selectedInstanceId]);
+  // // Highlight selected nodes
+  // useEffect(() => {
+  //   setNodes((nds) => {
+  //     return nds.map((node) => {
+  //       if (node.type === "simple") {
+  //         const isHighlighted = node.data?.instanceId === selectedInstanceId;
+  //         return {
+  //           ...node,
+  //           data: {
+  //             ...node.data,
+  //             isHighlighted,
+  //           },
+  //         };
+  //       }
+  //       return node;
+  //     });
+  //   });
+  // }, [selectedInstanceId]);
 
   const handleNodesChange = useCallback(
     (changes) => {
@@ -262,26 +262,6 @@ function EvaluationLayoutBoard({ currentSceneId, selectedInstanceId, isBaseline 
       </div>
 
       {/* Current scene indicator */}
-
-      {/* Display current scene info */}
-      {currentSceneId && (
-        <div style={{
-          position: "absolute",
-          top: "10px",
-          left: "10px",
-          backgroundColor: "rgba(59, 130, 246, 0.9)",
-          color: "white",
-          padding: "8px 12px",
-          borderRadius: "6px",
-          fontSize: "12px",
-          fontWeight: "600",
-          border: "1px solid #3b82f6",
-          zIndex: 10,
-        }}>
-          Scene {currentSceneId}: {promptData.find(p => p.id === currentSceneId)?.title}
-        </div>
-      )}
-
       {!showImageOnly && (
         <ReactFlow
           nodes={nodes}

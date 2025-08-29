@@ -666,7 +666,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           </span>
         </CustomButton>
 
-        <CustomButton
+        {/* <CustomButton
           color="teal"
           size="sm"
           onClick={handleExportScene}
@@ -681,7 +681,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           >
             Export Scene
           </span>
-        </CustomButton>
+        </CustomButton> */}
         <div style={{
           display: "flex",
           gap: "8px",

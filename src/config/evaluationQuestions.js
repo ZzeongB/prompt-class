@@ -1,65 +1,55 @@
-export const evaluationQuestions = [
-  {
-    id: 1,
-    category: "Layout Quality",
-    question: "Are the object placements spatially logical and realistic?",
-    description: "Evaluate whether objects are positioned in ways that make sense in real-world contexts"
-  },
-  {
-    id: 2,
-    category: "Layout Quality", 
-    question: "Do the bounding boxes accurately represent object boundaries?",
-    description: "Check if the bounding boxes properly encompass the intended objects without significant overlap or gaps"
-  },
-  {
-    id: 3,
-    category: "Scene Coherence",
-    question: "Does the overall scene composition make logical sense?",
-    description: "Assess whether all elements work together to create a believable scene"
-  },
-  {
-    id: 4,
-    category: "Scene Coherence",
-    question: "Are the object relationships (spatial, semantic) appropriate?",
-    description: "Evaluate whether objects relate to each other in meaningful and realistic ways"
-  },
-  {
-    id: 5,
-    category: "Prompt Accuracy",
-    question: "Do the text descriptions accurately reflect the intended objects?",
-    description: "Check if the written descriptions match what the objects are supposed to represent"
-  },
-  {
-    id: 6,
-    category: "Prompt Accuracy",
-    question: "Is the global caption representative of the overall scene?",
-    description: "Assess whether the global caption captures the essence and context of the entire scene"
-  },
-  {
-    id: 7,
-    category: "Visual Quality",
-    question: "Are object sizes proportionally reasonable?",
-    description: "Evaluate whether objects are sized appropriately relative to each other and the scene context"
-  },
-  {
-    id: 8,
-    category: "Visual Quality",
-    question: "Is there good use of available space without overcrowding?",
-    description: "Check if the layout makes efficient use of space while maintaining visual clarity"
-  },
-  {
-    id: 9,
-    category: "Completeness",
-    question: "Are all essential elements for the scene type included?",
-    description: "Assess whether the scene contains the necessary objects to be considered complete"
-  },
-  {
-    id: 10,
-    category: "Completeness",
-    question: "Is the scene graph information comprehensive and accurate?",
-    description: "Evaluate whether the relationship data fully captures the spatial and semantic connections"
-  }
+// First set of questions - for target 1
+export const evaluationQuestionsSetA = [
+  { "id": 1, "category": "attribute", "question": "Is the elderly man wearing a black beret?" },
+  { "id": 2, "category": "attribute", "question": "Is the elderly man wearing a light gray cardigan over a white shirt?" },
+  { "id": 3, "category": "attribute", "question": "Is the elderly man wearing dark pants?" },
+  { "id": 4, "category": "attribute", "question": "Is the elderly man wearing black shoes?" },
+  { "id": 5, "category": "relation", "question": "Does the elderly man appear slightly shorter than the others?" },
+  { "id": 6, "category": "attribute", "question": "Does the woman have long black hair?" },
+  { "id": 7, "category": "attribute", "question": "Is the woman wearing a white dress with a pink-and-blue floral pattern?" },
+  { "id": 8, "category": "attribute", "question": "Is the woman wearing white sandals?" },
+  { "id": 9, "category": "relation", "question": "Is the woman carrying a straw basket?" },
+  { "id": 10, "category": "attribute", "question": "Is the man wearing a bright blue polo shirt?" },
+  { "id": 11, "category": "attribute", "question": "Is the man wearing beige shorts?" },
+  { "id": 12, "category": "attribute", "question": "Is the man wearing black sandals?" },
+  { "id": 13, "category": "relation", "question": "Is the man holding a large tray filled with bottled water?" },
+  { "id": 14, "category": "attribute", "question": "Is the girl wearing a pink sleeveless top?" },
+  { "id": 15, "category": "attribute", "question": "Is the girl wearing a white skirt?" },
+  { "id": 16, "category": "attribute", "question": "Is the girl wearing pink shoes?" },
+  { "id": 17, "category": "relation", "question": "Is the girl holding a yellow balloon in her right hand?" },
+  { "id": 18, "category": "relation", "question": "Is the girl carrying a brown teddy bear by its arm?" },
+  { "id": 19, "category": "relation", "question": "Is the child with the balloon positioned on the right side?" },
+  { "id": 20, "category": "context", "question": "Are there cars parked in the background?" },
+  { "id": 21, "category": "context", "question": "Is the scene outdoors on a street?" }
 ];
+
+// Second set of questions - for target 2
+export const evaluationQuestionsSetB = [
+  { "id": 1, "category": "attribute", "question": "Is the man wearing a white button-up shirt?" },
+  { "id": 2, "category": "attribute", "question": "Is the man wearing beige trousers?" },
+  { "id": 3, "category": "attribute", "question": "Is the man wearing black shoes?" },
+  { "id": 4, "category": "attribute", "question": "Is he wearing sunglasses?" },
+  { "id": 5, "category": "relation", "question": "Is the man holding a map?" },
+  { "id": 6, "category": "attribute", "question": "Is the woman wearing a floral-patterned T-shirt?" },
+  { "id": 7, "category": "attribute", "question": "Is the woman wearing denim shorts?" },
+  { "id": 8, "category": "attribute", "question": "Is the woman wearing sandals?" },
+  { "id": 9, "category": "relation", "question": "Is the woman carrying a suitcase?" },
+  { "id": 10, "category": "relation", "question": "Is the woman carrying a coffee cup?" },
+  { "id": 11, "category": "attribute", "question": "Is the man in the green shirt wearing a bright green T-shirt?" },
+  { "id": 12, "category": "attribute", "question": "Is the man in the green shirt wearing beige shorts?" },
+  { "id": 13, "category": "attribute", "question": "Is the man in the green shirt wearing black sandals?" },
+  { "id": 14, "category": "relation", "question": "Is the man in the green shirt standing with his hands in his pockets?" },
+  { "id": 15, "category": "attribute", "question": "Is the woman with the camera wearing a sky-blue summer dress?" },
+  { "id": 16, "category": "attribute", "question": "Is the woman with the camera wearing brown sandals?" },
+  { "id": 17, "category": "relation", "question": "Is the woman with the camera holding a straw hat in one hand?" },
+  { "id": 18, "category": "relation", "question": "Is the woman with the camera raising a small camera to take a photo?" },
+  { "id": 19, "category": "relation", "question": "Is the woman in a sky-blue dress positioned on the right side?" },
+  { "id": 20, "category": "context", "question": "Are there large buildings in the background?" },
+  { "id": 21, "category": "context", "question": "Is the scene outdoors in a plaza or square?" }
+];
+
+// Default export for backward compatibility - will be determined by scene ID
+export const evaluationQuestions = evaluationQuestionsSetA;
 
 export const responseOptions = [
   { value: "yes", label: "Yes", color: "#22c55e" },

@@ -58,6 +58,7 @@ export const exportSceneToPromptData = (
         id: node.data?.instanceId || node.data?.sharedId || node.id,
         label: node.data?.instanceLabel || node.data?.label,
         textDescription: instanceData?.textDescription || node.data?.label || "No description",
+        sceneGraph: instanceData?.sceneGraph || [],
         boundingBox: boundingBox,
         isFromClass: Boolean(node.data?.isFromClass),
         ...(node.data?.parentClassName && { classId: node.data.parentClassName })

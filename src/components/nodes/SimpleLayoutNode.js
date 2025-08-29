@@ -11,7 +11,7 @@ function SimpleLayoutNode({ id, data, selected }) {
   const connection = useConnection();
   
   // In evaluation mode, always show handles; otherwise use connection/hover logic
-  const isEvaluationMode = data.isEvaluationMode || false;
+  const isEvaluationMode = false;//data.isEvaluationMode || false;
   const showTargetHandles = isEvaluationMode || (connection.inProgress && connection.fromNode?.id !== id);
   const showSourceHandles = isEvaluationMode || isHovered;
 
