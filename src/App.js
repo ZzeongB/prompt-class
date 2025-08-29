@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import LandingPage from "./LandingPage";
 import AppUI from "./AppUI";
 import SurveyPage from "./SurveyPage";
+import EvaluationPage from "./EvaluationPage";
 
 export default function App() {
   const [phase, setPhase] = useState(() => {
@@ -35,7 +36,9 @@ export default function App() {
     setLanguage(selectedLanguage);
     setSystemOrder(selectedSystemOrder);
 
-    if (selectedSystemOrder === "tutorial_system1") {
+    if (selectedSystemOrder === "evaluation") {
+      setPhase("evaluation_system1"); // Start with system 1 evaluation
+    } else if (selectedSystemOrder === "tutorial_system1") {
       setPhase("tutorial_system1");
       setSystem1StartTime(Date.now());
     } else if (selectedSystemOrder === "tutorial_system2") {
@@ -84,6 +87,14 @@ export default function App() {
 
   const handleSurvey2Complete = () => {
     setPhase("complete");
+  };
+
+  const handleEvaluationSystem1Complete = () => {
+    setPhase("evaluation_system2"); // Move to system 2 evaluation
+  };
+
+  const handleEvaluationSystem2Complete = () => {
+    setPhase("complete"); // Evaluation complete
   };
 
   const handleExperimentRestart = () => {
@@ -151,6 +162,28 @@ export default function App() {
         language={language}
         systemUsageDuration={getSystemDuration()}
         onComplete={phase === "survey1" ? handleSurvey1Complete : handleSurvey2Complete}
+      />
+    );
+  }
+
+  if (phase === "evaluation_system1") {
+    return (
+      <EvaluationPage
+        language={language}
+        isBaseline={true}
+        onReturnHome={handleReturnHome}
+        onSystemComplete={handleEvaluationSystem1Complete}
+      />
+    );
+  }
+
+  if (phase === "evaluation_system2") {
+    return (
+      <EvaluationPage
+        language={language}
+        isBaseline={false}
+        onReturnHome={handleReturnHome}
+        onSystemComplete={handleEvaluationSystem2Complete}
       />
     );
   }

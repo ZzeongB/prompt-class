@@ -41,6 +41,7 @@ import InlinePrompt from "../components/layout/InlinePrompt";
 import RelationshipInput from "../components/layout/RelationshipInput";
 import ObjectOverlay from "../components/layout/ObjectOverlay";
 import ImageDisplay from "../components/layout/ImageDisplay";
+import { exportSceneToPromptData, downloadSceneAsJSON, saveSceneToLocalStorage } from "../utils/sceneExporter";
 
 const nodeTypes = {
   simple: SimpleLayoutNode,
@@ -974,6 +975,30 @@ function LayoutBoard({
     });
   };
 
+  const handleExportScene = useCallback(() => {
+    try {
+      const sceneData = exportSceneToPromptData(
+        nodes,
+        edges,
+        instances,
+        globalCaption,
+        flowToScreenPosition
+      );
+      
+      downloadSceneAsJSON(sceneData);
+      
+      logEvent("scene_exported", {
+        sceneId: sceneData.id,
+        nodeCount: sceneData.nodeCount,
+        edgeCount: sceneData.edgeCount,
+        exportedAt: sceneData.exportedAt
+      });
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert(`Export failed: ${error.message}`);
+    }
+  }, [nodes, edges, instances, globalCaption, flowToScreenPosition]);
+
   const handleMergeObjects = async () => {
     console.log("handleMergeObjects", selectedObjectsForMerge);
     if (selectedObjectsForMerge.length < 2) {
@@ -1236,6 +1261,23 @@ function LayoutBoard({
                 }}
               >
                 {showDetectedObjects ? "Hide Detections" : "Show Detections"}
+              </span>
+            </CustomButton>
+
+            <CustomButton
+              color="teal"
+              size="sm"
+              onClick={handleExportScene}
+            >
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: "bold",
+                }}
+              >
+                Export Scene
               </span>
             </CustomButton>
           </>

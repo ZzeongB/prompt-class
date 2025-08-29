@@ -1,0 +1,516 @@
+[
+  {
+    "id": 1,
+    "instances": [
+      {
+        "id": "kitchen-table",
+        "label": "wooden dining table",
+        "textDescription": "A large wooden dining table in the center",
+        "boundingBox": { "x": 100, "y": 200, "width": 200, "height": 80 },
+        "isFromClass": false
+      },
+      {
+        "id": "kitchen-chair",
+        "label": "wooden chair",
+        "textDescription": "A wooden chair beside the table",
+        "boundingBox": { "x": 320, "y": 220, "width": 60, "height": 100 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "kitchen-chair",
+          "to": "kitchen-table",
+          "relationship": "beside"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene1.jpg"
+  },
+  {
+    "id": 2,
+    "title": "Scene 2: Garden Setting",
+    "globalCaption": "A beautiful garden scene with flowers and trees",
+    "instances": [
+      {
+        "id": "garden-tree",
+        "label": "oak tree",
+        "textDescription": "A tall oak tree with green leaves",
+        "boundingBox": { "x": 50, "y": 50, "width": 100, "height": 300 },
+        "isFromClass": false
+      },
+      {
+        "id": "garden-flower",
+        "label": "red roses",
+        "textDescription": "Beautiful red roses in bloom",
+        "boundingBox": { "x": 200, "y": 400, "width": 150, "height": 80 },
+        "isFromClass": false
+      },
+      {
+        "id": "garden-bench",
+        "label": "park bench",
+        "textDescription": "A wooden park bench for resting",
+        "boundingBox": { "x": 300, "y": 350, "width": 120, "height": 60 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "garden-bench",
+          "to": "garden-tree",
+          "relationship": "under"
+        },
+        {
+          "type": "spatial",
+          "from": "garden-flower",
+          "to": "garden-bench",
+          "relationship": "near"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene2.jpg"
+  },
+  {
+    "id": 3,
+    "title": "Scene 3: Living Room",
+    "globalCaption": "A comfortable living room with modern furniture",
+    "instances": [
+      {
+        "id": "living-sofa",
+        "label": "grey sofa",
+        "textDescription": "A comfortable grey sofa",
+        "boundingBox": { "x": 80, "y": 300, "width": 250, "height": 120 },
+        "isFromClass": true,
+        "classId": "furniture-sofa"
+      },
+      {
+        "id": "living-table",
+        "label": "coffee table",
+        "textDescription": "A glass coffee table",
+        "boundingBox": { "x": 120, "y": 420, "width": 170, "height": 60 },
+        "isFromClass": true,
+        "classId": "furniture-table"
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "living-table",
+          "to": "living-sofa",
+          "relationship": "in front of"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene3.jpg"
+  },
+  {
+    "id": 4,
+    "title": "Scene 4: Bedroom Setting",
+    "globalCaption": "A peaceful bedroom with essential furniture",
+    "instances": [
+      {
+        "id": "bedroom-bed",
+        "label": "queen bed",
+        "textDescription": "A comfortable queen size bed with white sheets",
+        "boundingBox": { "x": 100, "y": 150, "width": 200, "height": 180 },
+        "isFromClass": false
+      },
+      {
+        "id": "bedroom-nightstand",
+        "label": "nightstand",
+        "textDescription": "A wooden nightstand with a drawer",
+        "boundingBox": { "x": 320, "y": 200, "width": 60, "height": 80 },
+        "isFromClass": false
+      },
+      {
+        "id": "bedroom-lamp",
+        "label": "table lamp",
+        "textDescription": "A table lamp with warm light",
+        "boundingBox": { "x": 330, "y": 170, "width": 40, "height": 60 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "bedroom-nightstand",
+          "to": "bedroom-bed",
+          "relationship": "beside"
+        },
+        {
+          "type": "spatial",
+          "from": "bedroom-lamp",
+          "to": "bedroom-nightstand",
+          "relationship": "on"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene4.jpg"
+  },
+  {
+    "id": 5,
+    "title": "Scene 5: Office Space",
+    "globalCaption": "A modern office workspace",
+    "instances": [
+      {
+        "id": "office-desk",
+        "label": "office desk",
+        "textDescription": "A large wooden office desk",
+        "boundingBox": { "x": 50, "y": 250, "width": 300, "height": 100 },
+        "isFromClass": false
+      },
+      {
+        "id": "office-chair",
+        "label": "office chair",
+        "textDescription": "A ergonomic office chair with wheels",
+        "boundingBox": { "x": 180, "y": 350, "width": 80, "height": 120 },
+        "isFromClass": false
+      },
+      {
+        "id": "office-monitor",
+        "label": "computer monitor",
+        "textDescription": "A large computer monitor display",
+        "boundingBox": { "x": 150, "y": 180, "width": 120, "height": 80 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "office-monitor",
+          "to": "office-desk",
+          "relationship": "on"
+        },
+        {
+          "type": "spatial",
+          "from": "office-chair",
+          "to": "office-desk",
+          "relationship": "in front of"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene5.jpg"
+  },
+  {
+    "id": 6,
+    "title": "Scene 6: Bathroom Setup",
+    "globalCaption": "A clean and modern bathroom",
+    "instances": [
+      {
+        "id": "bathroom-sink",
+        "label": "bathroom sink",
+        "textDescription": "A white porcelain bathroom sink",
+        "boundingBox": { "x": 200, "y": 300, "width": 150, "height": 80 },
+        "isFromClass": false
+      },
+      {
+        "id": "bathroom-mirror",
+        "label": "bathroom mirror",
+        "textDescription": "A large bathroom mirror above the sink",
+        "boundingBox": { "x": 220, "y": 150, "width": 110, "height": 120 },
+        "isFromClass": false
+      },
+      {
+        "id": "bathroom-towel",
+        "label": "bath towel",
+        "textDescription": "A fluffy white bath towel",
+        "boundingBox": { "x": 100, "y": 200, "width": 60, "height": 100 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "bathroom-mirror",
+          "to": "bathroom-sink",
+          "relationship": "above"
+        },
+        {
+          "type": "spatial",
+          "from": "bathroom-towel",
+          "to": "bathroom-sink",
+          "relationship": "beside"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene6.jpg"
+  },
+  {
+    "id": 7,
+    "title": "Scene 7: Playground Scene",
+    "globalCaption": "A colorful children's playground",
+    "instances": [
+      {
+        "id": "playground-slide",
+        "label": "playground slide",
+        "textDescription": "A red and blue playground slide",
+        "boundingBox": { "x": 100, "y": 100, "width": 120, "height": 200 },
+        "isFromClass": false
+      },
+      {
+        "id": "playground-swing",
+        "label": "swing set",
+        "textDescription": "A metal swing set with two swings",
+        "boundingBox": { "x": 300, "y": 150, "width": 100, "height": 150 },
+        "isFromClass": false
+      },
+      {
+        "id": "playground-sandbox",
+        "label": "sandbox",
+        "textDescription": "A square sandbox filled with sand",
+        "boundingBox": { "x": 150, "y": 350, "width": 200, "height": 100 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "playground-swing",
+          "to": "playground-slide",
+          "relationship": "beside"
+        },
+        {
+          "type": "spatial",
+          "from": "playground-sandbox",
+          "to": "playground-slide",
+          "relationship": "near"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene7.jpg"
+  },
+  {
+    "id": 8,
+    "title": "Scene 8: Restaurant Interior",
+    "globalCaption": "A cozy restaurant dining area",
+    "instances": [
+      {
+        "id": "restaurant-table",
+        "label": "dining table",
+        "textDescription": "A round dining table with white tablecloth",
+        "boundingBox": { "x": 150, "y": 250, "width": 120, "height": 120 },
+        "isFromClass": false
+      },
+      {
+        "id": "restaurant-chairs",
+        "label": "dining chairs",
+        "textDescription": "Four wooden dining chairs",
+        "boundingBox": { "x": 100, "y": 300, "width": 220, "height": 150 },
+        "isFromClass": false
+      },
+      {
+        "id": "restaurant-plant",
+        "label": "potted plant",
+        "textDescription": "A decorative potted plant in the corner",
+        "boundingBox": { "x": 50, "y": 100, "width": 60, "height": 150 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "restaurant-chairs",
+          "to": "restaurant-table",
+          "relationship": "around"
+        },
+        {
+          "type": "spatial",
+          "from": "restaurant-plant",
+          "to": "restaurant-table",
+          "relationship": "beside"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene8.jpg"
+  },
+  {
+    "id": 9,
+    "title": "Scene 9: Library Corner",
+    "globalCaption": "A quiet library reading corner",
+    "instances": [
+      {
+        "id": "library-bookshelf",
+        "label": "bookshelf",
+        "textDescription": "A tall wooden bookshelf filled with books",
+        "boundingBox": { "x": 50, "y": 50, "width": 100, "height": 400 },
+        "isFromClass": false
+      },
+      {
+        "id": "library-chair",
+        "label": "reading chair",
+        "textDescription": "A comfortable armchair for reading",
+        "boundingBox": { "x": 200, "y": 300, "width": 100, "height": 120 },
+        "isFromClass": false
+      },
+      {
+        "id": "library-lamp",
+        "label": "floor lamp",
+        "textDescription": "A tall floor lamp providing reading light",
+        "boundingBox": { "x": 320, "y": 200, "width": 40, "height": 180 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "library-chair",
+          "to": "library-bookshelf",
+          "relationship": "facing"
+        },
+        {
+          "type": "spatial",
+          "from": "library-lamp",
+          "to": "library-chair",
+          "relationship": "beside"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene9.jpg"
+  },
+  {
+    "id": 10,
+    "title": "Scene 10: Art Studio",
+    "globalCaption": "A creative art studio space",
+    "instances": [
+      {
+        "id": "studio-easel",
+        "label": "artist easel",
+        "textDescription": "A wooden artist easel with a canvas",
+        "boundingBox": { "x": 150, "y": 100, "width": 80, "height": 250 },
+        "isFromClass": false
+      },
+      {
+        "id": "studio-stool",
+        "label": "artist stool",
+        "textDescription": "A round wooden stool for the artist",
+        "boundingBox": { "x": 100, "y": 350, "width": 60, "height": 80 },
+        "isFromClass": false
+      },
+      {
+        "id": "studio-palette",
+        "label": "paint palette",
+        "textDescription": "A wooden paint palette with colorful paints",
+        "boundingBox": { "x": 300, "y": 300, "width": 80, "height": 50 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "studio-stool",
+          "to": "studio-easel",
+          "relationship": "in front of"
+        },
+        {
+          "type": "spatial",
+          "from": "studio-palette",
+          "to": "studio-easel",
+          "relationship": "beside"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene10.jpg"
+  },
+  {
+    "id": 11,
+    "title": "Scene 11: Gym Equipment",
+    "globalCaption": "A home gym setup with exercise equipment",
+    "instances": [
+      {
+        "id": "gym-treadmill",
+        "label": "treadmill",
+        "textDescription": "A modern electric treadmill machine",
+        "boundingBox": { "x": 50, "y": 200, "width": 200, "height": 150 },
+        "isFromClass": false
+      },
+      {
+        "id": "gym-weights",
+        "label": "dumbbells",
+        "textDescription": "A set of various weight dumbbells",
+        "boundingBox": { "x": 300, "y": 350, "width": 100, "height": 60 },
+        "isFromClass": false
+      },
+      {
+        "id": "gym-mat",
+        "label": "exercise mat",
+        "textDescription": "A blue exercise mat on the floor",
+        "boundingBox": { "x": 150, "y": 400, "width": 120, "height": 80 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "gym-mat",
+          "to": "gym-treadmill",
+          "relationship": "beside"
+        },
+        {
+          "type": "spatial",
+          "from": "gym-weights",
+          "to": "gym-mat",
+          "relationship": "beside"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene11.jpg"
+  },
+  {
+    "id": 12,
+    "title": "Scene 12: Outdoor Picnic",
+    "globalCaption": "A pleasant outdoor picnic scene",
+    "instances": [
+      {
+        "id": "picnic-blanket",
+        "label": "picnic blanket",
+        "textDescription": "A red checkered picnic blanket on grass",
+        "boundingBox": { "x": 100, "y": 300, "width": 250, "height": 150 },
+        "isFromClass": false
+      },
+      {
+        "id": "picnic-basket",
+        "label": "picnic basket",
+        "textDescription": "A wicker picnic basket with food",
+        "boundingBox": { "x": 200, "y": 250, "width": 80, "height": 60 },
+        "isFromClass": false
+      },
+      {
+        "id": "picnic-tree",
+        "label": "shade tree",
+        "textDescription": "A large tree providing shade",
+        "boundingBox": { "x": 50, "y": 50, "width": 120, "height": 200 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "picnic-basket",
+          "to": "picnic-blanket",
+          "relationship": "on"
+        },
+        {
+          "type": "spatial",
+          "from": "picnic-blanket",
+          "to": "picnic-tree",
+          "relationship": "under"
+        }
+      ]
+    },
+    "imageUrl": "/assets/sample-images/scene12.jpg"
+  }
+]

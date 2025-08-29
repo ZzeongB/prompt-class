@@ -9,11 +9,11 @@ function SimpleLayoutNode({ id, data, selected }) {
 
   const [isHovered, setIsHovered] = useState(false);
   const connection = useConnection();
-  // target handles should be visible only when connecting (when another node is being dragged to connect)
-  const showTargetHandles = connection.inProgress && connection.fromNode?.id !== id;
-
-  // source handles should be visible on hover
-  const showSourceHandles = isHovered;
+  
+  // In evaluation mode, always show handles; otherwise use connection/hover logic
+  const isEvaluationMode = data.isEvaluationMode || false;
+  const showTargetHandles = isEvaluationMode || (connection.inProgress && connection.fromNode?.id !== id);
+  const showSourceHandles = isEvaluationMode || isHovered;
 
   return (
     <div
@@ -79,7 +79,12 @@ function SimpleLayoutNode({ id, data, selected }) {
           color: (isSelectedForMerge || shouldHighlight) ? "white" : "#1f2937",
           fontFamily: "system-ui, -apple-system, sans-serif",
           lineHeight: "1.3",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          maxWidth: "100%",
         }}
+        title={data.instanceLabel} // Show full text on hover
       >
         {data.instanceLabel}
         {data.isFromClass && data.parentClassName && (

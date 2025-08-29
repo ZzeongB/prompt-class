@@ -1,0 +1,35 @@
+[
+  {
+    "id": 1,
+    "title": "Advanced Scene 1: Modern Kitchen",
+    "globalCaption": "A modern smart kitchen with connected devices",
+    "instances": [
+      {
+        "id": "smart-fridge",
+        "label": "smart refrigerator",
+        "textDescription": "A modern smart refrigerator with touch display",
+        "boundingBox": { "x": 50, "y": 100, "width": 150, "height": 300 },
+        "isFromClass": true,
+        "classId": "appliance-class"
+      },
+      {
+        "id": "kitchen-island",
+        "label": "kitchen island",
+        "textDescription": "A marble kitchen island with bar stools",
+        "boundingBox": { "x": 250, "y": 250, "width": 200, "height": 100 },
+        "isFromClass": false
+      }
+    ],
+    "sceneGraph": {
+      "relationships": [
+        {
+          "type": "spatial",
+          "from": "kitchen-island",
+          "to": "smart-fridge",
+          "relationship": "near"
+        }
+      ]
+    },
+    "imageUrl": "/assets/system2-images/scene1.jpg"
+  }
+]

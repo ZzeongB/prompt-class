@@ -25,6 +25,13 @@ export default function LandingPage({ onStart }) {
       return;
     }
 
+    // Skip validation for evaluation mode
+    if (systemOrder === "evaluation") {
+      sessionStorage.setItem("user_id", userId);
+      onStart(language, systemOrder);
+      return;
+    }
+
     if (age.trim() === "" || gender.trim() === "" || occupation.trim() === "" ||
       aiToolTypes.length === 0 || aiFrequency.trim() === "" || aiPurposes.length === 0 ||
       aiProficiency.trim() === "" || englishLevel.trim() === "" ||
@@ -747,6 +754,19 @@ export default function LandingPage({ onStart }) {
               />
               <span style={{ fontSize: "14px", color: "#34495e" }}>
                 {language === "ko" ? "System 2 → 평가 → System 1 → 평가" : "System 2 → Evaluation → System 1 → Evaluation"}
+              </span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+              <input
+                type="radio"
+                name="systemOrder"
+                value="evaluation"
+                checked={systemOrder === "evaluation"}
+                onChange={(e) => setSystemOrder(e.target.value)}
+                style={{ marginRight: "10px", transform: "scale(1.1)" }}
+              />
+              <span style={{ fontSize: "14px", color: "#059669", fontWeight: "600" }}>
+                {language === "ko" ? "🔍 Prompt 평가 모드" : "🔍 Prompt Evaluation Mode"}
               </span>
             </label>
           </div>

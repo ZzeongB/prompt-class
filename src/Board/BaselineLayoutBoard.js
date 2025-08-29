@@ -27,6 +27,7 @@ import {
 } from "../utils/constants";
 import { v4 as uuidv4 } from "uuid";
 import { loadBaseImages, convertImageToBase64 } from "../utils/imageUtils";
+import { exportSceneToPromptData, downloadSceneAsJSON, saveSceneToLocalStorage } from "../utils/sceneExporter";
 
 
 const edgeTypes = {
@@ -576,6 +577,46 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
     });
   };
 
+  const handleExportScene = useCallback(() => {
+    try {
+      // Create instances from nodes for BaselineLayoutBoard
+      const instances = nodes
+        .filter((n) => n.type !== "resizable")
+        .map((node) => ({
+          id: node.data?.sharedId || node.id,
+          instanceLabel: node.data?.label || "No label",
+          textDescription: node.data?.label || "No description",
+          isFromClass: false,
+          boundingBox: {
+            x: Math.round(node.position.x),
+            y: Math.round(node.position.y), 
+            width: Math.round(node.style?.width || 120),
+            height: Math.round(node.style?.height || 40)
+          }
+        }));
+
+      const sceneData = exportSceneToPromptData(
+        nodes,
+        edges,
+        instances,
+        globalCaption || "Baseline scene",
+        flowToScreenPosition
+      );
+      
+      downloadSceneAsJSON(sceneData);
+      
+      logEvent("baseline_scene_exported", {
+        sceneId: sceneData.id,
+        nodeCount: sceneData.nodeCount,
+        edgeCount: sceneData.edgeCount,
+        exportedAt: sceneData.exportedAt
+      });
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert(`Export failed: ${error.message}`);
+    }
+  }, [nodes, edges, globalCaption, flowToScreenPosition]);
+
   return (
     <div
       className="reactflow-wrapper"
@@ -622,6 +663,23 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
             }}
           >
             {showImageOnly ? "Show Layout" : "Show Image"}
+          </span>
+        </CustomButton>
+
+        <CustomButton
+          color="teal"
+          size="sm"
+          onClick={handleExportScene}
+        >
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontWeight: "bold",
+            }}
+          >
+            Export Scene
           </span>
         </CustomButton>
         <div style={{
