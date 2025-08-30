@@ -79,10 +79,6 @@ function SimpleLayoutNode({ id, data, selected }) {
           color: (isSelectedForMerge || shouldHighlight) ? "white" : "#1f2937",
           fontFamily: "system-ui, -apple-system, sans-serif",
           lineHeight: "1.3",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          maxWidth: "100%",
         }}
         title={data.instanceLabel} // Show full text on hover
       >
