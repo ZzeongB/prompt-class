@@ -146,8 +146,8 @@ function EvaluationLayoutBoard({ currentSceneId, selectedInstanceId, isBaseline 
           isHighlighted: false,
           isEvaluationMode: true, // Show handles in evaluation mode
         },
-        style: { 
-          height: 40, 
+        style: {
+          height: 40,
           width: Math.max(120, Math.min(instance.label.length * 8, 200)), // Dynamic width with max limit
           fontSize: "11px" // Smaller font to prevent overflow
         },
@@ -185,6 +185,9 @@ function EvaluationLayoutBoard({ currentSceneId, selectedInstanceId, isBaseline 
             target: targetId,
             type: 'main',
             label: rel.relationship,
+            data: {
+              relation: rel.relationship,
+            },
             animated: false,
             style: { stroke: '#64748b', strokeWidth: 2 },
             labelStyle: { 
