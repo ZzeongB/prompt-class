@@ -120,19 +120,13 @@ function EvaluationLayoutBoard({ currentSceneId, selectedInstanceId, isBaseline 
         classId: instance.classId || null,
         createdAt: new Date().toISOString(),
         boundingBox: instance.boundingBox,
-        sceneGraph: {
+        sceneGraph: instance.sceneGraph || {
           objects: [{
             id: sharedId,
             name: instance.label,
-            attributes: [instance.textDescription]
+            attributes: []
           }],
-          relationships: sceneData.sceneGraph.relationships.filter(
-            rel => rel.from === sharedId || rel.to === sharedId
-          ).map(rel => ({
-            source: rel.from,
-            target: rel.to,
-            relation: rel.relationship
-          }))
+          relationships: []
         }
       };
       instancesData.push(instanceData);

@@ -51,7 +51,7 @@ const RelationshipNode = ({
         alignItems: "center",
         justifyContent: "center",
         position: "relative",
-        // zIndex: 10,
+        zIndex: 1000,
       }}
       onMouseEnter={() => {
         setIsHovered(true);

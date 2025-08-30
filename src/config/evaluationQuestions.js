@@ -24,31 +24,29 @@ export const evaluationQuestionsSetA = [
   // { "id": 21, "category": "context", "question": "Is the scene outdoors on a street?" } //
 ];
 
-// Second set of questions - for target 2
 export const evaluationQuestionsSetB = [
-  { "id": 1, "category": "attribute", "question": "Is the man wearing a white shirt?" },
-  { "id": 2, "category": "attribute", "question": "Is the man wearing beige trousers?" },
-  { "id": 3, "category": "attribute", "question": "Is the man wearing black shoes?" },
-  { "id": 4, "category": "attribute", "question": "Is he wearing sunglasses?" },
-  { "id": 5, "category": "relation", "question": "Is the man holding a map?" },
-  { "id": 6, "category": "attribute", "question": "Is the woman wearing a floral-patterned T-shirt?" },
-  { "id": 7, "category": "attribute", "question": "Is the woman wearing denim shorts?" },
-  { "id": 8, "category": "attribute", "question": "Is the woman wearing sandals?" },
-  { "id": 9, "category": "relation", "question": "Is the woman carrying a suitcase?" },
-  { "id": 10, "category": "relation", "question": "Is the woman carrying a coffee cup?" },
-  { "id": 11, "category": "attribute", "question": "Is the man in the green shirt wearing a bright green T-shirt?" },
-  { "id": 12, "category": "attribute", "question": "Is the man in the green shirt wearing beige shorts?" },
-  { "id": 13, "category": "attribute", "question": "Is the man in the green shirt wearing black sandals?" },
-  { "id": 14, "category": "relation", "question": "Is the man in the green shirt standing with his hands in his pockets?" },
-  { "id": 15, "category": "attribute", "question": "Is the woman with the camera wearing a sky-blue summer dress?" },
-  { "id": 16, "category": "attribute", "question": "Is the woman with the camera wearing brown sandals?" },
-  { "id": 17, "category": "relation", "question": "Is the woman with the camera holding a straw hat in one hand?" },
-  { "id": 18, "category": "relation", "question": "Is the woman with the camera raising a small camera to take a photo?" },
-  // { "id": 19, "category": "relation", "question": "Is the woman in a sky-blue dress positioned on the right side?" }, //
-  // { "id": 20, "category": "context", "question": "Are there large buildings in the background?" }, //
-  // { "id": 21, "category": "context", "question": "Is the scene outdoors in a plaza or square?" } //
-];
+  { id: 1, category: "attribute", question: "Is the man wearing a white shirt?" },
+  { id: 2, category: "attribute", question: "Is he wearing beige trousers?" },
+  { id: 3, category: "attribute", question: "Is he wearing black shoes?" },
+  { id: 4, category: "attribute", question: "Is he wearing sunglasses?" },
+  { id: 5, category: "relation",  question: "Is he holding a map?" },
 
+  { id: 6, category: "attribute", question: "Is the woman wearing a floral-patterned T-shirt?" },
+  { id: 7, category: "attribute", question: "Is she wearing denim shorts?" },
+  { id: 8, category: "attribute", question: "Is she wearing sandals?" },
+  { id: 9, category: "relation",  question: "Is she carrying a suitcase?" },
+  { id: 10, category: "relation", question: "Is she carrying a coffee cup?" },
+
+  { id: 11, category: "attribute", question: "Is the other man wearing a bright green T-shirt?" },
+  { id: 12, category: "attribute", question: "Is he wearing beige shorts?" },
+  { id: 13, category: "attribute", question: "Is he wearing black sandals?" },
+  { id: 14, category: "relation",  question: "Is he standing with his hands in his pockets?" },
+
+  { id: 15, category: "attribute", question: "Is the other woman wearing a sky-blue summer dress?" },
+  { id: 16, category: "attribute", question: "Is she wearing brown sandals?" },
+  { id: 17, category: "relation",  question: "Is she holding a straw hat in one hand?" },
+  { id: 18, category: "relation",  question: "Is she raising a small camera to take a photo?" }
+];
 
 
 // Default export for backward compatibility - will be determined by scene ID

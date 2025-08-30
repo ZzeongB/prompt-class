@@ -25,16 +25,20 @@ const EvaluationInstanceBoard = ({ promptData }) => {
   }
 
   const sceneGraphData = {
-    objects: promptData.instances.map(instance => ({
-      id: instance.id,
-      name: instance.label,
-      attributes: [instance.textDescription],
-    })),
-    relationships: promptData.sceneGraph.relationships.map(rel => ({
-      source: rel.from,
-      target: rel.to,
-      relation: rel.relationship,
-    }))
+    objects: promptData.instances.flatMap(instance => 
+      instance.sceneGraph.objects.map(obj => ({
+        id: `${instance.id}-${obj.id}`,
+        name: obj.name,
+        attributes: obj.attributes,
+      }))
+    ),
+    relationships: promptData.instances.flatMap(instance => 
+      instance.sceneGraph.relationships.map(rel => ({
+        source: `${instance.id}-${rel.source}`,
+        target: `${instance.id}-${rel.target}`,
+        relation: rel.relation,
+      }))
+    )
   };
 
   const renderTextView = () => (
@@ -191,7 +195,7 @@ const EvaluationInstanceBoard = ({ promptData }) => {
         />
       </div>
       
-      {promptData.sceneGraph.relationships.length > 0 && (
+      {sceneGraphData.relationships.length > 0 && (
         <div
           style={{
             marginTop: "12px",
@@ -201,11 +205,11 @@ const EvaluationInstanceBoard = ({ promptData }) => {
         >
           <strong>Relationships:</strong>
           <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
-            {promptData.sceneGraph.relationships.map((rel, index) => (
+            {sceneGraphData.relationships.map((rel, index) => (
               <li key={index} style={{ marginBottom: "2px" }}>
-                {promptData.instances.find(i => i.id === rel.from)?.label || rel.from} 
-                <span style={{ color: "#059669", fontWeight: "500" }}> {rel.relationship} </span>
-                {promptData.instances.find(i => i.id === rel.to)?.label || rel.to}
+                {sceneGraphData.objects.find(obj => obj.id === rel.source)?.name || rel.source} 
+                <span style={{ color: "#059669", fontWeight: "500" }}> {rel.relation} </span>
+                {sceneGraphData.objects.find(obj => obj.id === rel.target)?.name || rel.target}
               </li>
             ))}
           </ul>

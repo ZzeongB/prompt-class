@@ -101,6 +101,7 @@ export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             pointerEvents: "all",
+            zIndex: 1000,
           }}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}

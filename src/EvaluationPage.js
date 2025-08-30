@@ -151,15 +151,15 @@ const EvaluationPage = ({ onReturnHome, onSystemComplete, isBaseline = false, la
         systems: "both_systems_completed"
       };
 
-      // Method 1: Auto-download as JSON file
-      const dataStr = JSON.stringify(allResults, null, 2);
-      const dataBlob = new Blob([dataStr], {type: 'application/json'});
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `evaluation_results_${allResults.userId}_${new Date().toISOString().split('T')[0]}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+      // // Method 1: Auto-download as JSON file
+      // const dataStr = JSON.stringify(allResults, null, 2);
+      // const dataBlob = new Blob([dataStr], {type: 'application/json'});
+      // const url = URL.createObjectURL(dataBlob);
+      // const link = document.createElement('a');
+      // link.href = url;
+      // link.download = `evaluation_results_${allResults.userId}_${new Date().toISOString().split('T')[0]}.json`;
+      // link.click();
+      // URL.revokeObjectURL(url);
 
       // Method 2: Save to localStorage as backup
       localStorage.setItem('evaluation_results', JSON.stringify(allResults));
