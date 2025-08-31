@@ -837,10 +837,10 @@
                     "root": "object1"
                 },
                 "boundingBox": {
-                    "x": 431,
-                    "y": 237,
-                    "width": 64,
-                    "height": 96
+                    "x": 355,
+                    "y": 391,
+                    "width": 50,
+                    "height": 50
                 },
                 "isFromClass": false
             },
@@ -861,11 +861,11 @@
                     "relationships": [],
                     "root": "object1"
                 },
-                "boundingBox": {
-                    "x": 355,
-                    "y": 391,
-                    "width": 50,
-                    "height": 50
+                "boundingBox":  {
+                    "x": 431,
+                    "y": 237,
+                    "width": 64,
+                    "height": 96
                 },
                 "isFromClass": false
             }
