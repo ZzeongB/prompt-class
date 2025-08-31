@@ -3343,8 +3343,8 @@
             },
             {
                 "id": "instance-fe901fb9-8c63-43c3-83ec-ccf9c925378f",
-                "label": "a man wearing sunglasses and a white shirt, beige pants, black shoes, and a wristwatch is holding a paper map",
-                "textDescription": "Man",
+                "label": "Man",
+                "textDescription": "a man wearing sunglasses and a white shirt, beige pants, black shoes, and a wristwatch is holding a paper map",
                 "sceneGraph": {
                     "objects": [
                         {
