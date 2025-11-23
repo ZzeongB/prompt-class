@@ -40,7 +40,7 @@ export const applyClassUpdatesToInstance = (
 ) => {
   let result = deepCloneSceneGraph(classSceneGraph);
 
-  // 기본값을 originalSceneGraph에서 복원 (오버라이드되지 않은 경우만)
+  // override가 있으면 override 값 사용, 없으면 class template의 현재 값 사용
   result.objects.forEach((obj, objIndex) => {
     // 객체 이름 처리 - ID 기반으로 오버라이드 확인
     if (obj.name) {
@@ -51,10 +51,8 @@ export const applyClassUpdatesToInstance = (
         // 오버라이드가 있으면 오버라이드 값 사용
         resolvedValue = overrides.objects[obj.id].name;
       } else {
-        // 오버라이드가 없으면 originalSceneGraph의 값 사용 (기본값)
-        const originalObj = originalSceneGraph?.objects?.find(o => o.id === obj.id) ||
-          originalSceneGraph?.objects?.[objIndex];
-        resolvedValue = originalObj?.name || obj.defaultName || obj.name;
+        // 오버라이드가 없으면 class template의 현재 값 사용
+        resolvedValue = obj.name;
       }
 
       obj.name = resolvedValue;
@@ -68,9 +66,6 @@ export const applyClassUpdatesToInstance = (
 
     // attributes 처리 - ID 기반으로 오버라이드 확인
     if (obj.attributes && Array.isArray(obj.attributes)) {
-      const originalObj = originalSceneGraph?.objects?.find(o => o.id === obj.id) ||
-        originalSceneGraph?.objects?.[objIndex];
-
       obj.attributes = obj.attributes.map((attr, attrIndex) => {
         if (typeof attr === "string") {
           const hasAttrOverride = overrides?.objects?.[obj.id]?.attributes?.[attrIndex] !== undefined;
@@ -85,10 +80,8 @@ export const applyClassUpdatesToInstance = (
             }
             resolvedValue = overrideValue;
           } else {
-            // 오버라이드가 없으면 originalSceneGraph의 값 사용 (기본값)
-            resolvedValue = originalObj?.attributes?.[attrIndex] ||
-              obj.defaultAttributes?.[attrIndex] ||
-              attr;
+            // 오버라이드가 없으면 class template의 현재 값 사용
+            resolvedValue = attr;
           }
 
           return resolvedValue;

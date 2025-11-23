@@ -83,7 +83,7 @@ function SimpleLayoutNode({ id, data, selected }) {
         title={data.instanceLabel} // Show full text on hover
       >
         {data.instanceLabel}
-        {data.isFromClass && data.parentClassName && (
+        {/* {data.isFromClass && data.parentClassName && (
           <span
             style={{
               marginLeft: "4px",
@@ -107,10 +107,10 @@ function SimpleLayoutNode({ id, data, selected }) {
           <span style={{ color: "red", fontSize: "8px" }}>
             [No parent class name]
           </span>
-        )}
+        )} */}
       </div>
 
-      {data.hasOverrides && (
+      {/* {data.hasOverrides && (
         <div
           style={{
             fontSize: "8px",
@@ -122,7 +122,7 @@ function SimpleLayoutNode({ id, data, selected }) {
         >
           Modified
         </div>
-      )}
+      )} */}
 
       {isSelectedForMerge && (
         <div

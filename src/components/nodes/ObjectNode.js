@@ -88,32 +88,31 @@ const ObjectNode = ({
 
     if (editingMode === "name") {
       if (isClassMode) {
-        const { category, defaultValue } = parseClassInput(editingValue);
-        // 전체 placeHolders 구조를 유지하면서 해당 객체만 업데이트
+        // 간단한 구조: 값만 저장
         const updatedPlaceHolders = {
           ...placeHolders,
           [object.id]: {
-            name: { name: category, defaultvalue: defaultValue },
+            name: editingValue,
             attr: placeHolders[object.id]?.attr || []
           }
         };
-        onEdit?.(object.id, defaultValue, object.attributes, updatedPlaceHolders); // {} 플레이스홀더 대신 기본값 직접 사용
+        onEdit?.(object.id, editingValue, object.attributes, updatedPlaceHolders);
       } else {
         onEdit?.(object.id, editingValue);
       }
     } else if (editingMode === "adding") {
       if (isClassMode) {
-        const { category, defaultValue } = parseClassInput(editingValue);
+        // 간단한 구조: 값만 저장
         const currentAttrs = placeHolders[object.id]?.attr || [];
         const updatedAttributes = [
           ...(object.attributes || []),
-          defaultValue, // {} 플레이스홀더 대신 기본값 직접 사용
+          editingValue,
         ];
         const updatedPlaceHolders = {
           ...placeHolders,
           [object.id]: {
             name: placeHolders[object.id]?.name || null,
-            attr: [...currentAttrs, { name: category, defaultvalue: defaultValue }]
+            attr: [...currentAttrs, editingValue]
           }
         };
         onEdit?.(object.id, object.name, updatedAttributes, updatedPlaceHolders);
@@ -123,13 +122,12 @@ const ObjectNode = ({
     } else if (editingMode?.startsWith("attribute-")) {
       const index = parseInt(editingMode.replace("attribute-", ""));
       if (isClassMode) {
-        const { category, defaultValue } = parseClassInput(editingValue);
-
+        // 간단한 구조: 값만 저장
         const updated = [...object.attributes];
-        updated[index] = defaultValue; // {} 플레이스홀더 대신 기본값 직접 사용
+        updated[index] = editingValue;
         const currentAttrs = [...(placeHolders[object.id]?.attr || [])];
 
-        currentAttrs[index] = { name: category, defaultvalue: defaultValue };
+        currentAttrs[index] = editingValue;
         const updatedPlaceHolders = {
           ...placeHolders,
           [object.id]: {
@@ -163,9 +161,9 @@ const ObjectNode = ({
     updated[index] = "DELETE";
 
     if (isClassMode) {
-      // class mode에서는 placeHolders도 함께 업데이트
+      // class mode에서는 placeHolders도 함께 업데이트 (간단한 구조)
       const currentAttrs = [...(placeHolders[object.id]?.attr || [])];
-      currentAttrs[index] = { name: "DELETE", defaultvalue: "DELETE" };
+      currentAttrs[index] = "DELETE";
       const updatedPlaceHolders = {
         ...placeHolders,
         [object.id]: {
@@ -416,11 +414,11 @@ const ObjectNode = ({
       let defaultValue = "?";
 
       if (objectId && placeHolders && placeHolders[objectId] && placeHolders[objectId].attr) {
-        // Index를 사용해서 정확한 attribute 매핑
-        const attrPlaceholder = placeHolders[objectId].attr[index];
-        if (attrPlaceholder) {
-          category = attrPlaceholder.name || "unknown";
-          defaultValue = attrPlaceholder.defaultvalue || "?";
+        // Index를 사용해서 정확한 attribute 매핑 (간단한 구조: attr은 문자열 배열)
+        const attrValue = placeHolders[objectId].attr[index];
+        if (attrValue) {
+          category = "attribute";
+          defaultValue = attrValue;
         }
         // fallback: defaultAttributes에서 직접 가져오기
         else if (object.defaultAttributes && object.defaultAttributes[index]) {
@@ -469,29 +467,18 @@ const ObjectNode = ({
               if (isEditable && editingMode === null) {
                 startEditing(
                   `attribute-${index}`,
-                  `${category} ${defaultValue}`
+                  defaultValue
                 );
               }
             }}
-            title={`${category}: ${defaultValue} (Double-click to edit)`}
+            title={`${defaultValue} (Double-click to edit)`}
           >
             <div
               style={{
-                fontWeight: "600",
-                color: "#1d4ed8",
+                fontWeight: "500",
+                color: "#1e40af",
                 fontSize: compact ? "9px" : "11px",
                 lineHeight: "1.1",
-              }}
-            >
-              {category}
-            </div>
-            <div
-              style={{
-                fontWeight: "400",
-                color: "#1e40af",
-                fontSize: compact ? "8px" : "10px",
-                lineHeight: "1.1",
-                opacity: 0.8,
               }}
             >
               {defaultValue}
@@ -613,9 +600,9 @@ const ObjectNode = ({
       const objectId = object.id;
 
       if (objectId && placeHolders && placeHolders[objectId] && placeHolders[objectId].name) {
-        const namePlaceholder = placeHolders[objectId].name;
-        category = namePlaceholder.name || "unknown";
-        defaultValue = namePlaceholder.defaultvalue || "?";
+        // 간단한 구조: name은 문자열 값
+        category = "name";
+        defaultValue = placeHolders[objectId].name;
       }
       // fallback: defaultName이나 원본 name 사용
       else if (object.defaultName) {
@@ -648,28 +635,17 @@ const ObjectNode = ({
           }}
           onDoubleClick={() => {
             if (isEditable && editingMode === null) {
-              startEditing("name", `${category} ${defaultValue}`);
+              startEditing("name", defaultValue);
             }
           }}
-          title={`${category}: ${defaultValue}`}
+          title={`${defaultValue}`}
         >
           <div
             style={{
-              fontWeight: "600",
+              fontWeight: "500",
               color: "#991b1b",
               fontSize: compact ? "10px" : "11px",
               lineHeight: "1.1",
-            }}
-          >
-            {category}
-          </div>
-          <div
-            style={{
-              fontWeight: "400",
-              color: "#7f1d1d",
-              fontSize: compact ? "10px" : "11px",
-              lineHeight: "1.1",
-              opacity: 0.8,
             }}
           >
             {defaultValue}

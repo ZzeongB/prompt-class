@@ -43,10 +43,13 @@ export const ClassProvider = ({ children }) => {
   };
 
   const updateClass = (classId, updates) => {
+    console.log('[ClassContext] updateClass called:', classId, updates);
     setClasses((prev) => {
       const updatedClasses = ClassOps.updateClass(prev, classId, updates);
       const updatedClass = updatedClasses.find(cls => cls.id === classId);
+      console.log('[ClassContext] Updated class:', updatedClass);
       if (updatedClass) {
+        console.log('[ClassContext] Calling updateInstancesFromClass');
         updateInstancesFromClass(updatedClass);
       }
       return updatedClasses;
@@ -77,14 +80,22 @@ export const ClassProvider = ({ children }) => {
   };
 
   const updateInstancesFromClass = async (updatedClass) => {
+    console.log('[ClassContext] updateInstancesFromClass called for class:', updatedClass.id);
+    console.log('[ClassContext] Current instances:', instances);
     const updatedInstances = await InstanceOps.updateInstancesFromClassTemplate(updatedClass, instances);
-    
-    setInstances((prev) =>
-      prev.map((instance) => {
+    console.log('[ClassContext] Updated instances from InstanceOps:', updatedInstances);
+
+    setInstances((prev) => {
+      const newInstances = prev.map((instance) => {
         const updated = updatedInstances.find((u) => u.id === instance.id);
+        if (updated) {
+          console.log(`[ClassContext] Updating instance ${instance.id}`);
+        }
         return updated || instance;
-      })
-    );
+      });
+      console.log('[ClassContext] New instances state:', newInstances);
+      return newInstances;
+    });
   };
 
 

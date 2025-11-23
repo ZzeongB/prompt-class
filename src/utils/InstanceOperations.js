@@ -49,24 +49,16 @@ export const createInstanceFromClass = async (classData, newValues = {}) => {
   });
 
   const originalTemplateSceneGraph = deepCloneSceneGraph(classData.template.sceneGraph);
-  
+
   const { sceneGraph, overrides: initialOverrides } = resolvePlaceholdersInSceneGraph(
     classData.template.sceneGraph,
     newValues,
     classData.originalData?.sceneGraph
   );
 
-  let textDescription = classData.template.textDescription || "";
-  let instanceLabel = generateInstanceLabel(newValues);
-  try {
-    textDescription = await generateSceneGraphTextDescription(sceneGraph);
-    instanceLabel = await generateInstanceLabelFromDescription(textDescription);
-    console.log("Generated text description:", textDescription, instanceLabel);
-  } catch (error) {
-    console.error("Failed to generate text description from sceneGraph:", error);
-    textDescription = classData.template.textDescription || generateInstanceLabel(newValues);
-    instanceLabel = generateInstanceLabel(newValues);
-  }
+  // default 값 유지: textDescription과 instanceLabel을 class template에서 그대로 사용
+  const textDescription = classData.template.textDescription || "";
+  const instanceLabel = classData.template.instanceLabel || generateInstanceLabel(newValues);
 
   const newInstance = {
     id: `instance-${uuidv4()}`,
@@ -276,8 +268,15 @@ export const extractObjectFromInstance = async (objectId, sourceInstance) => {
 
 export const updateInstancesFromClassTemplate = async (updatedClass, instances) => {
   const instancesFromClass = instances.filter(instance => instance.classId === updatedClass.id);
-  
+
+  console.log(`[updateInstancesFromClassTemplate] Updating ${instancesFromClass.length} instances for class ${updatedClass.id}`);
+  console.log('[updateInstancesFromClassTemplate] Updated class placeholders:', updatedClass.placeholders);
+
   const updatePromises = instancesFromClass.map(async (instance, index) => {
+    console.log(`[updateInstancesFromClassTemplate] Processing instance ${instance.id}`);
+    console.log('[updateInstancesFromClassTemplate] Instance overrides:', instance.overrides);
+    console.log('[updateInstancesFromClassTemplate] Instance originalSceneGraph:', instance.originalSceneGraph);
+
     const newSceneGraph = applyClassUpdatesToInstance(
       updatedClass.template.sceneGraph,
       instance.overrides,
@@ -285,14 +284,18 @@ export const updateInstancesFromClassTemplate = async (updatedClass, instances) 
       updatedClass.placeholders
     );
 
+    console.log('[updateInstancesFromClassTemplate] New scene graph:', newSceneGraph);
+
+    // sceneGraph가 바뀌었으므로 textDescription도 새로 생성
     let newTextDescription = instance.textDescription;
-    // Always update text description when class is updated, regardless of overrides
     try {
-      newTextDescription = await generateSceneGraphTextDescription(newSceneGraph, instance.sceneGraph, instance.textDescription);
+      newTextDescription = await generateSceneGraphTextDescription(newSceneGraph);
+      console.log('[updateInstancesFromClassTemplate] Generated new textDescription:', newTextDescription);
     } catch (error) {
-      console.error("Failed to update text description for instance:", instance.id, error);
+      console.error("Failed to generate text description for instance:", instance.id, error);
+      // 실패 시 class template의 textDescription 사용
       newTextDescription = updatedClass.template.textDescription || instance.textDescription;
-    } 
+    }
 
     const updatedInstance = {
       ...instance,
@@ -300,10 +303,12 @@ export const updateInstancesFromClassTemplate = async (updatedClass, instances) 
       textDescription: newTextDescription,
     };
 
+    console.log('[updateInstancesFromClassTemplate] Updated instance:', updatedInstance);
     return updatedInstance;
   });
 
   const results = await Promise.all(updatePromises);
+  console.log('[updateInstancesFromClassTemplate] All instances updated:', results);
   return results;
 };
 

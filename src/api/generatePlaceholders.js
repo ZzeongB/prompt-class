@@ -83,19 +83,13 @@ JSON만 응답하세요:`;
       throw new Error("Invalid placeholder map structure");
     }
     
-    // objectId별로 placeholders 구성 - 간단한 구조
+    // objectId별로 placeholders 구성 - 간단한 구조 (값만 저장)
     const placeholderMap = {};
-    
+
     Object.entries(objectMappings).forEach(([objectId, data]) => {
       placeholderMap[objectId] = {
-        name: data.name ? {
-          name: rawCategoryMap[data.name] || 'unknown',
-          defaultvalue: data.name
-        } : null,
-        attr: data.attributes.map(attr => ({
-          name: rawCategoryMap[attr] || 'unknown',
-          defaultvalue: attr
-        }))
+        name: data.name || null,
+        attr: data.attributes
       };
     });
         
@@ -115,18 +109,12 @@ JSON만 응답하세요:`;
       object_count: Object.keys(objectMappings).length
     });
     
-    // fallback: objectId별로 기본 매핑 - 간단한 구조
+    // fallback: objectId별로 기본 매핑 - 간단한 구조 (값만 저장)
     const fallbackMap = {};
     Object.entries(objectMappings).forEach(([objectId, data]) => {
       fallbackMap[objectId] = {
-        name: data.name ? {
-          name: 'value',
-          defaultvalue: data.name
-        } : null,
-        attr: data.attributes.map(attr => ({
-          name: 'value',
-          defaultvalue: attr
-        }))
+        name: data.name || null,
+        attr: data.attributes
       };
     });
     

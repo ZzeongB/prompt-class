@@ -26,6 +26,7 @@ const ClassDetailModal = ({
   onEdit,
   onDelete,
   onResetInstances,
+  initialEditMode = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -59,9 +60,10 @@ const ClassDetailModal = ({
         sceneGraph: classData.template?.sceneGraph || {},
         placeholders: classData.placeholders || {},
       });
-      setIsEditing(false);
+      // initialEditMode가 true이면 자동으로 편집 모드 활성화
+      setIsEditing(initialEditMode);
     }
-  }, [classData]);
+  }, [classData, initialEditMode]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -94,6 +96,8 @@ const ClassDetailModal = ({
       });
 
       setIsEditing(false);
+      // Save 후 모달 닫기
+      onClose();
     } catch (error) {
       console.error("Failed to update class:", error);
 
@@ -117,13 +121,31 @@ const ClassDetailModal = ({
     });
   };
 
-  const handleSceneGraphChange = (newSceneGraph, newPlaceHolders) => {
-    setTempSceneData((prev) => ({
+  const handleSceneGraphChange = async (newSceneGraph, newPlaceHolders) => {
+    const updatedPlaceholders = newPlaceHolders
+      ? { ...tempSceneData.placeholders, ...newPlaceHolders }
+      : tempSceneData.placeholders;
+
+    setTempSceneData({
       sceneGraph: newSceneGraph,
-      placeholders: newPlaceHolders
-        ? { ...prev.placeholders, ...newPlaceHolders }
-        : prev.placeholders,
-    }));
+      placeholders: updatedPlaceholders,
+    });
+
+    // 즉시 class 업데이트하여 관련된 instance들도 업데이트
+    if (isEditing) {
+      await updateClass(classData.id, {
+        template: {
+          ...classData.template,
+          sceneGraph: newSceneGraph,
+        },
+        placeholders: updatedPlaceholders,
+      });
+
+      logEvent("class.auto_updated", {
+        class_id: classData.id,
+        class_name: classData.name,
+      });
+    }
   };
 
   const handleResetInstances = () => {
@@ -138,56 +160,50 @@ const ClassDetailModal = ({
 
   const handleDummyFunction = () => { };
 
-  // 인스턴스 생성 패널 로직
-  const handleShowCreatePanel = () => {
-    setShowCreatePanel(true);
-    initializeInstanceCreation();
+  // 인스턴스 생성 로직 - + 버튼 클릭 시 즉시 "default" 값으로 생성
+  const handleShowCreatePanel = async () => {
     logEvent("class.instance_creation.started", {
       class_id: classData.id,
       class_name: classData.name
     });
+
+    // 즉시 default 값으로 instance 생성
+    setIsCreatingInstance(true);
+    try {
+      // default 값으로 sceneGraph 생성 (placeholder 값 그대로 사용)
+      const defaultSceneGraph = classData.template.sceneGraph;
+      const newInstance = await createInstanceFromClass(classData, defaultSceneGraph);
+      onCreateInstance?.(newInstance);
+
+      logEvent("class.instance_created.default", {
+        class_id: classData.id,
+        instance_id: newInstance.id
+      });
+    } catch (error) {
+      console.error("Failed to create instance:", error);
+      alert("Failed to create instance. Please try again.");
+    } finally {
+      setIsCreatingInstance(false);
+    }
   };
 
   const initializeInstanceCreation = async () => {
     if (!classData?.placeholders) return;
 
-    // 기본값 설정 - 간단한 구조
+    // 기본값 설정 - 간단한 구조 (값만 사용)
     const defaultValues = {};
     Object.entries(classData.placeholders).forEach(([objectId, objectData]) => {
       if (objectData.name) {
-        defaultValues[`${objectId}_name`] = objectData.name.defaultvalue;
+        defaultValues[`${objectId}_name`] = objectData.name;
       }
-      objectData.attr.forEach((attr, index) => {
-        defaultValues[`${objectId}_attr_${index}`] = attr.defaultvalue;
-      });
+      if (objectData.attr) {
+        objectData.attr.forEach((attr, index) => {
+          defaultValues[`${objectId}_attr_${index}`] = attr;
+        });
+      }
     });
     setInstanceValues(defaultValues);
-
-    // 제안값 가져오기
-    try {
-      // 카테고리별로 매핑된 placeholders 객체 생성
-      const categoryMap = {};
-      Object.entries(classData.placeholders).forEach(([objectId, objectData]) => {
-        if (objectData.name) {
-          categoryMap[`${objectId}_name`] = objectData.name.name;
-        }
-        objectData.attr.forEach((attr, index) => {
-          categoryMap[`${objectId}_attr_${index}`] = attr.name;
-        });
-      });
-
-      const suggestions = await suggestPlaceholderValues(categoryMap);
-      // 각 placeholder에 해당하는 suggestion을 매핑
-      const mappedSuggestions = {};
-      Object.entries(categoryMap).forEach(([placeholderKey, category]) => {
-        if (suggestions[category]) {
-          mappedSuggestions[placeholderKey] = suggestions[category];
-        }
-      });
-      setInstanceSuggestions(mappedSuggestions);
-    } catch (error) {
-      console.error("Failed to get suggestions:", error);
-    }
+    setInstanceSuggestions({});
   };
 
   const handleCreateNewInstance = async () => {
@@ -395,13 +411,6 @@ const ClassDetailModal = ({
                     disabled={isUpdating}
                     tooltipPosition="bottom"
                   />
-                  <ToolbarButton
-                    onClick={handleCancelEdit}
-                    title="Cancel"
-                    icon={<X size={16} />}
-                    disabled={isUpdating}
-                    tooltipPosition="bottom"
-                  />
                 </>
               ) : (
                 <>
@@ -434,8 +443,13 @@ const ClassDetailModal = ({
               )}
 
               <ToolbarButton
-                onClick={onClose}
-                title="Close"
+                onClick={() => {
+                  if (isEditing) {
+                    handleCancelEdit();
+                  }
+                  onClose();
+                }}
+                title={isEditing ? "Cancel & Close" : "Close"}
                 icon={<X size={16} />}
                 tooltipPosition="bottom"
               />
@@ -668,13 +682,13 @@ const ClassDetailModal = ({
                         color: "#374151",
                         marginBottom: "4px"
                       }}>
-                        {objectData.name.name} ({objectData.name.defaultvalue})
+                        Name
                       </label>
                       <input
                         type="text"
                         value={instanceValues[placeholderKey] || ""}
                         onChange={(e) => handleInstanceValueChange(placeholderKey, e.target.value)}
-                        placeholder={Array.isArray(instanceSuggestions[placeholderKey]) && instanceSuggestions[placeholderKey].length > 0 ? instanceSuggestions[placeholderKey][0] : objectData.name.defaultvalue}
+                        placeholder={objectData.name}
                         style={{
                           width: "100%",
                           padding: "8px 12px",
@@ -684,113 +698,43 @@ const ClassDetailModal = ({
                           boxSizing: "border-box"
                         }}
                       />
-                      {instanceSuggestions[placeholderKey] && Array.isArray(instanceSuggestions[placeholderKey]) && (
-                        <div style={{ marginTop: "4px" }}>
-                          <div style={{
-                            display: "flex",
-                            gap: "6px",
-                            flexWrap: "wrap"
-                          }}>
-                            {instanceSuggestions[placeholderKey].slice(0, 3).map((suggestion, index) => (
-                              <button
-                                key={index}
-                                onClick={() => handleInstanceValueChange(placeholderKey, suggestion)}
-                                style={{
-                                  padding: "3px 6px",
-                                  fontSize: "10px",
-                                  backgroundColor: "#f8fafc",
-                                  border: "1px solid #e2e8f0",
-                                  borderRadius: "3px",
-                                  cursor: "pointer",
-                                  transition: "all 0.2s",
-                                  textAlign: "center",
-                                  flex: "1",
-                                  color: "#64748b",
-                                  fontWeight: "400"
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = "#f1f5f9";
-                                  e.target.style.borderColor = "#cbd5e1";
-                                  e.target.style.color = "#475569";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.target.style.backgroundColor = "#f8fafc";
-                                  e.target.style.borderColor = "#e2e8f0";
-                                  e.target.style.color = "#64748b";
-                                }}
-                              >
-                                {suggestion}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 }
 
                 // Add attribute fields
-                objectData.attr.forEach((attr, index) => {
-                  const placeholderKey = `${objectId}_attr_${index}`;
-                  fields.push(
-                    <div key={placeholderKey} style={{ marginBottom: "16px" }}>
-                      <label style={{
-                        display: "block",
-                        fontSize: "12px",
-                        fontWeight: "500",
-                        color: "#374151",
-                        marginBottom: "4px"
-                      }}>
-                        {attr.name} ({attr.defaultvalue})
-                      </label>
-                      <input
-                        type="text"
-                        value={instanceValues[placeholderKey] || ""}
-                        onChange={(e) => handleInstanceValueChange(placeholderKey, e.target.value)}
-                        placeholder={Array.isArray(instanceSuggestions[placeholderKey]) && instanceSuggestions[placeholderKey].length > 0 ? instanceSuggestions[placeholderKey][0] : attr.defaultvalue}
-                        style={{
-                          width: "100%",
-                          padding: "8px 12px",
-                          border: "1px solid #d1d5db",
-                          borderRadius: "6px",
-                          fontSize: "14px",
-                          boxSizing: "border-box"
-                        }}
-                      />
-                      {instanceSuggestions[placeholderKey] && Array.isArray(instanceSuggestions[placeholderKey]) && (
-                        <div style={{ marginTop: "4px" }}>
-                          <div style={{
-                            display: "flex",
-                            gap: "6px",
-                            flexWrap: "wrap"
-                          }}>
-                            {instanceSuggestions[placeholderKey].slice(0, 3).map((suggestion, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => handleInstanceValueChange(placeholderKey, suggestion)}
-                                style={{
-                                  padding: "3px 6px",
-                                  fontSize: "10px",
-                                  backgroundColor: "#f8fafc",
-                                  border: "1px solid #e2e8f0",
-                                  borderRadius: "3px",
-                                  cursor: "pointer",
-                                  transition: "all 0.2s",
-                                  textAlign: "center",
-                                  flex: "1",
-                                  color: "#64748b",
-                                  fontWeight: "400"
-                                }}
-                              >
-                                {suggestion}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                });
+                if (objectData.attr) {
+                  objectData.attr.forEach((attr, index) => {
+                    const placeholderKey = `${objectId}_attr_${index}`;
+                    fields.push(
+                      <div key={placeholderKey} style={{ marginBottom: "16px" }}>
+                        <label style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: "500",
+                          color: "#374151",
+                          marginBottom: "4px"
+                        }}>
+                          Attribute {index + 1}
+                        </label>
+                        <input
+                          type="text"
+                          value={instanceValues[placeholderKey] || ""}
+                          onChange={(e) => handleInstanceValueChange(placeholderKey, e.target.value)}
+                          placeholder={attr}
+                          style={{
+                            width: "100%",
+                            padding: "8px 12px",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "6px",
+                            fontSize: "14px",
+                            boxSizing: "border-box"
+                          }}
+                        />
+                      </div>
+                    );
+                  });
+                }
 
                 return fields;
               })}

@@ -16,11 +16,12 @@ import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
 
 // Compact Floating Class Library
 export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
-  const { classes, deleteClass, instances, resetInstanceToClass } =
+  const { classes, deleteClass, instances, resetInstanceToClass, createInstanceFromClass } =
     useClassContext();
   const [selectedClass, setSelectedClass] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [openInEditMode, setOpenInEditMode] = useState(false);
 
   // expansion 상태 변경 시 부모에게 알림
   const handleToggleExpanded = () => {
@@ -38,20 +39,40 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
     onAddInstance?.(newInstance);
   };
 
-  const handleClassClick = (classData) => {
+  // + 버튼 클릭 시 즉시 default 값으로 instance 생성
+  const handleQuickCreateInstance = async (classData) => {
+    try {
+      const defaultSceneGraph = classData.template.sceneGraph;
+      const newInstance = await createInstanceFromClass(classData, defaultSceneGraph);
+      onAddInstance?.(newInstance);
+
+      logEvent("instance.quick_created_from_library", {
+        class_id: classData.id,
+        instance_id: newInstance.id
+      });
+    } catch (error) {
+      console.error("Failed to create instance:", error);
+      alert("Failed to create instance. Please try again.");
+    }
+  };
+
+  const handleClassClick = (classData, editMode = false) => {
     setSelectedClass(classData);
     setIsModalOpen(true);
+    setOpenInEditMode(editMode);
 
     logEvent("class_detail_opened", {
       class_id: classData.id,
       class_name: classData.name,
-      instance_count: instances.filter(i => i.classId === classData.id).length
+      instance_count: instances.filter(i => i.classId === classData.id).length,
+      edit_mode: editMode
     });
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedClass(null);
+    setOpenInEditMode(false);
   };
 
   const handleDeleteClass = (classId) => {
@@ -311,23 +332,43 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
                         </div>
                       </div>
 
-                      {/* Center - Open button */}
-                      <div 
-                        onClick={(e) => e.stopPropagation()} 
-                        style={{ 
+                      {/* Center - Action buttons */}
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
+                          gap: "4px",
                           marginRight: "11px"
                         }}
                       >
                         <ToolbarButton
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleClassClick(classData);
+                            handleQuickCreateInstance(classData);
                           }}
-                          title="Open Details"
+                          title="Create Instance"
                           icon={<Plus size={14} />}
+                          tooltipPosition="bottom"
+                        />
+                        <ToolbarButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClassClick(classData, true);
+                          }}
+                          title="Edit Class"
+                          icon={<Edit2 size={14} />}
+                          tooltipPosition="bottom"
+                        />
+                        <ToolbarButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClass(classData.id);
+                          }}
+                          title="Delete Class"
+                          icon={<Trash2 size={14} />}
+                          danger={true}
                           tooltipPosition="bottom"
                         />
                       </div>
@@ -375,6 +416,7 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
         onEdit={handleEditClass}
         onDelete={handleDeleteClass}
         onResetInstances={handleResetAllInstances}
+        initialEditMode={openInEditMode}
       />
 
     </>
