@@ -21,6 +21,7 @@ export default function SceneGraphVisualizer({
   highlightedTerm = null,
   onNodeHover = () => {},
   onNodeLeave = () => {},
+  overrides = {},
 }) {
   const [hoveredObject, setHoveredObject] = useState(null);
   const [hoveredRelationship, setHoveredRelationship] = useState(null);
@@ -669,6 +670,7 @@ export default function SceneGraphVisualizer({
                   onConnectionDragEnd={handleConnectionDragEnd}
                   isConnectionTarget={isDraggingConnection && dragConnectionSource?.objectId !== obj.id}
                   showConnectionHandles={isEditable}
+                  objectOverrides={overrides?.objects?.[obj.id]}
                   isDraggingConnectionFromThis={isDraggingConnection && dragConnectionSource?.objectId === obj.id}
                 />
               </div>

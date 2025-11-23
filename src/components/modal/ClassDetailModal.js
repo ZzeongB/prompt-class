@@ -38,6 +38,7 @@ const ClassDetailModal = ({
     sceneGraph: classData?.template?.sceneGraph || {},
     placeholders: classData?.placeholders || {},
   });
+  const [tempClassName, setTempClassName] = useState(classData?.name || "");
 
   // 인스턴스 생성 패널 상태
   const [instanceValues, setInstanceValues] = useState({});
@@ -60,6 +61,7 @@ const ClassDetailModal = ({
         sceneGraph: classData.template?.sceneGraph || {},
         placeholders: classData.placeholders || {},
       });
+      setTempClassName(classData.name || "");
       // initialEditMode가 true이면 자동으로 편집 모드 활성화
       setIsEditing(initialEditMode);
     }
@@ -81,6 +83,7 @@ const ClassDetailModal = ({
     setIsUpdating(true);
     try {
       await updateClass(classData.id, {
+        name: tempClassName,
         template: {
           ...classData.template,
           sceneGraph: tempSceneData.sceneGraph,
@@ -119,6 +122,7 @@ const ClassDetailModal = ({
       sceneGraph: classData?.template?.sceneGraph || {},
       placeholders: classData?.placeholders || {},
     });
+    setTempClassName(classData?.name || "");
   };
 
   const handleSceneGraphChange = async (newSceneGraph, newPlaceHolders) => {
@@ -345,20 +349,25 @@ const ClassDetailModal = ({
             }}
           >
             <div>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "18px",
-                  fontWeight: "600",
-                  color: isEditing ? "#1d4ed8" : "#1f2937",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                {isEditing && <Edit2 size={16} />}
-                {classData.name}
-                {isEditing && (
+              {isEditing ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Edit2 size={16} style={{ color: "#1d4ed8" }} />
+                  <input
+                    type="text"
+                    value={tempClassName}
+                    onChange={(e) => setTempClassName(e.target.value)}
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: "600",
+                      color: "#1d4ed8",
+                      border: "2px solid #3b82f6",
+                      borderRadius: "4px",
+                      padding: "4px 8px",
+                      outline: "none",
+                      backgroundColor: "#eff6ff",
+                    }}
+                    placeholder="Class name"
+                  />
                   <span
                     style={{
                       fontSize: "12px",
@@ -370,8 +379,19 @@ const ClassDetailModal = ({
                   >
                     Editing
                   </span>
-                )}
-              </h3>
+                </div>
+              ) : (
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    color: "#1f2937",
+                  }}
+                >
+                  {classData.name}
+                </h3>
+              )}
               <div
                 style={{ fontSize: "14px", color: "#64748b", marginTop: "4px" }}
               >

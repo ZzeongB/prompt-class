@@ -615,6 +615,7 @@ export default function InstanceCard({
             highlightedTerm={highlightedTerm}
             onNodeHover={setHighlightedTerm}
             onNodeLeave={() => setHighlightedTerm(null)}
+            overrides={instance.overrides}
           // compact
           />
         </div>

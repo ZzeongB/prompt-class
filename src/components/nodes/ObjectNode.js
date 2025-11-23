@@ -29,6 +29,7 @@ const ObjectNode = ({
   isConnectionTarget = false,
   showConnectionHandles = false,
   isDraggingConnectionFromThis = false,
+  objectOverrides = null,
 }) => {
   const [newAttributeValue, setNewAttributeValue] = useState("");
   const [expanded, setExpanded] = useState(true);
@@ -316,10 +317,10 @@ const ObjectNode = ({
   const hasMultipleAttributes = attributeCount > 5;
 
   const nodeStyle = {
-    border: isClassMode ? "2px dashed #fca5a5" : "1px solid #fca5a5",
+    border: isClassMode ? "2px solid #fca5a5" : "1px solid #fca5a5",
     borderRadius: "6px",
     padding: compact ? "4px" : "6px",
-    backgroundColor: isHovered ? "#fecaca" : "#fed7d7",
+    backgroundColor: isClassMode ? (isHovered ? "#f9fafb" : "#ffffff") : (isHovered ? "#fecaca" : "#fed7d7"),
     width: "100%",
     height: "100%",
     boxSizing: "border-box",
@@ -445,45 +446,52 @@ const ObjectNode = ({
             gap: "2px",
           }}
         >
-          <div
-            style={{
-              border: "2px dashed #93c5fd",
-              backgroundColor: "#dbeafe",
-              color: "#1e40af",
-              borderRadius: "4px",
-              padding: compact ? "1px 3px" : "2px 4px",
-              fontSize: compact ? "9px" : "10px",
-              fontWeight: 500,
-              textAlign: "center",
-              cursor: isEditable ? "pointer" : "default",
-              boxSizing: "border-box",
-              minHeight: compact ? "14px" : "16px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              flex: 1,
-            }}
-            onDoubleClick={() => {
-              if (isEditable && editingMode === null) {
-                startEditing(
-                  `attribute-${index}`,
-                  defaultValue
-                );
-              }
-            }}
-            title={`${defaultValue} (Double-click to edit)`}
-          >
-            <div
-              style={{
-                fontWeight: "500",
-                color: "#1e40af",
-                fontSize: compact ? "9px" : "11px",
-                lineHeight: "1.1",
-              }}
-            >
-              {defaultValue}
-            </div>
-          </div>
+          {(() => {
+            // Check if this attribute is overridden
+            const hasAttrOverride = objectOverrides?.attributes?.[index] !== undefined;
+
+            return (
+              <div
+                style={{
+                  border: hasAttrOverride ? "2px solid #f59e0b" : "2px solid #93c5fd",
+                  backgroundColor: hasAttrOverride ? "#fef3c7" : "#ffffff",
+                  color: hasAttrOverride ? "#92400e" : "#1e40af",
+                  borderRadius: "4px",
+                  padding: compact ? "1px 3px" : "2px 4px",
+                  fontSize: compact ? "9px" : "10px",
+                  fontWeight: 500,
+                  textAlign: "center",
+                  cursor: isEditable ? "pointer" : "default",
+                  boxSizing: "border-box",
+                  minHeight: compact ? "14px" : "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  flex: 1,
+                }}
+                onDoubleClick={() => {
+                  if (isEditable && editingMode === null) {
+                    startEditing(
+                      `attribute-${index}`,
+                      defaultValue
+                    );
+                  }
+                }}
+                title={hasAttrOverride ? `${defaultValue} (Modified)` : `${defaultValue} (Double-click to edit)`}
+              >
+                <div
+                  style={{
+                    fontWeight: "500",
+                    color: hasAttrOverride ? "#92400e" : "#1e40af",
+                    fontSize: compact ? "9px" : "11px",
+                    lineHeight: "1.1",
+                  }}
+                >
+                  {defaultValue}
+                </div>
+              </div>
+            );
+          })()}
           {isEditable && (
             <ToolbarButton
               onClick={(e) => {
@@ -615,11 +623,14 @@ const ObjectNode = ({
         defaultValue = object.name || "?";
       }
 
+      // Check if name is overridden
+      const hasNameOverride = objectOverrides?.name !== undefined;
+
       return (
         <div
           style={{
-            border: "2px dashed #fca5a5",
-            backgroundColor: "#fed7d7",
+            border: hasNameOverride ? "2px solid #f59e0b" : "2px solid #fca5a5",
+            backgroundColor: hasNameOverride ? "#fef3c7" : "#ffffff",
             borderRadius: "4px",
             padding: compact ? "2px 4px" : "3px 6px",
             fontSize: compact ? "11px" : "12px",
@@ -638,12 +649,12 @@ const ObjectNode = ({
               startEditing("name", defaultValue);
             }
           }}
-          title={`${defaultValue}`}
+          title={hasNameOverride ? `${defaultValue} (Modified)` : `${defaultValue}`}
         >
           <div
             style={{
               fontWeight: "500",
-              color: "#991b1b",
+              color: hasNameOverride ? "#92400e" : "#991b1b",
               fontSize: compact ? "10px" : "11px",
               lineHeight: "1.1",
             }}
