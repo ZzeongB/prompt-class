@@ -10,6 +10,7 @@ import { logEvent } from "./api/logEvent";
 import { HelpCircle } from "lucide-react";
 import HelpModal from "./components/modal/HelpModal"; // 추가
 import InstanceBoard from "./Board/InstanceBoard";
+import { convertImageToBase64 } from "./utils/imageUtils";
 
 export default function AppUI({ isBaseline, language, onSystemComplete, onReturnHome, isTutorial=false }) {
   const [imageSrc, setImageSrc] = useState("");
@@ -20,6 +21,17 @@ export default function AppUI({ isBaseline, language, onSystemComplete, onReturn
   const onInstanceSelect = (instanceId) => {
     setSelectedInstanceId(instanceId);
   };
+
+  // useEffect(() => {
+  //   // set Image source to "/assets/base-images/rabbit.png" image
+  //   // load in base64 format
+  //   const loadInitialImage = async () => {
+  //     const imagePath = `/assets/base-images/rabbits.png`;
+  //     const base64Image = await convertImageToBase64(imagePath);
+  //     setImageSrc(base64Image);
+  //   };
+  //   loadInitialImage();
+  // }, []);
 
   useEffect(() => {
     const errorHandler = (e) => {
@@ -193,7 +205,7 @@ export default function AppUI({ isBaseline, language, onSystemComplete, onReturn
                 />
               </div>)}
 
-            {/* <CustomButton
+            <CustomButton
               color="grey"
               size="sm"
               onClick={() => setShowHelp(true)}
@@ -217,10 +229,10 @@ export default function AppUI({ isBaseline, language, onSystemComplete, onReturn
               title="도움말 보기"
             >
               <HelpCircle size={20} />
-            </CustomButton> */}
+            </CustomButton> 
           </div>
 
-          {/* <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} /> */}
+          <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
 
           <div style={{
             position: "fixed",
@@ -249,7 +261,7 @@ export default function AppUI({ isBaseline, language, onSystemComplete, onReturn
                 ? `${isBaseline ? "시스템 1" : "시스템 2"} 완료` 
                 : `Complete ${isBaseline ? "System 1" : "System 2"}`}
             </CustomButton>
-          </div>
+          </div> 
       </ClassProvider>
     </div>
   );

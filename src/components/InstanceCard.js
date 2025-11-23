@@ -34,10 +34,12 @@ export default function InstanceCard({
   const [isExpanded, setIsExpanded] = useState(isSelected);
   const [isEditingText, setIsEditingText] = useState(false);
   const [isEditingGraph, setIsEditingGraph] = useState(false);
+  const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [isCreatingClassLocal, setIsCreatingClassLocal] = useState(false);
   const [tempDescription, setTempDescription] = useState(
     instance.textDescription
   );
+  const [tempLabel, setTempLabel] = useState(instance.instanceLabel);
   const [editedSceneGraph, setEditedSceneGraph] = useState(instance.sceneGraph);
   const [isUpdating, setIsUpdating] = useState(false);
   const [highlightedTerm, setHighlightedTerm] = useState(null);
@@ -203,6 +205,11 @@ export default function InstanceCard({
     setTempDescription(instance.textDescription || "");
   }, [instance.textDescription]);
 
+  // tempLabel 동기화
+  useEffect(() => {
+    setTempLabel(instance.instanceLabel || "");
+  }, [instance.instanceLabel]);
+
   useEffect(() => {
     if (instance.sceneGraph) setEditedSceneGraph(instance.sceneGraph);
   }, [instance]);
@@ -219,7 +226,7 @@ export default function InstanceCard({
     await extractObjectFromInstance(objectId, instanceId);
   };
 
-  const isEditing = isEditingText || isEditingGraph;
+  const isEditing = isEditingText || isEditingGraph || isEditingLabel;
 
   const handleSave = async () => {
     logEvent("instance.save", {
@@ -230,17 +237,21 @@ export default function InstanceCard({
       String(instance.textDescription || "").trim();
     const graphChanged =
       JSON.stringify(editedSceneGraph) !== JSON.stringify(instance.sceneGraph);
+    const labelChanged =
+      String(tempLabel || "").trim() !==
+      String(instance.instanceLabel || "").trim();
 
-    if (!textChanged && !graphChanged) {
+    if (!textChanged && !graphChanged && !labelChanged) {
       setIsEditingText(false);
       setIsEditingGraph(false);
+      setIsEditingLabel(false);
       return;
     }
 
     setIsUpdating(true);
     try {
       let newSceneGraph = editedSceneGraph;
-      let newLabel = instance.instanceLabel;
+      let newLabel = labelChanged ? tempLabel : instance.instanceLabel;
       let newTextDescription = tempDescription;
 
       if (textChanged) {
@@ -250,7 +261,10 @@ export default function InstanceCard({
           previousTextDescription: instance.textDescription,
         });
         newSceneGraph = generated;
-        newLabel = generated.objects?.[0]?.name || newLabel;
+        // Only update label from generated content if label wasn't manually changed
+        if (!labelChanged) {
+          newLabel = generated.objects?.[0]?.name || newLabel;
+        }
       }
 
       if (graphChanged) {
@@ -272,10 +286,12 @@ export default function InstanceCard({
         instance_id: instance.id,
         instance_label: newLabel,
         text_changed: textChanged,
-        graph_changed: graphChanged
+        graph_changed: graphChanged,
+        label_changed: labelChanged
       });
 
       setTempDescription(newTextDescription);
+      setTempLabel(newLabel);
       setEditedSceneGraph(newSceneGraph);
     } catch (err) {
       console.error("Update failed:", err);
@@ -290,22 +306,25 @@ export default function InstanceCard({
       setIsUpdating(false);
       setIsEditingText(false);
       setIsEditingGraph(false);
+      setIsEditingLabel(false);
     }
   };
 
   const handleCancel = () => {
     setIsEditingText(false);
     setIsEditingGraph(false);
+    setIsEditingLabel(false);
     setTempDescription(instance.textDescription);
+    setTempLabel(instance.instanceLabel);
     setEditedSceneGraph(instance.sceneGraph);
   };
 
   const handleDelete = (e) => {
     e.stopPropagation();
-    if (
-      window.confirm(
-        `Are you sure you want to delete "${instance.instanceLabel}"?`
-      )
+    if (true
+      // window.confirm(
+      //   `Are you sure you want to delete "${instance.instanceLabel}"?`
+      // )
     ) {
       logEvent("instance.deleted", {
         instance_id: instance.id,
@@ -341,6 +360,38 @@ export default function InstanceCard({
     setEditedSceneGraph(instance.sceneGraph);
   };
 
+  const handleEditLabel = () => {
+    logEvent("instance.edit.started", {
+      instance_id: instance.id,
+      instance_label: instance.instanceLabel,
+      edit_type: "label"
+    });
+
+    setIsEditingLabel(true);
+    setTempLabel(instance.instanceLabel);
+  };
+
+  // Calculate height based on number of objects in scene graph
+  const getCardHeight = () => {
+    if (!isExpanded) return "auto";
+    
+    const objectCount = editedSceneGraph?.objects?.length || 0;
+
+    console.log("height", objectCount)
+    
+    if (objectCount <= 2) {
+      return "180px"
+    }
+    else if (objectCount === 3) {
+      return "280px";
+    } else if (objectCount === 4) {
+      return "350px";
+    } else {
+      // For 4+ objects, increase height further
+      return "400px";
+    }
+  };
+
   return (
     <div
       onClick={onSelect}
@@ -359,7 +410,7 @@ export default function InstanceCard({
             ? "0 4px 12px rgba(59, 130, 246, 0.15)"
             : "0 1px 2px rgba(0,0,0,0.05)",
         transition: "all 0.2s ease",
-        minHeight: isExpanded ? "200px" : "auto",
+        height: getCardHeight(),
         cursor: "pointer",
       }}
     >
@@ -387,7 +438,61 @@ export default function InstanceCard({
             }}
           >
             {isEditing && <Edit2 size={14} />}
-            {instance.instanceLabel}
+            {isEditingLabel ? (
+              <input
+                type="text"
+                value={tempLabel}
+                onChange={(e) => setTempLabel(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onBlur={() => {
+                  if (tempLabel.trim() === instance.instanceLabel.trim()) {
+                    setIsEditingLabel(false);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSave();
+                  } else if (e.key === 'Escape') {
+                    handleCancel();
+                  }
+                }}
+                autoFocus
+                style={{
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  background: "transparent",
+                  border: "1px solid #3b82f6",
+                  borderRadius: "4px",
+                  padding: "2px 4px",
+                  minWidth: "100px",
+                  maxWidth: "200px",
+                }}
+              />
+            ) : (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditLabel();
+                }}
+                style={{
+                  cursor: "pointer",
+                  padding: "2px 4px",
+                  borderRadius: "4px",
+                  transition: "background-color 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isEditing) {
+                    e.target.style.backgroundColor = "#f1f5f9";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "transparent";
+                }}
+                title="Click to edit label"
+              >
+                {instance.instanceLabel}
+              </span>
+            )}
             {instance.isFromClass && parentClass && (
               <span
                 style={{
@@ -445,7 +550,7 @@ export default function InstanceCard({
                 color: "#64748b",
                 marginTop: "2px",
                 lineHeight: "1.4",
-                marginRight: "120px",
+                marginRight: "140px",
               }}
             >
               <HighlightedText
@@ -664,7 +769,7 @@ export default function InstanceCard({
               animation: "pulse 2s infinite",
             }}
           />
-          {isEditingText ? "Editing description" : "Editing scene graph"}
+          {isEditingText ? "Editing description" : isEditingGraph ? "Editing scene graph" : "Editing label"}
         </div>
       )}
 

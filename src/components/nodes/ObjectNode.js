@@ -186,10 +186,10 @@ const ObjectNode = ({
       parent_instance_id: parentInstanceId,
     });
 
-    if (
-      window.confirm(
-        `Extract "${object.name}" as a separate instance?\n\nThis will:\n• Create a new independent instance with this object\n• Connect it to the original instance via existing relationships`
-      )
+    if (true
+      // window.confirm(
+      //   `Extract "${object.name}" as a separate instance?\n\nThis will:\n• Create a new independent instance with this object\n• Connect it to the original instance via existing relationships`
+      // )
     ) {
       logEvent("object_node.extract.confirmed", {
         object_id: object.id,
@@ -336,7 +336,7 @@ const ObjectNode = ({
     transform: isDragging ? "scale(1.05)" : "scale(1)",
     transition: isDragging ? "none" : "transform 0.2s ease",
     opacity: isDragging ? 0.8 : 1,
-    zIndex: isDragging ? 1000 : 1,
+    zIndex: isDragging ? 1000 : 0,
     boxShadow: isDragging
       ? "0 8px 25px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(59, 130, 246, 0.3)"
       : editingMode !== null

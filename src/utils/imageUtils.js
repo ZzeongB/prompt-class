@@ -1,8 +1,9 @@
-// 이미지를 base64로 변환하는 유틸리티
 export const convertImageToBase64 = (imagePath) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    
+    // 로컬에서는 crossOrigin 필요 없음
+    // img.crossOrigin = 'anonymous';  // 이 줄을 제거하세요
     
     img.onload = () => {
       const canvas = document.createElement('canvas');
@@ -21,13 +22,18 @@ export const convertImageToBase64 = (imagePath) => {
       }
     };
     
-    img.onerror = () => {
+    img.onerror = (e) => {
+      console.error("Error loading image:", imagePath, e);
       reject(new Error(`Failed to load image: ${imagePath}`));
     };
+    
+    // 이미지 경로를 콘솔로 출력해 확인
+    console.log("Loading image from:", imagePath);
     
     img.src = imagePath;
   });
 };
+
 
 // 미리 정의된 베이스 이미지들을 로드하는 함수
 export const loadBaseImages = async () => {
