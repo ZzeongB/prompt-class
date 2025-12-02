@@ -30,6 +30,9 @@ const ObjectNode = ({
   showConnectionHandles = false,
   isDraggingConnectionFromThis = false,
   objectOverrides = null,
+  isPending = false,
+  onEditComplete = () => {},
+  onEditCancel = () => {},
 }) => {
   const [newAttributeValue, setNewAttributeValue] = useState("");
   const [expanded, setExpanded] = useState(true);
@@ -46,6 +49,13 @@ const ObjectNode = ({
   const [isConnectionDragging, setIsConnectionDragging] = useState(false);
   const connectionHandleRef = useRef(null);
   const dropTargetRef = useRef(null);
+
+  // isEditing이 true가 되면 자동으로 name 편집 시작
+  useEffect(() => {
+    if (isEditing && editingMode === null && isPending) {
+      startEditing("name", ""); // 빈 문자열로 시작
+    }
+  }, [isEditing, isPending]);
 
   // 편집 관련 함수들
   const startEditing = (mode, initialValue = "") => {
@@ -66,7 +76,37 @@ const ObjectNode = ({
       object_name: object.name,
       edit_mode: editingMode,
       is_class_mode: isClassMode,
+      is_pending: isPending,
+      has_value: editingValue.trim() !== "",
     });
+
+    // 임시 object이고 이름이 입력되지 않은 경우에만 삭제
+    if (isPending && editingMode === "name" && !editingValue.trim()) {
+      onEditCancel();
+      return;
+    }
+
+    // 임시 object이지만 이름이 입력된 경우 확정
+    if (isPending && editingMode === "name" && editingValue.trim()) {
+      // 입력된 값으로 저장하고 확정
+      if (isClassMode) {
+        const updatedPlaceHolders = {
+          ...placeHolders,
+          [object.id]: {
+            name: editingValue,
+            attr: placeHolders[object.id]?.attr || []
+          }
+        };
+        onEdit?.(object.id, editingValue, object.attributes, updatedPlaceHolders);
+      } else {
+        onEdit?.(object.id, editingValue);
+      }
+      onEditComplete();
+      setEditingMode(null);
+      setEditingValue("");
+      return;
+    }
+
     setEditingMode(null);
     setEditingValue("");
     setNewAttributeValue("");
@@ -85,6 +125,7 @@ const ObjectNode = ({
       new_value: editingValue,
       is_class_mode: isClassMode,
       parent_instance_id: parentInstanceId,
+      is_pending: isPending,
     });
 
     if (editingMode === "name") {
@@ -100,6 +141,11 @@ const ObjectNode = ({
         onEdit?.(object.id, editingValue, object.attributes, updatedPlaceHolders);
       } else {
         onEdit?.(object.id, editingValue);
+      }
+
+      // 임시 object 확정
+      if (isPending) {
+        onEditComplete();
       }
     } else if (editingMode === "adding") {
       if (isClassMode) {
@@ -317,7 +363,11 @@ const ObjectNode = ({
   const hasMultipleAttributes = attributeCount > 5;
 
   const nodeStyle = {
-    border: isClassMode ? "2px solid #fca5a5" : "1px solid #fca5a5",
+    border: isPending
+      ? "2px dashed #fca5a5" // 임시 object는 점선 border
+      : isClassMode
+        ? "2px solid #fca5a5"
+        : "1px solid #fca5a5",
     borderRadius: "6px",
     padding: compact ? "4px" : "6px",
     backgroundColor: isClassMode ? (isHovered ? "#f9fafb" : "#ffffff") : (isHovered ? "#fecaca" : "#fed7d7"),
@@ -334,7 +384,7 @@ const ObjectNode = ({
     userSelect: isDragging ? "none" : "auto",
     transform: isDragging ? "scale(1.05)" : "scale(1)",
     transition: isDragging ? "none" : "transform 0.2s ease",
-    opacity: isDragging ? 0.8 : 1,
+    opacity: isPending ? 0.7 : (isDragging ? 0.8 : 1), // 임시 object는 약간 투명
     zIndex: isDragging ? 1000 : 0,
     boxShadow: isDragging
       ? "0 8px 25px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(59, 130, 246, 0.3)"
@@ -469,7 +519,8 @@ const ObjectNode = ({
                   justifyContent: "center",
                   flex: 1,
                 }}
-                onDoubleClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (isEditable && editingMode === null) {
                     startEditing(
                       `attribute-${index}`,
@@ -477,7 +528,7 @@ const ObjectNode = ({
                     );
                   }
                 }}
-                title={hasAttrOverride ? `${defaultValue} (Modified)` : `${defaultValue} (Double-click to edit)`}
+                title={hasAttrOverride ? `${defaultValue} (Modified)` : `${defaultValue} (Click to edit)`}
               >
                 <div
                   style={{
@@ -543,12 +594,13 @@ const ObjectNode = ({
             whiteSpace: "normal",
             wordWrap: "break-word",
           }}
-          onDoubleClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             if (isEditable && editingMode === null) {
               startEditing(`attribute-${index}`, attr);
             }
           }}
-          title={`${attr} (Double-click to edit)`}
+          title={`${attr} (Click to edit)`}
         >
           {attr}
         </div>
@@ -644,7 +696,8 @@ const ObjectNode = ({
             flexDirection: "column",
             justifyContent: "center",
           }}
-          onDoubleClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             if (isEditable && editingMode === null) {
               startEditing("name", defaultValue);
             }
@@ -667,7 +720,8 @@ const ObjectNode = ({
 
     return (
       <div
-        onDoubleClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           if (isEditable && editingMode === null) {
             startEditing("name", object.name);
           }
@@ -723,7 +777,7 @@ const ObjectNode = ({
           flexDirection: "column",
         }}>
           {/* Attributes Section */}
-          {(expanded || editingMode !== null) && (attributeCount > 0 || editingMode === "adding") && (
+          {(expanded || editingMode !== null) && (attributeCount > 0 || editingMode === "adding" || (isEditable && editingMode === null)) && (
             <div
               style={{
                 flex: 1,
@@ -733,8 +787,8 @@ const ObjectNode = ({
                 gap: compact ? "1px" : "2px",
               }}
             >
-              {/* Existing Attributes */}
-              {attributeCount > 0 && (
+              {/* Existing Attributes and Add Button */}
+              {(attributeCount > 0 || (isEditable && editingMode === null)) && (
                 <div
                   style={{
                     display: "grid",
@@ -746,6 +800,48 @@ const ObjectNode = ({
                   {object.attributes?.map((attr, index) =>
                     renderAttribute(attr, index)
                   ).filter(Boolean)}
+
+                  {/* Add Attribute Button styled as attribute node */}
+                  {isEditable && editingMode === null && (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditing("adding");
+                      }}
+                      style={{
+                        border: isClassMode ? "2px dashed #93c5fd" : "1px dashed #93c5fd",
+                        backgroundColor: isClassMode ? "#f0f9ff" : "#eff6ff",
+                        color: "#3b82f6",
+                        borderRadius: "4px",
+                        padding: compact ? "1px 3px" : "2px 4px",
+                        fontSize: compact ? "10px" : "11px",
+                        fontWeight: 500,
+                        boxSizing: "border-box",
+                        cursor: "pointer",
+                        textAlign: "center",
+                        minHeight: compact ? "14px" : "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flex: 1,
+                        transition: "all 0.2s ease",
+                        opacity: 0.6,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.opacity = "1";
+                        e.currentTarget.style.backgroundColor = isClassMode ? "#dbeafe" : "#dbeafe";
+                        e.currentTarget.style.borderStyle = "solid";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.opacity = "0.6";
+                        e.currentTarget.style.backgroundColor = isClassMode ? "#f0f9ff" : "#eff6ff";
+                        e.currentTarget.style.borderStyle = "dashed";
+                      }}
+                      title="Add new attribute"
+                    >
+                      <Plus size={compact ? 8 : 10} strokeWidth={2} />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -841,16 +937,6 @@ const ObjectNode = ({
               zIndex: 10,
             }}
           >
-            <ToolbarButton
-              onClick={(e) => {
-                e.stopPropagation();
-                startEditing("adding");
-              }}
-              title="Add Attribute"
-              icon={<Plus size={compact ? 8 : 10} />}
-              tooltipPosition="top"
-              size="compact"
-            />
             <ToolbarButton
               onClick={(e) => {
                 e.stopPropagation();

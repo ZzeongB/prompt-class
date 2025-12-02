@@ -15,6 +15,8 @@ const RelationshipNode = ({
   setIsHovered,
   isEditable = true,
   compact = false,
+  isPending = false,
+  onEditComplete = () => {},
 }) => {
   const sourceObject = objects.find((obj) => obj.id === relationship.source);
   const targetObject = objects.find((obj) => obj.id === relationship.target);
@@ -28,8 +30,14 @@ const RelationshipNode = ({
       new_relation: newValue,
       source_object_name: sourceObject?.name,
       target_object_name: targetObject?.name,
+      is_pending: isPending,
     });
     onEdit?.(relationship.source, relationship.target, newValue);
+
+    // 편집 완료 시 pending 상태 해제
+    if (isPending) {
+      onEditComplete();
+    }
   };
 
   const handleDelete = () => {
@@ -83,6 +91,7 @@ const RelationshipNode = ({
           <EditableLabel
             value={relationship.relation}
             onSave={handleEdit}
+            autoEdit={isPending}
             textStyle={{
               border: "none",
               backgroundColor: "transparent",

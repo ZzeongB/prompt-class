@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const EditableLabel = ({
   value,
@@ -9,9 +9,18 @@ const EditableLabel = ({
   inputStyle = {},
   autoFocus = false,
   isEditable = true,
+  autoEdit = false,
 }) => {
   const [editing, setEditing] = useState(false);
   const [temp, setTemp] = useState(value);
+
+  // autoEdit이 true면 자동으로 편집 모드 시작
+  useEffect(() => {
+    if (autoEdit && !editing) {
+      setEditing(true);
+      setTemp(""); // 빈 문자열로 시작
+    }
+  }, [autoEdit]);
 
   const handleSave = () => {
     if (temp.trim() !== "") {
@@ -34,7 +43,7 @@ const EditableLabel = ({
         if (e.key === "Enter") handleSave();
         if (e.key === "Escape") handleCancel();
       }}
-      autoFocus={autoFocus}
+      autoFocus={true}
       style={{
         fontSize: "11px",
         padding: "1px 3px",
@@ -52,11 +61,12 @@ const EditableLabel = ({
     />
   ) : (
     <div
-      onDoubleClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
         if (isEditable) setEditing(true);
       }}
       style={{
-        cursor: "text",
+        cursor: "pointer",
         textAlign: "center",
         whiteSpace: "nowrap",
         overflow: "hidden",

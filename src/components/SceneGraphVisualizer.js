@@ -29,6 +29,8 @@ export default function SceneGraphVisualizer({
   const [draggingObject, setDraggingObject] = useState(null);
   const [connectingMode, setConnectingMode] = useState(false);
   const [selectedSourceObject, setSelectedSourceObject] = useState(null);
+  const [pendingObjectId, setPendingObjectId] = useState(null); // 임시 object ID
+  const [pendingRelationshipId, setPendingRelationshipId] = useState(null); // 임시 relationship ID (source-target)
   
   // 새로운 드래그 연결 시스템 상태
   const [isDraggingConnection, setIsDraggingConnection] = useState(false);
@@ -99,10 +101,38 @@ export default function SceneGraphVisualizer({
       ...safeSceneGraph,
       objects: [
         ...safeSceneGraph.objects,
-        { id: newId, name: "new object", attributes: [] },
+        { id: newId, name: "", attributes: [] }, // 빈 이름으로 시작
       ],
     };
     onSceneGraphChange(updatedGraph);
+    // 임시 object로 표시하고 편집 모드로 전환
+    setPendingObjectId(newId);
+    setEditingObject(newId);
+  };
+
+  // Object 편집 완료 - 임시 object 확정
+  const handleObjectEditComplete = (objectId) => {
+    if (pendingObjectId === objectId) {
+      setPendingObjectId(null);
+    }
+    setEditingObject(null);
+  };
+
+  // Object 편집 취소 - 임시 object는 삭제
+  const handleObjectEditCancel = (objectId) => {
+    if (pendingObjectId === objectId) {
+      // 임시 object 삭제
+      const updatedGraph = {
+        ...safeSceneGraph,
+        objects: safeSceneGraph.objects.filter((obj) => obj.id !== objectId),
+        relationships: safeSceneGraph.relationships.filter(
+          (rel) => rel.source !== objectId && rel.target !== objectId
+        ),
+      };
+      onSceneGraphChange(updatedGraph);
+      setPendingObjectId(null);
+    }
+    setEditingObject(null);
   };
 
   // Relationship 관련 기능들
@@ -204,7 +234,7 @@ export default function SceneGraphVisualizer({
       const newRelationship = {
         source: sourceObjectId,
         target: targetObjectId,
-        relation: "connected to", // 기본 관계명
+        relation: "", // 빈 문자열로 시작 (사용자가 직접 입력)
       };
 
       const updatedGraph = {
@@ -213,6 +243,9 @@ export default function SceneGraphVisualizer({
       };
 
       onSceneGraphChange(updatedGraph);
+
+      // 새로 생성된 relationship를 pending으로 표시 (자동 편집 모드)
+      setPendingRelationshipId(`${sourceObjectId}-${targetObjectId}`);
     }
 
     // 상태 리셋 (성공/실패 관계없이)
@@ -220,6 +253,14 @@ export default function SceneGraphVisualizer({
     setDragConnectionSource(null);
     setDragLinePosition({ x: 0, y: 0 });
     setDragStartPosition({ x: 0, y: 0 });
+  };
+
+  // Relationship 편집 완료 - pending 상태 해제
+  const handleRelationshipEditComplete = (sourceId, targetId) => {
+    const relId = `${sourceId}-${targetId}`;
+    if (pendingRelationshipId === relId) {
+      setPendingRelationshipId(null);
+    }
   };
 
   // 드래그 이벤트 핸들러
@@ -531,13 +572,36 @@ export default function SceneGraphVisualizer({
       )} */}
       {/* 실제 그래프 컨테이너 */}
       <div
+        onClick={(e) => {
+          // 빈 공간을 클릭하면 object 추가
+          console.log("Container clicked", {
+            target: e.target.tagName,
+            currentTarget: e.currentTarget.tagName,
+            isEditable,
+            isSame: e.target === e.currentTarget,
+            hasPending: !!pendingObjectId
+          });
+
+          // SVG나 컨테이너 자체를 클릭한 경우
+          if (isEditable && (e.target === e.currentTarget || e.target.tagName === 'svg')) {
+            // 이미 임시 object가 있으면 삭제만 하고 새로 만들지 않음
+            if (pendingObjectId) {
+              console.log("Pending object exists, canceling it");
+              handleObjectEditCancel(pendingObjectId);
+              return;
+            }
+            handleAddObject();
+          }
+        }}
         style={{
           position: "relative",
           width: boundingSize.width,
           height: boundingSize.height,
           minWidth: boundingSize.width,
           minHeight: boundingSize.height,
+          cursor: isEditable ? "crosshair" : "default",
         }}
+        title={isEditable ? "Click to add object" : ""}
       >
         {/* 선 그리기 */}
         <svg
@@ -672,6 +736,9 @@ export default function SceneGraphVisualizer({
                   showConnectionHandles={isEditable}
                   objectOverrides={overrides?.objects?.[obj.id]}
                   isDraggingConnectionFromThis={isDraggingConnection && dragConnectionSource?.objectId === obj.id}
+                  isPending={pendingObjectId === obj.id}
+                  onEditComplete={() => handleObjectEditComplete(obj.id)}
+                  onEditCancel={() => handleObjectEditCancel(obj.id)}
                 />
               </div>
             </div>
@@ -745,6 +812,8 @@ export default function SceneGraphVisualizer({
                   )
                 }
                 compact={compact}
+                isPending={pendingRelationshipId === `${rel.source}-${rel.target}`}
+                onEditComplete={() => handleRelationshipEditComplete(rel.source, rel.target)}
               />
             </div>
           );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useClassContext } from "../context/ClassContext";
 import SceneGraphVisualizer from "./SceneGraphVisualizer";
 import {
@@ -31,6 +31,7 @@ export default function InstanceCard({
     useClassContext();
   const { handleCreateClass } = useInstanceActions();
 
+  const cardRef = useRef(null);
   const [isExpanded, setIsExpanded] = useState(isSelected);
   const [isEditingText, setIsEditingText] = useState(false);
   const [isEditingGraph, setIsEditingGraph] = useState(false);
@@ -218,6 +219,26 @@ export default function InstanceCard({
     if (isSelected) setIsExpanded(true);
   }, [isSelected]);
 
+  // 편집 모드일 때 외부 클릭 감지하여 자동 저장
+  useEffect(() => {
+    const isEditing = isEditingText || isEditingGraph || isEditingLabel;
+
+    const handleClickOutside = (event) => {
+      if (isEditing && cardRef.current && !cardRef.current.contains(event.target)) {
+        // 카드 외부 클릭 시 자동 저장
+        handleSave();
+      }
+    };
+
+    if (isEditing) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isEditingText, isEditingGraph, isEditingLabel, tempDescription, tempLabel, editedSceneGraph]);
+
   const parentClass = instance.isFromClass
     ? classes.find((cls) => cls.id === instance.classId)
     : null;
@@ -394,6 +415,7 @@ export default function InstanceCard({
 
   return (
     <div
+      ref={cardRef}
       onClick={onSelect}
       style={{
         marginBottom: "8px",
@@ -445,7 +467,10 @@ export default function InstanceCard({
                 onChange={(e) => setTempLabel(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
                 onBlur={() => {
-                  if (tempLabel.trim() === instance.instanceLabel.trim()) {
+                  // 바깥 클릭 시 자동 저장 (변경된 경우만)
+                  if (tempLabel.trim() !== instance.instanceLabel.trim()) {
+                    handleSave();
+                  } else {
                     setIsEditingLabel(false);
                   }
                 }}
@@ -530,6 +555,15 @@ export default function InstanceCard({
               value={tempDescription}
               onChange={(e) => setTempDescription(e.target.value)}
               onClick={(e) => e.stopPropagation()}
+              onBlur={() => {
+                // 바깥 클릭 시 자동 저장
+                handleSave();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  handleCancel();
+                }
+              }}
               autoFocus
               style={{
                 width: "90%",
@@ -545,13 +579,28 @@ export default function InstanceCard({
             />
           ) : (
             <div
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit();
+              }}
               style={{
                 fontSize: "12px",
                 color: "#64748b",
                 marginTop: "2px",
                 lineHeight: "1.4",
                 marginRight: "140px",
+                cursor: "pointer",
+                padding: "4px",
+                borderRadius: "4px",
+                transition: "background-color 0.2s ease",
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#f1f5f9";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
+              title="Click to edit description"
             >
               <HighlightedText
                 text={instance.textDescription}
@@ -599,12 +648,31 @@ export default function InstanceCard({
       {/* Expanded Section */}
       {isExpanded && (
         <div
+          onClick={(e) => {
+            // 편집 모드가 아닐 때만 편집 모드로 전환
+            if (!isEditingGraph) {
+              e.stopPropagation();
+              handleEditGraph();
+            }
+            // 편집 모드일 때는 이벤트를 SceneGraphVisualizer로 전파
+          }}
           style={{
             width: "100%",
             height: "400px", // 고정 높이 설정
             maxHeight: "80vh", // 뷰포트 높이의 80%를 넘지 않도록
             overflow: "hidden", // 상위에서도 넘침 방지
+            cursor: isEditingGraph ? "default" : "pointer",
+            transition: "background-color 0.2s ease",
           }}
+          onMouseEnter={(e) => {
+            if (!isEditingGraph) {
+              e.currentTarget.style.backgroundColor = "#f8fafc";
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+          title={isEditingGraph ? "" : "Click to edit scene graph"}
         >
           <SceneGraphVisualizer
             sceneGraph={editedSceneGraph}
