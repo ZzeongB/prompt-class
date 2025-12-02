@@ -58,9 +58,9 @@ export const generateTextToGraph = async ({
   const hasPrevious = previousSceneGraph && previousTextDescription;
 
   logEvent("api.generate_text_to_graph.started", {
-    has_previous: hasPrevious,
-    text_length: newTextDescription.length,
-    previous_objects_count: previousSceneGraph?.objects?.length || 0
+    new_text_description: newTextDescription,
+    previous_scene_graph: previousSceneGraph,
+    previous_text_description: previousTextDescription,
   });
 
   const basePrompt = `
@@ -157,9 +157,10 @@ Respond with JSON only:`;
     const result = parseJSONResponse(content, fallback);
     
     logEvent("api.generate_text_to_graph.succeeded", {
-      objects_count: result.objects?.length || 0,
-      relationships_count: result.relationships?.length || 0,
-      root_object: result.root
+      new_text_description: newTextDescription,
+      previous_scene_graph: previousSceneGraph,
+      previous_text_description: previousTextDescription,
+      result: result
     });
 
     return result;
@@ -187,9 +188,9 @@ export const generateSceneGraphToText = async ({
   const hasPrevious = previousSceneGraph && previousTextDescription;
 
   logEvent("api.generate_scene_graph_to_text.started", {
-    has_previous: hasPrevious,
-    objects_count: newSceneGraph.objects?.length || 0,
-    relationships_count: newSceneGraph.relationships?.length || 0
+    new_scene_graph: newSceneGraph,
+    previous_scene_graph: previousSceneGraph,
+    previous_text_description: previousTextDescription,
   });
 
   const systemPrompt = `
@@ -231,8 +232,10 @@ Generate a natural description:`;
     const result = content.trim();
     
     logEvent("api.generate_scene_graph_to_text.succeeded", {
-      text_length: result.length,
-      generated_text: result.substring(0, 100) // Log first 100 chars for debugging
+      new_scene_graph: newSceneGraph,
+      previous_scene_graph: previousSceneGraph,
+      previous_text_description: previousTextDescription,
+      generated_text_description: result
     });
     
     return result;
@@ -252,9 +255,7 @@ export const generateInstanceLabelFromDescription = async (textDescription) => {
   if (!textDescription || typeof textDescription !== "string" || textDescription.trim() === "") {
     const fallbackLabel = "Object";
     logEvent("api.generate_instance_label_from_description.invalid_input", {
-      input_type: typeof textDescription,
-      input_value: textDescription,
-      fallback_label: fallbackLabel
+      text_description: textDescription,
     });
     return fallbackLabel;
   }
@@ -287,7 +288,7 @@ Main object:`;
     
     logEvent("api.generate_instance_label_from_description.succeeded", {
       generated_label: result,
-      original_text: textDescription.substring(0, 50) // Log first 50 chars for context
+      original_text: textDescription
     });
     
     return result;
@@ -301,7 +302,6 @@ Main object:`;
     logEvent("api.generate_instance_label_from_description.fallback", {
       error_message: error.message,
       fallback_label: fallbackLabel,
-      original_text: textDescription.substring(0, 50)
     });
     
     return fallbackLabel;

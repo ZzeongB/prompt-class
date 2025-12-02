@@ -59,27 +59,11 @@ const ObjectNode = ({
 
   // 편집 관련 함수들
   const startEditing = (mode, initialValue = "") => {
-    logEvent("object_node.edit.started", {
-      object_id: object.id,
-      object_name: object.name,
-      edit_mode: mode,
-      is_class_mode: isClassMode,
-      parent_instance_id: parentInstanceId,
-    });
     setEditingMode(mode);
     setEditingValue(initialValue);
   };
 
   const cancelEditing = () => {
-    logEvent("object_node.edit.cancelled", {
-      object_id: object.id,
-      object_name: object.name,
-      edit_mode: editingMode,
-      is_class_mode: isClassMode,
-      is_pending: isPending,
-      has_value: editingValue.trim() !== "",
-    });
-
     // 임시 object이고 이름이 입력되지 않은 경우에만 삭제
     if (isPending && editingMode === "name" && !editingValue.trim()) {
       onEditCancel();
@@ -117,16 +101,6 @@ const ObjectNode = ({
       cancelEditing();
       return;
     }
-
-    logEvent("object_node.edit.saved", {
-      object_id: object.id,
-      object_name: object.name,
-      edit_mode: editingMode,
-      new_value: editingValue,
-      is_class_mode: isClassMode,
-      parent_instance_id: parentInstanceId,
-      is_pending: isPending,
-    });
 
     if (editingMode === "name") {
       if (isClassMode) {
@@ -194,15 +168,6 @@ const ObjectNode = ({
   };
 
   const handleDeleteAttribute = (index) => {
-    logEvent("object_node.attribute.deleted", {
-      object_id: object.id,
-      object_name: object.name,
-      attribute_index: index,
-      attribute_value: object.attributes[index],
-      is_class_mode: isClassMode,
-      parent_instance_id: parentInstanceId,
-    });
-
     // 배열에서 제거하는 대신 "DELETE" 마커로 표시
     const updated = [...object.attributes];
     updated[index] = "DELETE";
@@ -225,29 +190,12 @@ const ObjectNode = ({
   };
 
   const handleExtract = () => {
-    logEvent("object_node.extract.initiated", {
-      object_id: object.id,
-      object_name: object.name,
-      parent_instance_id: parentInstanceId,
-    });
-
     if (true
       // window.confirm(
       //   `Extract "${object.name}" as a separate instance?\n\nThis will:\n• Create a new independent instance with this object\n• Connect it to the original instance via existing relationships`
       // )
     ) {
-      logEvent("object_node.extract.confirmed", {
-        object_id: object.id,
-        object_name: object.name,
-        parent_instance_id: parentInstanceId,
-      });
       onExtract?.(object.id, parentInstanceId);
-    } else {
-      logEvent("object_node.extract.cancelled", {
-        object_id: object.id,
-        object_name: object.name,
-        parent_instance_id: parentInstanceId,
-      });
     }
   };
 
@@ -267,13 +215,6 @@ const ObjectNode = ({
     e.stopPropagation();
     setIsConnectionDragging(true);
     
-    logEvent("object_node.connection_drag.started", {
-      object_id: object.id,
-      object_name: object.name,
-      parent_instance_id: parentInstanceId,
-      is_class_mode: isClassMode,
-    });
-
     // 드래그 핸들의 화면상 위치 계산
     const handleRect = connectionHandleRef.current?.getBoundingClientRect();
     const startPosition = handleRect ? {
@@ -309,24 +250,10 @@ const ObjectNode = ({
       targetParentId = targetObjectNode.dataset.parentInstanceId;
       
       if (targetObjectId && targetObjectId !== object.id) {
-        logEvent("object_node.connection_drag.completed", {
-          source_object_id: object.id,
-          target_object_id: targetObjectId,
-          source_parent_id: parentInstanceId,
-          target_parent_id: targetParentId,
-        });
       } else {
-        logEvent("object_node.connection_drag.cancelled", {
-          reason: "same_object",
-          object_id: object.id,
-        });
         targetObjectId = null; // 같은 객체인 경우 취소
       }
     } else {
-      logEvent("object_node.connection_drag.cancelled", {
-        reason: "no_target",
-        object_id: object.id,
-      });
     }
 
     // 성공/실패 관계없이 항상 호출 (부모에서 상태 리셋)
@@ -755,12 +682,6 @@ const ObjectNode = ({
         style={nodeStyle}
         onMouseEnter={() => {
           setIsHovered(true);
-          logEvent("object_node.hovered", {
-            object_id: object.id,
-            object_name: object.name,
-            parent_instance_id: parentInstanceId,
-            is_class_mode: isClassMode,
-          });
         }}
         onMouseLeave={() => setIsHovered(false)}
         data-connection-target={isConnectionTarget ? "true" : undefined}
@@ -893,13 +814,6 @@ const ObjectNode = ({
               onClick={(e) => {
                 e.stopPropagation();
                 if (editingMode === null) {
-                  logEvent("object_node.expand_collapse", {
-                    object_id: object.id,
-                    object_name: object.name,
-                    action: expanded ? "collapse" : "expand",
-                    parent_instance_id: parentInstanceId,
-                    is_class_mode: isClassMode,
-                  });
                   setExpanded(!expanded);
                 }
               }}

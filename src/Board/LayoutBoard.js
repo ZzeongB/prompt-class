@@ -634,7 +634,8 @@ function LayoutBoard({
 
     setTimeout(async () => {
       try {
-        const sentences = nodes
+        // Collect all node data with IDs for better tracking
+        const nodeDataWithIds = nodes
           .filter((n) => n.type !== "resizable")
           .map((n) => {
             const instance = instances.find(
@@ -669,20 +670,61 @@ function LayoutBoard({
               )}`;
             }
 
-            return description;
-          });
-
-        const boxes = nodes
-          .filter((n) => n.type === "resizable")
-          .map((n) => {
-            return getNormalizedBox(
-              n,
+            // Find corresponding resizable node for box dimensions
+            const resizableNode = nodes.find(n2 => n2.id === `${n.id}-resizable`);
+            const normalizedBox = resizableNode ? getNormalizedBox(
+              resizableNode,
               flowToScreenPosition,
               LEFT_OFFSET,
               TOP_OFFSET,
               true
-            );
+            ) : null;
+
+            return {
+              nodeId: n.id,
+              instanceId: instance?.id,
+              instanceLabel: instance?.instanceLabel,
+              textDescription: description,
+              sceneGraph: instance?.sceneGraph || { objects: [], relationships: [] },
+              resizableBox: normalizedBox,
+              nodePosition: n.position
+            };
           });
+
+        // Extract data for backend (maintaining original format)
+        const sentences = nodeDataWithIds.map(d => d.textDescription);
+        const boxes = nodeDataWithIds.map(d => d.resizableBox).filter(b => b !== null);
+
+        // Collect edge information with full details
+        const edgeData = edges.map((edge) => {
+          const sourceNode = nodes.find(n => n.id === edge.source);
+          const targetNode = nodes.find(n => n.id === edge.target);
+          const sourceInstance = instances.find(inst => inst.id === sourceNode?.data?.instanceId);
+          const targetInstance = instances.find(inst => inst.id === targetNode?.data?.instanceId);
+
+          return {
+            edgeId: edge.id,
+            sourceNodeId: edge.source,
+            targetNodeId: edge.target,
+            sourceInstanceId: sourceInstance?.id,
+            targetInstanceId: targetInstance?.id,
+            sourceLabel: sourceInstance?.instanceLabel || sourceNode?.data?.label,
+            targetLabel: targetInstance?.instanceLabel || targetNode?.data?.label,
+            relation: edge.data?.relation || edge.label || "related to",
+            isExtractedRelationship: edge.data?.isExtractedRelationship || false
+          };
+        });
+
+        // Log all the data before generation
+        logEvent("layout_board.generate_clicked", {
+          board_type: "advanced",
+          timestamp: new Date().toISOString(),
+          nodeData: nodeDataWithIds, // All data linked by IDs
+          edges: edgeData, // Detailed edge information
+          globalCaption: globalCaption,
+          nodeCount: nodeDataWithIds.length,
+          edgeCount: edges.length
+        });
 
         const userId = sessionStorage.getItem("user_id") || "P1";
         const response = await generateImageFromInstanceData(
@@ -887,6 +929,12 @@ function LayoutBoard({
       // UUID를 사용한 고유한 엣지 ID 생성 (같은 노드들 사이에도 여러 엣지 가능)
       const edgeId = `edge-${uuidv4()}`;
 
+      // Get source and target instance information
+      const sourceNode = nodes.find(n => n.id === params.source);
+      const targetNode = nodes.find(n => n.id === params.target);
+      const sourceInstance = instances.find(inst => inst.id === sourceNode?.data?.instanceId);
+      const targetInstance = instances.find(inst => inst.id === targetNode?.data?.instanceId);
+
       // 임시 엣지 생성 (관계명이 입력될 때까지)
       const tempEdge = {
         ...params,
@@ -904,6 +952,19 @@ function LayoutBoard({
           color: "#475569",
         },
       };
+
+      // Log edge creation
+      logEvent("layout_board.edge_created", {
+        edgeId,
+        sourceNodeId: params.source,
+        targetNodeId: params.target,
+        sourceInstanceId: sourceInstance?.id,
+        targetInstanceId: targetInstance?.id,
+        sourceLabel: sourceInstance?.instanceLabel || sourceNode?.data?.label,
+        targetLabel: targetInstance?.instanceLabel || targetNode?.data?.label,
+        isTemporary: true,
+        timestamp: new Date().toISOString()
+      });
 
       // 엣지를 먼저 추가 (addEdge 대신 직접 추가하여 중복 허용)
       setEdges((eds) => {
@@ -924,12 +985,30 @@ function LayoutBoard({
         edgeParams: params,
       });
     },
-    [setEdges]
+    [setEdges, nodes, instances]
   );
 
   // 관계명 입력 완료 핸들러
   const handleRelationshipSubmit = useCallback((relationshipText) => {
     if (!relationshipText || !relationshipText.trim() || !relationshipInput) {
+      // Get instance information for logging
+      const sourceNode = nodes.find(n => n.id === relationshipInput?.sourceId);
+      const targetNode = nodes.find(n => n.id === relationshipInput?.targetId);
+      const sourceInstance = instances.find(inst => inst.id === sourceNode?.data?.instanceId);
+      const targetInstance = instances.find(inst => inst.id === targetNode?.data?.instanceId);
+
+      // Log edge cancellation
+      logEvent("layout_board.edge_cancelled", {
+        edgeId: relationshipInput?.edgeId,
+        sourceNodeId: relationshipInput?.sourceId,
+        targetNodeId: relationshipInput?.targetId,
+        sourceInstanceId: sourceInstance?.id,
+        targetInstanceId: targetInstance?.id,
+        sourceLabel: sourceInstance?.instanceLabel || sourceNode?.data?.label,
+        targetLabel: targetInstance?.instanceLabel || targetNode?.data?.label,
+        timestamp: new Date().toISOString()
+      });
+
       // 관계명이 없으면 엣지 삭제
       setEdges((eds) => {
         const filteredEdges = eds.filter((edge) => edge.id !== relationshipInput.edgeId);
@@ -943,6 +1022,25 @@ function LayoutBoard({
       setRelationshipInput(null);
       return;
     }
+
+    // Get instance information for logging
+    const sourceNode = nodes.find(n => n.id === relationshipInput.sourceId);
+    const targetNode = nodes.find(n => n.id === relationshipInput.targetId);
+    const sourceInstance = instances.find(inst => inst.id === sourceNode?.data?.instanceId);
+    const targetInstance = instances.find(inst => inst.id === targetNode?.data?.instanceId);
+
+    // Log relationship confirmation
+    logEvent("layout_board.edge_relationship_confirmed", {
+      edgeId: relationshipInput.edgeId,
+      sourceNodeId: relationshipInput.sourceId,
+      targetNodeId: relationshipInput.targetId,
+      sourceInstanceId: sourceInstance?.id,
+      targetInstanceId: targetInstance?.id,
+      sourceLabel: sourceInstance?.instanceLabel || sourceNode?.data?.label,
+      targetLabel: targetInstance?.instanceLabel || targetNode?.data?.label,
+      relation: relationshipText.trim(),
+      timestamp: new Date().toISOString()
+    });
 
     // 엣지 업데이트 (임시 상태 해제, 관계명 설정)
     setEdges((eds) => {
@@ -976,7 +1074,7 @@ function LayoutBoard({
     });
 
     setRelationshipInput(null);
-  }, [relationshipInput, setEdges]);
+  }, [relationshipInput, setEdges, nodes, instances]);
 
   const handleRatingSubmit = (rating) => {
     logEvent("image_quality_rated", {

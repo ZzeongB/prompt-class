@@ -63,14 +63,6 @@ const RelationshipNode = ({
       }}
       onMouseEnter={() => {
         setIsHovered(true);
-        logEvent("relationship_node.hovered", {
-          relationship_id: `${relationship.source}-${relationship.target}`,
-          source_object_id: relationship.source,
-          target_object_id: relationship.target,
-          relation: relationship.relation,
-          source_object_name: sourceObject?.name,
-          target_object_name: targetObject?.name,
-        });
       }}
       onMouseLeave={() => setIsHovered(false)}
     >
