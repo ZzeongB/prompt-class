@@ -6,7 +6,6 @@ import {
   useEdgesState,
   useReactFlow,
   ReactFlowProvider,
-  addEdge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { DefaultEdge, defaultEdgeOptions } from "../components/DefaultEdge";
@@ -906,9 +905,9 @@ function LayoutBoard({
         },
       };
 
-      // 엣지를 먼저 추가
+      // 엣지를 먼저 추가 (addEdge 대신 직접 추가하여 중복 허용)
       setEdges((eds) => {
-        const newEdges = addEdge(tempEdge, eds);
+        const newEdges = [...eds, tempEdge];
         // 수동 edges ref 업데이트
         manualEdgesRef.current = newEdges.filter(edge =>
           !edge.data?.isExtractedRelationship &&

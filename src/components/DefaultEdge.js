@@ -14,7 +14,7 @@ import HoverButton from "./nodeComponents/HoverButton";
 import RelationshipNode from "./nodes/RelationshipNode";
 
 export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
-  const { deleteElements, setEdges } = useReactFlow();
+  const { deleteElements, setEdges, getEdges } = useReactFlow();
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
   const ref = useRef(null);
@@ -44,12 +44,63 @@ export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
 
   const { sx, sy, tx, ty } = getEdgeParams(sourceNode, targetNode);
 
+  // Calculate offset for multiple edges between same nodes
+  const allEdges = getEdges();
+  const parallelEdges = allEdges.filter(
+    (edge) =>
+      (edge.source === source && edge.target === target) ||
+      (edge.source === target && edge.target === source)
+  );
+
+  const edgeIndex = parallelEdges.findIndex((edge) => edge.id === id);
+  const totalParallelEdges = parallelEdges.length;
+
+  // Calculate offset based on position in parallel edges
+  let offsetX = 0;
+  let offsetY = 0;
+
+  if (totalParallelEdges > 1) {
+    const offsetAmount = 60; // Base offset in pixels (increased for better visibility)
+    const spreadFactor = Math.floor(totalParallelEdges / 2);
+    const centerIndex = (totalParallelEdges - 1) / 2;
+    const relativeIndex = edgeIndex - centerIndex;
+
+    // Calculate perpendicular offset
+    const dx = tx - sx;
+    const dy = ty - sy;
+    const length = Math.sqrt(dx * dx + dy * dy);
+
+    if (length > 0) {
+      // Perpendicular vector
+      const perpX = -dy / length;
+      const perpY = dx / length;
+
+      offsetX = perpX * relativeIndex * offsetAmount;
+      offsetY = perpY * relativeIndex * offsetAmount;
+    }
+  }
+
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX: sx,
     sourceY: sy,
     targetX: tx,
     targetY: ty,
+    curvature: totalParallelEdges > 1 ? 0.25 + Math.abs(edgeIndex - (totalParallelEdges - 1) / 2) * 0.1 : 0.25,
   });
+
+  // Apply offset to control points for curved path
+  const pathWithOffset = totalParallelEdges > 1
+    ? edgePath.replace(
+        /C ([\d.]+) ([\d.]+), ([\d.]+) ([\d.]+)/,
+        (match, cx1, cy1, cx2, cy2) => {
+          const newCx1 = parseFloat(cx1) + offsetX;
+          const newCy1 = parseFloat(cy1) + offsetY;
+          const newCx2 = parseFloat(cx2) + offsetX;
+          const newCy2 = parseFloat(cy2) + offsetY;
+          return `C ${newCx1} ${newCy1}, ${newCx2} ${newCy2}`;
+        }
+      )
+    : edgePath;
 
   const onDelete = () => {
     deleteElements({ edges: [{ id }] });
@@ -78,11 +129,15 @@ export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
     },
   ];
 
+  // Adjust label position for offset
+  const adjustedLabelX = labelX + (totalParallelEdges > 1 ? offsetX * 0.5 : 0);
+  const adjustedLabelY = labelY + (totalParallelEdges > 1 ? offsetY * 0.5 : 0);
+
   return (
     <>
       <BaseEdge
         id={id}
-        path={edgePath}
+        path={pathWithOffset}
         markerEnd={markerEnd}
         style={{
           stroke: "#64748b",
@@ -99,7 +154,7 @@ export function DefaultEdge({ id, data, source, target, markerEnd, style }) {
           ref={ref}
           style={{
             position: "absolute",
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            transform: `translate(-50%, -50%) translate(${adjustedLabelX}px, ${adjustedLabelY}px)`,
             pointerEvents: "all",
             zIndex: 1000,
           }}

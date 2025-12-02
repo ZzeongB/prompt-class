@@ -80,6 +80,7 @@ function ResizableNode({ id, data, nodeType, style }) {
       style={{
         borderRadius: "4px",
         transition: "all 0.15s ease",
+        zIndex: 0, // Always render below SimpleLayoutNode
       }}
     >
       <NodeResizer

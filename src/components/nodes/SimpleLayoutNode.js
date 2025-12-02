@@ -19,16 +19,16 @@ function SimpleLayoutNode({ id, data, selected }) {
     <div
       style={{
         padding: "8px 12px",
-        background: isSelectedForMerge 
+        background: isSelectedForMerge
           ? "#fbbf24" // 노란색/오렌지색 - merge 선택된 상태
           : shouldHighlight
           ? "#3b82f6" // 더 강력한 파란색 배경
           : "#ffffff",
         color: (isSelectedForMerge || shouldHighlight) ? "white" : "#1f2937",
-        border: isSelectedForMerge 
+        border: isSelectedForMerge
           ? "3px solid #f59e0b" // 오렌지색 테두리
-          : shouldHighlight 
-          ? "3px solid #1d4ed8" 
+          : shouldHighlight
+          ? "3px solid #1d4ed8"
           : "1px solid #e5e7eb",
         borderRadius: "8px",
         cursor: "pointer",
@@ -41,6 +41,7 @@ function SimpleLayoutNode({ id, data, selected }) {
         minWidth: "80px",
         textAlign: "center",
         transform: (isSelectedForMerge || shouldHighlight) ? "scale(1.05)" : "scale(1)",
+        zIndex: 10, // Always render above ResizableNode
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
