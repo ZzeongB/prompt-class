@@ -8,14 +8,13 @@ export default function LandingPage({ onStart }) {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [occupation, setOccupation] = useState("");
+  const [major, setMajor] = useState("");
   const [aiToolTypes, setAiToolTypes] = useState([]);
   const [aiFrequency, setAiFrequency] = useState("");
-  const [aiPurposes, setAiPurposes] = useState([]);
   const [aiProficiency, setAiProficiency] = useState("");
   const [englishLevel, setEnglishLevel] = useState("");
   const [programmingDuration, setProgrammingDuration] = useState("");
   const [programmingLanguages, setProgrammingLanguages] = useState([]);
-  const [programmingContexts, setProgrammingContexts] = useState([]);
   const [programmingProficiency, setProgrammingProficiency] = useState("");
   const [systemOrder, setSystemOrder] = useState("");
 
@@ -33,10 +32,10 @@ export default function LandingPage({ onStart }) {
     }
 
     if (age.trim() === "" || gender.trim() === "" || occupation.trim() === "" ||
-      aiToolTypes.length === 0 || aiFrequency.trim() === "" || aiPurposes.length === 0 ||
+      aiToolTypes.length === 0 || aiFrequency.trim() === "" ||
       aiProficiency.trim() === "" || englishLevel.trim() === "" ||
       programmingDuration.trim() === "" || programmingLanguages.length === 0 ||
-      programmingContexts.length === 0 || programmingProficiency.trim() === "" ||
+      programmingProficiency.trim() === "" ||
       systemOrder.trim() === "") {
       alert("모든 기본 정보를 입력해주세요.");
       return;
@@ -46,14 +45,13 @@ export default function LandingPage({ onStart }) {
       age: age.trim(),
       gender: gender.trim(),
       occupation: occupation.trim(),
+      major: major.trim(),
       ai_tool_types: aiToolTypes,
       ai_frequency: aiFrequency.trim(),
-      ai_purposes: aiPurposes,
       ai_proficiency: aiProficiency.trim(),
       english_level: englishLevel.trim(),
       programming_duration: programmingDuration.trim(),
       programming_languages: programmingLanguages,
-      programming_contexts: programmingContexts,
       programming_proficiency: programmingProficiency.trim(),
       system_order: systemOrder.trim()
     };
@@ -76,14 +74,13 @@ export default function LandingPage({ onStart }) {
       age: "25",
       gender: "other",
       occupation: "developer",
+      major: "computer science",
       ai_tool_types: ["text"],
       ai_frequency: "daily",
-      ai_purposes: ["work"],
       ai_proficiency: "5",
       english_level: "fluent",
       programming_duration: "1-3",
       programming_languages: ["javascript"],
-      programming_contexts: ["web"],
       programming_proficiency: "4",
       system_order: "system1_first"
     }));
@@ -97,14 +94,13 @@ export default function LandingPage({ onStart }) {
       age: "25",
       gender: "other",
       occupation: "developer",
+      major: "computer science",
       ai_tool_types: ["text"],
       ai_frequency: "daily",
-      ai_purposes: ["work"],
       ai_proficiency: "5",
       english_level: "fluent",
       programming_duration: "1-3",
       programming_languages: ["javascript"],
-      programming_contexts: ["web"],
       programming_proficiency: "4",
       system_order: "system1_first"
     }));
@@ -119,14 +115,13 @@ export default function LandingPage({ onStart }) {
       age: "25",
       gender: "other",
       occupation: "developer",
+      major: "computer science",
       ai_tool_types: ["text"],
       ai_frequency: "daily",
-      ai_purposes: ["work"],
       ai_proficiency: "5",
       english_level: "fluent",
       programming_duration: "1-3",
       programming_languages: ["javascript"],
-      programming_contexts: ["web"],
       programming_proficiency: "4",
       system_order: "system2_first"
     }));
@@ -141,14 +136,13 @@ export default function LandingPage({ onStart }) {
       age: "25",
       gender: "other",
       occupation: "developer",
+      major: "computer science",
       ai_tool_types: ["text"],
       ai_frequency: "daily",
-      ai_purposes: ["work"],
       ai_proficiency: "5",
       english_level: "fluent",
       programming_duration: "1-3",
       programming_languages: ["javascript"],
-      programming_contexts: ["web"],
       programming_proficiency: "4",
       system_order: "system1_first"
     }));
@@ -163,14 +157,13 @@ export default function LandingPage({ onStart }) {
       age: "25",
       gender: "other",
       occupation: "developer",
+      major: "computer science",
       ai_tool_types: ["text"],
       ai_frequency: "daily",
-      ai_purposes: ["work"],
       ai_proficiency: "5",
       english_level: "fluent",
       programming_duration: "1-3",
       programming_languages: ["javascript"],
-      programming_contexts: ["web"],
       programming_proficiency: "4",
       system_order: "system2_first"
     }));
@@ -381,6 +374,36 @@ export default function LandingPage({ onStart }) {
           />
         </div>
 
+        {/* Major / Field */}
+        <div style={{ marginTop: "14px" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "6px",
+              fontWeight: "600",
+              fontSize: "14px",
+              color: "#2c3e50"
+            }}>
+            {language === "ko" ? "전공 또는 업무 분야" : "Major / Field of Study or Work"}
+          </label>
+          <input
+            type="text"
+            placeholder={language === "ko" ? "예: 컴퓨터공학, UX 디자인" : "e.g., Computer Science, UX Design"}
+            value={major}
+            onChange={(e) => setMajor(e.target.value)}
+            style={{
+              padding: "10px",
+              fontSize: "14px",
+              borderRadius: "6px",
+              border: "1px solid #dfe6e9",
+              width: "96%",
+              backgroundColor: "white",
+              outline: "none",
+              transition: "border-color 0.2s ease"
+            }}
+          />
+        </div>
+
 
         {/* English Level */}
         <div>
@@ -463,7 +486,7 @@ export default function LandingPage({ onStart }) {
             fontSize: "14px",
             color: "#2c3e50"
           }}>
-            {language === "ko" ? "생성형 AI 도구를 얼마나 자주 사용하십니까?" : "How often do you use generative AI tools?"}
+            {language === "ko" ? "이미지 생성 AI 도구를 얼마나 자주 사용하십니까?" : "How often do you use generative AI tools?"}
           </label>
           <select
             value={aiFrequency}
@@ -489,7 +512,7 @@ export default function LandingPage({ onStart }) {
         </div>
 
         {/* AI Purposes */}
-        <div>
+        {/* <div>
           <label style={{
             display: "block",
             marginBottom: "8px",
@@ -524,7 +547,7 @@ export default function LandingPage({ onStart }) {
               </label>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* AI Proficiency */}
         <div>
@@ -535,7 +558,7 @@ export default function LandingPage({ onStart }) {
             fontSize: "14px",
             color: "#2c3e50"
           }}>
-            {language === "ko" ? "생성형 AI 도구 사용 전반적인 숙련도를 어떻게 평가하시겠습니까?" : "How would you rate your overall proficiency in using generative AI tools?"}
+            {language === "ko" ? "이미지 생성 AI 도구 사용 전반적인 숙련도를 어떻게 평가하시겠습니까?" : "How would you rate your overall proficiency in using generative AI tools?"}
           </label>
           <div style={{ marginBottom: "6px", fontSize: "12px", color: "#7f8c8d" }}>
             {language === "ko" ? "1 (매우 미숙함) ~ 7 (매우 숙련됨)" : "1 (Very unskilled) ~ 7 (Very skilled)"}
@@ -640,7 +663,7 @@ export default function LandingPage({ onStart }) {
         </div>
 
         {/* Programming Contexts */}
-        <div>
+        {/* <div>
           <label style={{
             display: "block",
             marginBottom: "8px",
@@ -679,7 +702,7 @@ export default function LandingPage({ onStart }) {
               </label>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* Programming Proficiency */}
         <div>

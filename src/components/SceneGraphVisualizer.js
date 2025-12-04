@@ -110,8 +110,22 @@ export default function SceneGraphVisualizer({
     setEditingObject(newId);
   };
 
-  // Object 편집 완료 - 임시 object 확정
+  // Object 편집 완료 - 임시 object 확정 또는 빈 object 삭제
   const handleObjectEditComplete = (objectId) => {
+    const obj = safeSceneGraph.objects.find((o) => o.id === objectId);
+
+    // 이름이 비어있거나 공백만 있으면 object 삭제
+    if (obj && (!obj.name || obj.name.trim() === "")) {
+      const updatedGraph = {
+        ...safeSceneGraph,
+        objects: safeSceneGraph.objects.filter((o) => o.id !== objectId),
+        relationships: safeSceneGraph.relationships.filter(
+          (rel) => rel.source !== objectId && rel.target !== objectId
+        ),
+      };
+      onSceneGraphChange(updatedGraph);
+    }
+
     if (pendingObjectId === objectId) {
       setPendingObjectId(null);
     }
@@ -255,8 +269,23 @@ export default function SceneGraphVisualizer({
     setDragStartPosition({ x: 0, y: 0 });
   };
 
-  // Relationship 편집 완료 - pending 상태 해제
+  // Relationship 편집 완료 - pending 상태 해제 또는 빈 relationship 삭제
   const handleRelationshipEditComplete = (sourceId, targetId) => {
+    const rel = safeSceneGraph.relationships.find(
+      (r) => r.source === sourceId && r.target === targetId
+    );
+
+    // relation이 비어있거나 공백만 있으면 relationship 삭제
+    if (rel && (!rel.relation || rel.relation.trim() === "")) {
+      const updatedGraph = {
+        ...safeSceneGraph,
+        relationships: safeSceneGraph.relationships.filter(
+          (r) => !(r.source === sourceId && r.target === targetId)
+        ),
+      };
+      onSceneGraphChange(updatedGraph);
+    }
+
     const relId = `${sourceId}-${targetId}`;
     if (pendingRelationshipId === relId) {
       setPendingRelationshipId(null);
@@ -388,7 +417,7 @@ export default function SceneGraphVisualizer({
       });
 
       // 위치 할당 - 레벨별로 중앙 정렬
-      Object.entries(grouped).forEach(([levelStr, ids], levelIndex) => {
+      Object.entries(grouped).forEach(([levelStr, ids]) => {
         const level = parseInt(levelStr);
         const levelNodeCount = ids.length;
         const startY = (-(levelNodeCount - 1) * gapY) / 2;
