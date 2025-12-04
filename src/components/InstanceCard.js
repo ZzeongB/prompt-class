@@ -271,7 +271,30 @@ export default function InstanceCard({
 
     setIsUpdating(true);
     try {
-      let newSceneGraph = editedSceneGraph;
+      // 저장하기 전에 빈 object들과 빈 relationship들 필터링
+      let newSceneGraph = {
+        ...editedSceneGraph,
+        objects: (editedSceneGraph.objects || []).filter(
+          (obj) => obj.name && obj.name.trim() !== ""
+        ),
+        // 삭제된 object와 연결된 relationship들 + 빈 relation을 가진 relationship들 제거
+        relationships: (editedSceneGraph.relationships || []).filter(
+          (rel) => {
+            // relation이 비어있으면 제거
+            if (!rel.relation || rel.relation.trim() === "") {
+              return false;
+            }
+            // source나 target object가 빈 이름이면 제거
+            const sourceExists = editedSceneGraph.objects?.find(
+              (obj) => obj.id === rel.source && obj.name && obj.name.trim() !== ""
+            );
+            const targetExists = editedSceneGraph.objects?.find(
+              (obj) => obj.id === rel.target && obj.name && obj.name.trim() !== ""
+            );
+            return sourceExists && targetExists;
+          }
+        ),
+      };
       let newLabel = labelChanged ? tempLabel : instance.instanceLabel;
       let newTextDescription = tempDescription;
 

@@ -82,11 +82,36 @@ const ClassDetailModal = ({
   const handleSaveEdit = async () => {
     setIsUpdating(true);
     try {
+      // 저장하기 전에 빈 object들과 빈 relationship들 필터링
+      const cleanedSceneGraph = {
+        ...tempSceneData.sceneGraph,
+        objects: (tempSceneData.sceneGraph.objects || []).filter(
+          (obj) => obj.name && obj.name.trim() !== ""
+        ),
+        // 삭제된 object와 연결된 relationship들 + 빈 relation을 가진 relationship들 제거
+        relationships: (tempSceneData.sceneGraph.relationships || []).filter(
+          (rel) => {
+            // relation이 비어있으면 제거
+            if (!rel.relation || rel.relation.trim() === "") {
+              return false;
+            }
+            // source나 target object가 빈 이름이면 제거
+            const sourceExists = tempSceneData.sceneGraph.objects?.find(
+              (obj) => obj.id === rel.source && obj.name && obj.name.trim() !== ""
+            );
+            const targetExists = tempSceneData.sceneGraph.objects?.find(
+              (obj) => obj.id === rel.target && obj.name && obj.name.trim() !== ""
+            );
+            return sourceExists && targetExists;
+          }
+        ),
+      };
+
       await updateClass(classData.id, {
         name: tempClassName,
         template: {
           ...classData.template,
-          sceneGraph: tempSceneData.sceneGraph,
+          sceneGraph: cleanedSceneGraph,
         },
         placeholders: tempSceneData.placeholders,
       });
