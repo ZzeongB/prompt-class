@@ -51,6 +51,19 @@ export default function SceneGraphVisualizer({
     newAttributes = null,
     newPlaceHolders = null
   ) => {
+    // 이름이 비어있거나 공백만 있으면 object 삭제
+    if (!newName || newName.trim() === "") {
+      const updatedGraph = {
+        ...safeSceneGraph,
+        objects: safeSceneGraph.objects.filter((obj) => obj.id !== objectId),
+        relationships: safeSceneGraph.relationships.filter(
+          (rel) => rel.source !== objectId && rel.target !== objectId
+        ),
+      };
+      onSceneGraphChange(updatedGraph);
+      return;
+    }
+
     const updatedGraph = {
       ...safeSceneGraph,
       objects: safeSceneGraph.objects.map((obj) =>
