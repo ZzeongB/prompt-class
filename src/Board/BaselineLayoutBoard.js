@@ -28,6 +28,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { loadBaseImages, convertImageToBase64 } from "../utils/imageUtils";
 import { exportSceneToPromptData, downloadSceneAsJSON, saveSceneToLocalStorage } from "../utils/sceneExporter";
+import { useClassContext } from "../context/ClassContext";
 
 
 const edgeTypes = {
@@ -58,6 +59,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
   const [baseImages, setBaseImages] = useState({});
   const toolbarTimeoutRef = useRef(null);
   const [tutorialClickCount, setTutorialClickCount] = useState(0);
+  const { savedScenes, saveScene, loadScene } = useClassContext();
 
   // Load base images on component mount
   useEffect(() => {
@@ -589,7 +591,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           isFromClass: false,
           boundingBox: {
             x: Math.round(node.position.x),
-            y: Math.round(node.position.y), 
+            y: Math.round(node.position.y),
             width: Math.round(node.style?.width || 120),
             height: Math.round(node.style?.height || 40)
           }
@@ -602,9 +604,9 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
         globalCaption || "Baseline scene",
         flowToScreenPosition
       );
-      
+
       downloadSceneAsJSON(sceneData);
-      
+
       logEvent("baseline_scene_exported", {
         sceneId: sceneData.id,
         nodeCount: sceneData.nodeCount,
@@ -616,6 +618,74 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
       alert(`Export failed: ${error.message}`);
     }
   }, [nodes, edges, globalCaption, flowToScreenPosition]);
+
+  const handleSaveScene = (slotNumber) => {
+    const sceneData = {
+      image: imageBoard,
+      globalCaption,
+      nodes: nodes.map(node => ({
+        id: node.id,
+        type: node.type,
+        position: node.position,
+        data: node.data,
+        style: node.style
+      })),
+      edges: edges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: edge.type,
+        data: edge.data,
+        style: edge.style,
+        label: edge.label,
+        labelStyle: edge.labelStyle
+      }))
+    };
+    setGlobalCaption("");
+
+    saveScene(slotNumber, sceneData);
+
+    logEvent("baseline_scene_saved", {
+      slotNumber,
+      nodeCount: nodes.length,
+      edgeCount: edges.length
+    });
+  };
+
+  const handleLoadScene = (slotNumber) => {
+    const sceneData = loadScene(slotNumber);
+    if (!sceneData) return;
+
+    // Clear existing data first
+    setNodes([]);
+    // setEdges([]);
+
+    // Load scene data
+    setImageBoard(sceneData.image);
+    setGlobalCaption(sceneData.globalCaption || "");
+
+    // Load nodes
+    if (sceneData.nodes) {
+      setNodes(sceneData.nodes);
+    }
+
+    // Load edges
+    if (sceneData.edges) {
+      // edges state is not used in BaselineLayoutBoard, so we skip this
+      // setEdges(sceneData.edges);
+    }
+
+    // Update image board in parent component
+    if (sceneData.image) {
+      onImageGenerated(sceneData.image);
+    }
+
+    logEvent("baseline_scene_loaded", {
+      slotNumber,
+      nodeCount: sceneData.nodes?.length || 0,
+      edgeCount: sceneData.edges?.length || 0
+    });
+  };
 
   return (
     <div
@@ -682,7 +752,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
             Export Scene
           </span>
         </CustomButton> */}
-        <div style={{
+        {/* <div style={{
           display: "flex",
           gap: "8px",
           marginTop: "8px",
@@ -718,6 +788,38 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           >
             Scenario 4
           </CustomButton>
+        </div> */}
+
+        <div style={{
+          display: "flex",
+          gap: "1px",
+          marginTop: "8px",
+          justifyContent: "center",
+          position: "absolute",
+          bottom: "-140px",
+        }}>
+          {[1, 2, 3, 4, 5, 6].map((slotNumber) => {
+            const hasScene = savedScenes[slotNumber];
+            return (
+              <div key={slotNumber} style={{ display: "flex", flexDirection: "column", gap: "2px", minHeight: "60px" }}>
+                <CustomButton
+                  color={hasScene ? "green" : "neutral"}
+                  size="sm"
+                  onClick={() => handleSaveScene(slotNumber)}
+                >
+                  Save {slotNumber}
+                </CustomButton>
+                <CustomButton
+                  color={hasScene ? "blue" : "grey"}
+                  size="sm"
+                  onClick={() => hasScene && handleLoadScene(slotNumber)}
+                  disabled={!hasScene}
+                >
+                  Load {slotNumber}
+                </CustomButton>
+              </div>
+            );
+          })}
         </div>
 
         <div
