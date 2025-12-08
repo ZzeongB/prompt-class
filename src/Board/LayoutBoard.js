@@ -280,6 +280,7 @@ function LayoutBoard({
               position,
               data: resizableData,
               style: resizableSize,
+              zIndex: -1, // resizable node를 뒤쪽에 배치
             };
 
             updatedNodes.push(resizableNode, objNode);
@@ -394,6 +395,7 @@ function LayoutBoard({
       position,
       data: resizableData,
       style: resizableSize,
+      zIndex: -1, // resizable node를 뒤쪽에 배치
     };
 
     setNodes((prev) => [...prev, resizableNode, objNode]);
@@ -508,6 +510,7 @@ function LayoutBoard({
         position,
         data: objNode.data,
         style: { height: 50, width: 50 },
+        zIndex: -1, // resizable node를 뒤쪽에 배치
       };
 
       setNodes((prev) => [...prev, resizableNode, objNode]);
@@ -1238,6 +1241,7 @@ function LayoutBoard({
           position: savedResizableNode.position,
           data: { ...nodeData },
           style: savedResizableNode.style || { width: 50, height: 50 },
+          zIndex: -1, // resizable node를 뒤쪽에 배치
         };
 
         newNodes.push(resizableNode, objNode);
