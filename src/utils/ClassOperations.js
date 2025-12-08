@@ -13,7 +13,7 @@ export const createClass = async (instanceData) => {
       object_count: instanceData.sceneGraph?.objects?.length || 0
     });
 
-    const placeholders = await generatePlaceholders(instanceData.sceneGraph);
+    const placeholders = undefined; // await generatePlaceholders(instanceData.sceneGraph);
     const processedSceneGraph = replaceWithSceneGraphPlaceholders(
       instanceData.sceneGraph,
       placeholders
