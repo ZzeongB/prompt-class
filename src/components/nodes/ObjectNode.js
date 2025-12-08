@@ -1,5 +1,5 @@
 // ObjectNode.js - 편집 상태 개선 버전
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChevronRight, ChevronDown, X, Plus, ExternalLink, Circle } from "lucide-react";
 import { ToolbarButton } from "../nodeComponents/NodeToolbarMenu";
 import { logEvent } from "../../api/logEvent";
@@ -50,18 +50,27 @@ const ObjectNode = ({
   const connectionHandleRef = useRef(null);
   const dropTargetRef = useRef(null);
 
-  // isEditing이 true가 되면 자동으로 name 편집 시작
-  useEffect(() => {
-    if (isEditing && editingMode === null && isPending) {
-      startEditing("name", ""); // 빈 문자열로 시작
-    }
-  }, [isEditing, isPending]);
-
   // 편집 관련 함수들
-  const startEditing = (mode, initialValue = "") => {
+  const startEditing = useCallback((mode, initialValue = "") => {
+    console.log("🟢 startEditing called:", mode, initialValue);
     setEditingMode(mode);
     setEditingValue(initialValue);
-  };
+  }, []);
+
+  // isEditing이 true가 되면 자동으로 name 편집 시작
+  useEffect(() => {
+    if (isEditing && editingMode === null) {
+      if (isPending) {
+        startEditing("name", ""); // 빈 문자열로 시작
+      } else {
+        // 일반 object는 현재 이름으로 시작
+        const currentName = isClassMode && placeHolders?.[object.id]?.name
+          ? placeHolders[object.id].name
+          : (object.defaultName || object.name || "");
+        startEditing("name", currentName);
+      }
+    }
+  }, [isEditing, editingMode, isPending, object.id, object.name, object.defaultName, isClassMode, placeHolders, startEditing]);
 
   const cancelEditing = () => {
     // 임시 object이고 이름이 입력되지 않은 경우에만 삭제
@@ -447,13 +456,13 @@ const ObjectNode = ({
                   flex: 1,
                 }}
                 onClick={(e) => {
-                  e.stopPropagation();
+                  console.log("🔴 Class mode attribute clicked:", { isEditable, editingMode });
                   if (isEditable && editingMode === null) {
-                    startEditing(
-                      `attribute-${index}`,
-                      defaultValue
-                    );
+                    e.stopPropagation();
+                    setIsEditing(true); // 전체 편집 모드로 진입
+                    console.log("🔴 setIsEditing(true) called");
                   }
+                  // isEditable이 false면 propagation 허용 -> 부모가 편집 모드 활성화
                 }}
                 title={hasAttrOverride ? `${defaultValue} (Modified)` : `${defaultValue} (Click to edit)`}
               >
@@ -522,10 +531,13 @@ const ObjectNode = ({
             wordWrap: "break-word",
           }}
           onClick={(e) => {
-            e.stopPropagation();
+            console.log("🔴 Instance mode attribute clicked:", { isEditable, editingMode });
             if (isEditable && editingMode === null) {
-              startEditing(`attribute-${index}`, attr);
+              e.stopPropagation();
+              setIsEditing(true); // 전체 편집 모드로 진입
+              console.log("🔴 setIsEditing(true) called");
             }
+            // isEditable이 false면 propagation 허용 -> 부모가 편집 모드 활성화
           }}
           title={`${attr} (Click to edit)`}
         >
@@ -624,10 +636,13 @@ const ObjectNode = ({
             justifyContent: "center",
           }}
           onClick={(e) => {
-            e.stopPropagation();
+            console.log("🔴 Class mode name clicked:", { isEditable, editingMode });
             if (isEditable && editingMode === null) {
-              startEditing("name", defaultValue);
+              e.stopPropagation();
+              setIsEditing(true); // 전체 편집 모드로 진입
+              console.log("🔴 setIsEditing(true) called");
             }
+            // isEditable이 false면 propagation 허용 -> 부모가 편집 모드 활성화
           }}
           title={hasNameOverride ? `${defaultValue} (Modified)` : `${defaultValue}`}
         >
@@ -648,10 +663,13 @@ const ObjectNode = ({
     return (
       <div
         onClick={(e) => {
-          e.stopPropagation();
+          console.log("🔴 Instance mode name clicked:", { isEditable, editingMode });
           if (isEditable && editingMode === null) {
-            startEditing("name", object.name);
+            e.stopPropagation();
+            setIsEditing(true); // 전체 편집 모드로 진입
+            console.log("🔴 setIsEditing(true) called");
           }
+          // isEditable이 false면 propagation 허용 -> 부모가 편집 모드 활성화
         }}
         style={{
           cursor: isEditable ? "pointer" : "default",

@@ -216,6 +216,9 @@ export default function SceneGraphVisualizer({
         setConnectingMode(false);
         setSelectedSourceObject(null);
       }
+    } else if (isEditable) {
+      // 일반 클릭 시 Graph Editing mode로 진입
+      setEditingObject(objectId);
     }
   };
 

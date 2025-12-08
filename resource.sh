@@ -1,1 +1,0 @@
-nohup python resource.py > output.log 2>&1 &

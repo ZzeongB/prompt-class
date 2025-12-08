@@ -420,8 +420,6 @@ export default function InstanceCard({
     if (!isExpanded) return "auto";
     
     const objectCount = editedSceneGraph?.objects?.length || 0;
-
-    console.log("height", objectCount)
     
     if (objectCount <= 2) {
       return "180px"
