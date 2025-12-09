@@ -124,9 +124,9 @@ export const surveyQuestions = {
       title: "시스템별 기능 평가",
       questions: [
         {
-          id: "dg1_clarity",
-          question: "이번 작업에서 필요한 모든 요소와 그 요소들 간의 관계를 명확하게 표현할 수 있었다.",
-          questionTranslation: "I was able to clearly represent all necessary elements and their relationships for this task.",
+          id: "precise1",
+          question: "의도를 명확히 반영하는 프롬프트를 작성할 수 있었다.",
+          questionTranslation: "I was able to write prompts that precisely conveyed my intent.",
           scale: {
             min: 1,
             max: 7,
@@ -135,9 +135,9 @@ export const surveyQuestions = {
           }
         },
         {
-          id: "dg2_prompt_to_image",
-          question: "내가 입력한 요소가 결과물의 어떤 부분과 연결되는지 명확하게 이해할 수 있었다.",
-          questionTranslation: "I could clearly understand which elements of my input corresponded to specific parts of the output.",
+          id: "precise2",
+          question: "수정하고자 하는 부분을 정확하게 지정해 수정할 수 있었다.",
+          questionTranslation: "I could precisely target and revise the specific parts I wanted to change.",
           scale: {
             min: 1,
             max: 7,
@@ -146,9 +146,9 @@ export const surveyQuestions = {
           }
         },
         {
-          id: "dg2_image_to_prompt",
-          question: "결과물의 특정 부분을 변경하고 싶을 때 어떤 입력 요소를 수정해야 하는지 쉽게 파악할 수 있었다.",
-          questionTranslation: "I could easily identify which input elements to modify when I wanted to change specific parts of the output.",
+          id: "efficient1",
+          question: "프롬프트를 효율적으로 재사용할 수 있었다.",
+          questionTranslation: "I was able to reuse the prompt efficiently.",
           scale: {
             min: 1,
             max: 7,
@@ -157,9 +157,9 @@ export const surveyQuestions = {
           }
         },
         {
-          id: "dg3_reusability",
-          question: "내 작업을 다른 유사한 작업에 재사용하거나 변형하기 쉬웠다.",
-          questionTranslation: "I found it easy to reuse or adapt my work for other similar tasks.",
+          id: "efficient2",
+          question: "여러 프롬프트에서 공통된 속성을 효과적으로 일괄 수정할 수 있었다.",
+          questionTranslation: "I could efficiently update shared attributes across multiple prompts.",
           scale: {
             min: 1,
             max: 7,
@@ -167,17 +167,6 @@ export const surveyQuestions = {
             maxLabel: "매우 그렇다"
           }
         },
-        {
-          id: "dg3_selective_edit",
-          question: "다른 부분은 그대로 두고 원하는 부분만 선택적으로 수정할 수 있었다.",
-          questionTranslation: "I was able to selectively modify only the parts I wanted while keeping everything else unchanged.",
-          scale: {
-            min: 1,
-            max: 7,
-            minLabel: "전혀 그렇지 않음",
-            maxLabel: "매우 그렇다"
-          }
-        }
       ]
     }
   },
@@ -318,9 +307,9 @@ export const surveyQuestions = {
       title: "System-Specific Features",
       questions: [
         {
-          id: "dg1_clarity",
-          question: "I was able to clearly represent all necessary elements and their relationships for this task.",
-          questionTranslation: "이번 작업에서 필요한 모든 요소와 그 요소들 간의 관계를 명확하게 표현할 수 있었다.",
+          id: "precise1",
+          question: "I was able to write prompts that precisely conveyed my intent.",
+          questionTranslation: "의도를 명확히 반영하는 프롬프트를 작성할 수 있었다.",
           scale: {
             min: 1,
             max: 7,
@@ -329,9 +318,9 @@ export const surveyQuestions = {
           }
         },
         {
-          id: "dg2_prompt_to_image",
-          question: "I could clearly understand which elements of my input corresponded to specific parts of the output.",
-          questionTranslation: "내가 입력한 요소가 결과물의 어떤 부분과 연결되는지 명확하게 이해할 수 있었다.",
+          id: "precise2",
+          question: "I could precisely target and revise the specific parts I wanted to change.",
+          questionTranslation: "수정하고자 하는 부분을 정확하게 지정해 수정할 수 있었다.",
           scale: {
             min: 1,
             max: 7,
@@ -340,9 +329,9 @@ export const surveyQuestions = {
           }
         },
         {
-          id: "dg2_image_to_prompt",
-          question: "I could easily identify which input elements to modify when I wanted to change specific parts of the output.",
-          questionTranslation: "결과물의 특정 부분을 변경하고 싶을 때 어떤 입력 요소를 수정해야 하는지 쉽게 파악할 수 있었다.",
+          id: "efficient1",
+          question: "I was able to reuse the prompt efficiently.",
+          questionTranslation: "프롬프트를 효율적으로 재사용할 수 있었다.",
           scale: {
             min: 1,
             max: 7,
@@ -351,9 +340,9 @@ export const surveyQuestions = {
           }
         },
         {
-          id: "dg3_reusability",
-          question: "I found it easy to reuse or adapt my work for other similar tasks.",
-          questionTranslation: "내 작업을 다른 유사한 작업에 재사용하거나 변형하기 쉬웠다.",
+          id: "efficient2",
+          question: "I could efficiently update shared attributes across multiple prompts.",
+          questionTranslation: "여러 프롬프트에서 공통된 속성을 효과적으로 일괄 수정할 수 있었다.",
           scale: {
             min: 1,
             max: 7,
@@ -361,17 +350,6 @@ export const surveyQuestions = {
             maxLabel: "Strongly Agree"
           }
         },
-        {
-          id: "dg3_selective_edit",
-          question: "I was able to selectively modify only the parts I wanted while keeping everything else unchanged.",
-          questionTranslation: "다른 부분은 그대로 두고 원하는 부분만 선택적으로 수정할 수 있었다.",
-          scale: {
-            min: 1,
-            max: 7,
-            minLabel: "Strongly Disagree",
-            maxLabel: "Strongly Agree"
-          }
-        }
       ]
     }
   }
