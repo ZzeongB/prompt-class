@@ -74,18 +74,7 @@ const ObjectNode = ({
     // 임시 object이지만 이름이 입력된 경우 확정
     if (isPending && editingMode === "name" && editingValue.trim()) {
       // 입력된 값으로 저장하고 확정
-      if (isClassMode) {
-        const updatedPlaceHolders = {
-          ...placeHolders,
-          [object.id]: {
-            name: editingValue,
-            attr: placeHolders[object.id]?.attr || []
-          }
-        };
-        onEdit?.(object.id, editingValue, object.attributes, updatedPlaceHolders);
-      } else {
-        onEdit?.(object.id, editingValue);
-      }
+      onEdit?.(object.id, editingValue);
       onEditComplete();
       setEditingMode(null);
       setEditingValue("");
@@ -104,19 +93,8 @@ const ObjectNode = ({
     }
 
     if (editingMode === "name") {
-      if (isClassMode) {
-        // 간단한 구조: 값만 저장
-        const updatedPlaceHolders = {
-          ...placeHolders,
-          [object.id]: {
-            name: editingValue,
-            attr: placeHolders[object.id]?.attr || []
-          }
-        };
-        onEdit?.(object.id, editingValue, object.attributes, updatedPlaceHolders);
-      } else {
-        onEdit?.(object.id, editingValue);
-      }
+      // class mode와 instance mode 동일하게 처리
+      onEdit?.(object.id, editingValue);
 
       // 임시 object 확정
       if (isPending) {
@@ -124,43 +102,25 @@ const ObjectNode = ({
       }
     } else if (editingMode === "adding") {
       if (isClassMode) {
-        // 간단한 구조: 값만 저장
-        const currentAttrs = placeHolders[object.id]?.attr || [];
+        // class mode: onEdit 사용
         const updatedAttributes = [
           ...(object.attributes || []),
           editingValue,
         ];
-        const updatedPlaceHolders = {
-          ...placeHolders,
-          [object.id]: {
-            name: placeHolders[object.id]?.name || null,
-            attr: [...currentAttrs, editingValue]
-          }
-        };
-        onEdit?.(object.id, object.name, updatedAttributes, updatedPlaceHolders);
+        onEdit?.(object.id, object.name, updatedAttributes);
       } else {
+        // instance mode: onAddAttribute 사용
         onAddAttribute?.(object.id, editingValue);
       }
     } else if (editingMode?.startsWith("attribute-")) {
       const index = parseInt(editingMode.replace("attribute-", ""));
-      if (isClassMode) {
-        // 간단한 구조: 값만 저장
-        const updated = [...object.attributes];
-        updated[index] = editingValue;
-        const currentAttrs = [...(placeHolders[object.id]?.attr || [])];
+      const updated = [...object.attributes];
+      updated[index] = editingValue;
 
-        currentAttrs[index] = editingValue;
-        const updatedPlaceHolders = {
-          ...placeHolders,
-          [object.id]: {
-            name: placeHolders[object.id]?.name || null,
-            attr: currentAttrs
-          }
-        };
-        onEdit?.(object.id, object.name, updated, updatedPlaceHolders);
+      if (isClassMode) {
+        // class mode에서도 instance mode와 동일하게 처리
+        onEdit?.(object.id, object.name, updated);
       } else {
-        const updated = [...object.attributes];
-        updated[index] = editingValue;
         onEdit?.(object.id, object.name, updated);
       }
     }
@@ -173,21 +133,8 @@ const ObjectNode = ({
     const updated = [...object.attributes];
     updated[index] = "DELETE";
 
-    if (isClassMode) {
-      // class mode에서는 placeHolders도 함께 업데이트 (간단한 구조)
-      const currentAttrs = [...(placeHolders[object.id]?.attr || [])];
-      currentAttrs[index] = "DELETE";
-      const updatedPlaceHolders = {
-        ...placeHolders,
-        [object.id]: {
-          name: placeHolders[object.id]?.name || null,
-          attr: currentAttrs
-        }
-      };
-      onEdit?.(object.id, object.name, updated, updatedPlaceHolders);
-    } else {
-      onEdit?.(object.id, object.name, updated);
-    }
+    // class mode와 instance mode 동일하게 처리
+    onEdit?.(object.id, object.name, updated);
   };
 
   const handleExtract = () => {
