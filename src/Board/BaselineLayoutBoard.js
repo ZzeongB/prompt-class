@@ -20,7 +20,7 @@ import CustomButton from "../components/CustomButton";
 import ImageQualityRatingModal from "../components/modal/ImageQualityRatingModal";
 import { logEvent } from "../api/logEvent";
 import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, Plus, Image as ImageIcon, Eye, Save, FolderOpen } from "lucide-react";
 import {
   LEFT_OFFSET_BASELINE as LEFT_OFFSET,
   TOP_OFFSET,
@@ -699,42 +699,22 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           position: "absolute",
           bottom: "-40px",
           width: "100%",
-          display: "column",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
         }}
       >
-        <CustomButton
-          color={"grey"}
-          size="sm"
+        <ToolbarButton
+          title="Create New Box"
+          icon={<Plus size={16} />}
           onClick={(e) => handleAddNewNode(e)}
-        >
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontWeight: "bold",
-            }}
-          >
-            Create New Box
-          </span>
-        </CustomButton>
+        />
 
-        <CustomButton
-          color={showImageOnly ? "grey" : "neutral"}
-          size="sm"
+        <ToolbarButton
+          title={showImageOnly ? "Show Layout" : "Show Image"}
+          icon={showImageOnly ? <Eye size={16} /> : <ImageIcon size={16} />}
           onClick={() => setShowImageOnly(!showImageOnly)}
-        >
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontWeight: "bold",
-            }}
-          >
-            {showImageOnly ? "Show Layout" : "Show Image"}
-          </span>
-        </CustomButton>
+        />
 
         {/* <CustomButton
           color="teal"
@@ -792,31 +772,53 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
 
         <div style={{
           display: "flex",
-          gap: "1px",
+          gap: "6px",
           marginTop: "8px",
           justifyContent: "center",
           position: "absolute",
-          bottom: "-140px",
+          bottom: "-190px",
         }}>
           {[1, 2, 3, 4, 5, 6].map((slotNumber) => {
             const hasScene = savedScenes[slotNumber];
             return (
-              <div key={slotNumber} style={{ display: "flex", flexDirection: "column", gap: "2px", minHeight: "60px" }}>
-                <CustomButton
-                  color={hasScene ? "green" : "neutral"}
-                  size="sm"
+              <div
+                key={slotNumber}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "4px",
+                  alignItems: "center",
+                  padding: "8px",
+                  borderRadius: "8px",
+                  backgroundColor: hasScene ? "#f0fdf4" : "#f8fafc",
+                  border: `1px solid ${hasScene ? "#86efac" : "#e2e8f0"}`,
+                  minWidth: "50px",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: hasScene ? "#16a34a" : "#94a3b8",
+                  marginBottom: "2px"
+                }}>
+                  {slotNumber}
+                </span>
+
+                <ToolbarButton
+                  title={`Save to Slot ${slotNumber}`}
+                  icon={<Save size={14} />}
                   onClick={() => handleSaveScene(slotNumber)}
-                >
-                  Save {slotNumber}
-                </CustomButton>
-                <CustomButton
-                  color={hasScene ? "blue" : "grey"}
-                  size="sm"
+                  size="compact"
+                />
+
+                <ToolbarButton
+                  title={`Load from Slot ${slotNumber}`}
+                  icon={<FolderOpen size={14} />}
                   onClick={() => hasScene && handleLoadScene(slotNumber)}
                   disabled={!hasScene}
-                >
-                  Load {slotNumber}
-                </CustomButton>
+                  size="compact"
+                />
               </div>
             );
           })}
@@ -825,7 +827,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
         <div
           style={{
             position: "absolute",
-            bottom: "-35px",
+            bottom: "-50px",
             width: "100%",
             display: "flex",
             alignItems: "center",

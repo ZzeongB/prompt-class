@@ -7,7 +7,7 @@ function ProgressBar({ now, errorMessage = "" }) {
     <div style={{ width: "75%", position: "relative" }}>
       <div
         style={{
-          height: "20px",
+          height: "30px",
           backgroundColor: "#e0e0e0",
           borderRadius: "10px",
           overflow: "hidden",

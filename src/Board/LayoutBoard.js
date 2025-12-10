@@ -23,6 +23,8 @@ import CustomButton from "../components/CustomButton";
 import ImageQualityRatingModal from "../components/modal/ImageQualityRatingModal";
 import { useClassContext } from "../context/ClassContext";
 import { logEvent } from "../api/logEvent";
+import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
+import { Plus, Combine, X, Check, Image as ImageIcon, Eye, EyeOff, Save, FolderOpen } from "lucide-react";
 import {
   LEFT_OFFSET_BASELINE as LEFT_OFFSET,
   TOP_OFFSET,
@@ -64,6 +66,7 @@ function LayoutBoard({
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
+  const [globalPrompt, setGlobalPrompt] = useState("");
   const [progress, setProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -730,10 +733,16 @@ function LayoutBoard({
         });
 
         const userId = sessionStorage.getItem("user_id") || "P1";
+
+        // Include globalPrompt in globalCaption if provided
+        const captionWithPrompt = globalPrompt
+          ? `${globalPrompt}. ${globalCaption}`.trim()
+          : globalCaption;
+
         const response = await generateImageFromInstanceData(
           sentences,
           boxes,
-          globalCaption,
+          captionWithPrompt,
           null, // requiredKeywords
           userId
         );
@@ -1096,9 +1105,9 @@ function LayoutBoard({
         globalCaption,
         flowToScreenPosition
       );
-      
+
       downloadSceneAsJSON(sceneData);
-      
+
       logEvent("scene_exported", {
         sceneId: sceneData.id,
         nodeCount: sceneData.nodeCount,
@@ -1169,6 +1178,7 @@ function LayoutBoard({
     const sceneData = {
       image: imageBoard,
       globalCaption,
+      globalPrompt,
       instances: instances.map(instance => ({ ...instance })),
       nodes: nodes.map(node => ({
         id: node.id,
@@ -1189,6 +1199,7 @@ function LayoutBoard({
       }))
     };
     setGlobalCaption("");
+    setGlobalPrompt("");
 
     saveScene(slotNumber, sceneData);
 
@@ -1212,6 +1223,7 @@ function LayoutBoard({
     // Load scene data
     setImageBoard(sceneData.image);
     setGlobalCaption(sceneData.globalCaption || "");
+    setGlobalPrompt(sceneData.globalPrompt || "");
 
     // Load instances first
     const loadedInstances = sceneData.instances || [];
@@ -1278,28 +1290,107 @@ function LayoutBoard({
           bottom: "-40px",
           width: "100%",
           display: "flex",
+          flexDirection: "column",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* Global Prompt Input with Clear Button */}
+        <div style={{ position: "relative", display: "inline-block" }}>
+          <input
+            type="text"
+            value={globalPrompt}
+            onChange={(e) => setGlobalPrompt(e.target.value)}
+            placeholder="Global prompt (optional - always included in generation)"
+            style={{
+              width: "450px",
+              padding: "8px 40px 8px 16px",
+              fontSize: "14px",
+              border: "1.5px solid #cbd5e1",
+              borderRadius: "30px",
+              outline: "none",
+              backgroundColor: "#ffffff",
+              color: "#334155",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+              transition: "all 0.2s ease",
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = "#8b5cf6";
+              e.target.style.boxShadow = "0 4px 12px rgba(139, 92, 246, 0.15)";
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "#cbd5e1";
+              e.target.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.06)";
+            }}
+            onMouseEnter={(e) => {
+              if (document.activeElement !== e.target) {
+                e.target.style.borderColor = "#a78bfa";
+                e.target.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.08)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (document.activeElement !== e.target) {
+                e.target.style.borderColor = "#cbd5e1";
+                e.target.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.06)";
+              }
+            }}
+          />
+
+          {/* Clear Button */}
+          {globalPrompt && (
+            <button
+              onClick={() => setGlobalPrompt("")}
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "50%",
+                transition: "background-color 0.2s ease",
+                color: "#94a3b8",
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = "#f1f5f9";
+                e.target.style.color = "#64748b";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = "transparent";
+                e.target.style.color = "#94a3b8";
+              }}
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-80px",
+          width: "100%",
+          display: "flex",
           alignItems: "center",
           gap: "8px",
           flexWrap: "nowrap",
         }}
       >
-        {!isMergeMode &&
-          <CustomButton color="grey" size="sm" onClick={handleAddNewNode}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                fontWeight: "bold",
-              }}
-            >
-              Create New Box
-            </span>
-          </CustomButton>
-        }
-        <CustomButton
-          color={isMergeMode ? "orange" : "grey"}
-          size="sm"
+        {!isMergeMode && (
+          <ToolbarButton
+            title="Create New Box"
+            icon={<Plus size={16} />}
+            onClick={handleAddNewNode}
+          />
+        )}
+        <ToolbarButton
+          title={isMergeMode ? "Cancel Merge" : "Merge Objects"}
+          icon={isMergeMode ? <X size={16} /> : <Combine size={16} />}
           onClick={() => {
             if (isMergeMode) {
               setIsMergeMode(false);
@@ -1308,73 +1399,29 @@ function LayoutBoard({
               setIsMergeMode(true);
             }
           }}
-        >
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontWeight: "bold",
-            }}
-          >
-            {isMergeMode ? "Cancel Merge" : "Merge Objects"}
-          </span>
-        </CustomButton>
+        />
 
         {isMergeMode && selectedObjectsForMerge.length >= 2 && (
-          <CustomButton
-            color="green"
-            size="sm"
+          <ToolbarButton
+            title={`Confirm Merge (${selectedObjectsForMerge.length} objects)`}
+            icon={<Check size={16} />}
             onClick={handleMergeObjects}
-          >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                fontWeight: "bold",
-              }}
-            >
-              Confirm Merge ({selectedObjectsForMerge.length})
-            </span>
-          </CustomButton>
+          />
         )}
 
         {!isMergeMode && (
-          <>
-            <CustomButton
-              color={showImageOnly ? "grey" : "neutral"}
-              size="sm"
+          <> 
+            <ToolbarButton // put in the right end
+              title={showImageOnly ? "Show Layout" : "Show Image"}
+              icon={showImageOnly ? <Eye size={16} /> : <ImageIcon size={16} />}
               onClick={() => setShowImageOnly(!showImageOnly)}
-            >
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontWeight: "bold",
-                }}
-              >
-                {showImageOnly ? "Show Layout" : "Show Image"}
-              </span>
-            </CustomButton>
+            />
 
-            <CustomButton
-              color={showDetectedObjects ? "grey" : "neutral"}
-              size="sm"
+            <ToolbarButton
+              title={showDetectedObjects ? "Hide Detections" : "Show Detections"}
+              icon={showDetectedObjects ? <EyeOff size={16} /> : <Eye size={16} />}
               onClick={() => setShowDetectedObjects(!showDetectedObjects)}
-            >
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontWeight: "bold",
-                }}
-              >
-                {showDetectedObjects ? "Hide Detections" : "Show Detections"}
-              </span>
-            </CustomButton>
+            />
 
             {/* <CustomButton
               color="teal"
@@ -1399,53 +1446,81 @@ function LayoutBoard({
         <div
           style={{
             position: "absolute",
-            bottom: "-35px",
+            bottom: "-45px",
             width: "100%",
             display: "flex",
-            alignItems: "center",
-            gap: "8px",
+            flexDirection: "column",
+            // gap: "4px",
             boxSizing: "border-box",
           }}
         >
-          <ProgressBar now={progress} errorMessage={errorMessage} />
-          <CustomButton
-            onClick={isTutorial ? handleTutorialClick : handleClick}
-            color="purpleBlue"
-            size="lg"
-            disabled={isGenerating}
-          >
-            {isTutorial ? "GENERATE" : isGenerating ? "Generating" : "Generate"}
-          </CustomButton>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}>
+            <ProgressBar now={progress} errorMessage={errorMessage} />
+            <CustomButton
+              onClick={isTutorial ? handleTutorialClick : handleClick}
+              color="purpleBlue"
+              size="lg"
+              disabled={isGenerating}
+            >
+              {isTutorial ? "GENERATE" : isGenerating ? "Generating" : "Generate"}
+            </CustomButton>
+          </div>
         </div>
 
 
         <div style={{
           display: "flex",
-          gap: "1px",
+          gap: "6px",
           marginTop: "8px",
           justifyContent: "center",
           position: "absolute",
-          bottom: "-110px",
+          bottom: "-150px",
         }}>
           {[1, 2, 3, 4, 5, 6].map((slotNumber) => {
             const hasScene = savedScenes[slotNumber];
             return (
-              <div key={slotNumber} style={{ display: "flex", flexDirection: "column", gap: "2px", minHeight: "60px" }}>
-                <CustomButton
-                  color={hasScene ? "green" : "neutral"}
-                  size="sm"
+              <div
+                key={slotNumber}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "4px",
+                  alignItems: "center",
+                  padding: "8px",
+                  borderRadius: "8px",
+                  backgroundColor: hasScene ? "#f0fdf4" : "#f8fafc",
+                  border: `1px solid ${hasScene ? "#86efac" : "#e2e8f0"}`,
+                  minWidth: "50px",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <span style={{
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  color: hasScene ? "#16a34a" : "#94a3b8",
+                  marginBottom: "2px"
+                }}>
+                  {slotNumber}
+                </span>
+
+                <ToolbarButton
+                  title={`Save to Slot ${slotNumber}`}
+                  icon={<Save size={14} />}
                   onClick={() => handleSaveScene(slotNumber)}
-                >
-                  Save {slotNumber}
-                </CustomButton>
-                <CustomButton
-                  color={hasScene ? "blue" : "grey"}
-                  size="sm"
+                  size="compact"
+                />
+
+                <ToolbarButton
+                  title={`Load from Slot ${slotNumber}`}
+                  icon={<FolderOpen size={14} />}
                   onClick={() => hasScene && handleLoadScene(slotNumber)}
                   disabled={!hasScene}
-                >
-                  Load {slotNumber}
-                </CustomButton>
+                  size="compact"
+                />
               </div>
             );
           })}

@@ -105,7 +105,7 @@ export default function AppUI({ isBaseline, language, onSystemComplete, onReturn
           <div
             style={{
               display: "flex",
-              height: "600px",
+              height: "650px",
               width: isBaseline ? "542px" : "1500px",
               boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
               position: "relative",
