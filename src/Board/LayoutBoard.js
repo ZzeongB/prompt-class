@@ -24,7 +24,7 @@ import ImageQualityRatingModal from "../components/modal/ImageQualityRatingModal
 import { useClassContext } from "../context/ClassContext";
 import { logEvent } from "../api/logEvent";
 import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
-import { Plus, Combine, X, Check, Image as ImageIcon, Eye, EyeOff, Save, FolderOpen } from "lucide-react";
+import { Plus, Combine, X, Check, Image as ImageIcon, Eye, EyeOff, Save, FolderOpen, LayoutGrid } from "lucide-react";
 import {
   LEFT_OFFSET_BASELINE as LEFT_OFFSET,
   TOP_OFFSET,
@@ -1199,7 +1199,7 @@ function LayoutBoard({
       }))
     };
     setGlobalCaption("");
-    setGlobalPrompt("");
+    // setGlobalPrompt("");
 
     saveScene(slotNumber, sceneData);
 
@@ -1410,18 +1410,20 @@ function LayoutBoard({
         )}
 
         {!isMergeMode && (
-          <> 
-            <ToolbarButton // put in the right end
-              title={showImageOnly ? "Show Layout" : "Show Image"}
-              icon={showImageOnly ? <Eye size={16} /> : <ImageIcon size={16} />}
-              onClick={() => setShowImageOnly(!showImageOnly)}
-            />
-
+          <>
             <ToolbarButton
               title={showDetectedObjects ? "Hide Detections" : "Show Detections"}
               icon={showDetectedObjects ? <EyeOff size={16} /> : <Eye size={16} />}
               onClick={() => setShowDetectedObjects(!showDetectedObjects)}
             />
+
+            <div style={{  }}>
+              <ToolbarButton
+                title={showImageOnly ? "Show Layout" : "Show Image"}
+                icon={showImageOnly ? <LayoutGrid size={16} /> : <ImageIcon size={16} />}
+                onClick={() => setShowImageOnly(!showImageOnly)}
+              />
+            </div>
 
             {/* <CustomButton
               color="teal"

@@ -20,7 +20,7 @@ import CustomButton from "../components/CustomButton";
 import ImageQualityRatingModal from "../components/modal/ImageQualityRatingModal";
 import { logEvent } from "../api/logEvent";
 import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
-import { Edit2, Trash2, Plus, Image as ImageIcon, Eye, Save, FolderOpen } from "lucide-react";
+import { Edit2, Trash2, Plus, Image as ImageIcon, Eye, Save, FolderOpen, LayoutGrid } from "lucide-react";
 import {
   LEFT_OFFSET_BASELINE as LEFT_OFFSET,
   TOP_OFFSET,
@@ -710,11 +710,13 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           onClick={(e) => handleAddNewNode(e)}
         />
 
-        <ToolbarButton
-          title={showImageOnly ? "Show Layout" : "Show Image"}
-          icon={showImageOnly ? <Eye size={16} /> : <ImageIcon size={16} />}
-          onClick={() => setShowImageOnly(!showImageOnly)}
-        />
+        <div style={{ }}>
+          <ToolbarButton
+            title={showImageOnly ? "Show Layout" : "Show Image"}
+            icon={showImageOnly ? <LayoutGrid size={16} /> : <ImageIcon size={16} />}
+            onClick={() => setShowImageOnly(!showImageOnly)}
+          />
+        </div>
 
         {/* <CustomButton
           color="teal"

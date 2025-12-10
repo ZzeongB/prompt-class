@@ -9,7 +9,7 @@ function ProgressBar({ now, errorMessage = "" }) {
         style={{
           height: "30px",
           backgroundColor: "#e0e0e0",
-          borderRadius: "10px",
+          borderRadius: "30px",
           overflow: "hidden",
           boxShadow: "inset 0 1px 3px rgba(0,0,0,0.2)",
         }}
