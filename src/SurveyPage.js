@@ -16,7 +16,8 @@ export default function SurveyPage({ systemType, language, systemUsageDuration, 
   const allQuestions = [
     ...surveyData.section1.questions,
     ...surveyData.section2.questions, 
-    ...surveyData.section3.questions
+    ...surveyData.section3.questions, 
+    ...surveyData.section4.questions
   ];
 
   const toggleLanguage = () => {
@@ -33,7 +34,8 @@ export default function SurveyPage({ systemType, language, systemUsageDuration, 
   const getCurrentSectionQuestions = () => {
     if (currentSection === 1) return surveyData.section1.questions;
     if (currentSection === 2) return surveyData.section2.questions;
-    return surveyData.section3.questions;
+    if (currentSection === 3) return surveyData.section3.questions;
+    if (currentSection === 4) return surveyData.section4.questions;
   };
 
   const handleNextSection = () => {
@@ -153,7 +155,7 @@ export default function SurveyPage({ systemType, language, systemUsageDuration, 
             textTransform: "uppercase",
             letterSpacing: "1px"
           }}>
-            {`Section ${currentSection} / 3`}
+            {`Section ${currentSection} / 4`}
           </div>
         </div>
         
@@ -243,7 +245,7 @@ export default function SurveyPage({ systemType, language, systemUsageDuration, 
         ))}
 
         {/* Additional feedback - only on last section */}
-        {currentSection === 3 && (
+        {currentSection === 4 && (
           <div style={{
           }}>
             <label style={{ 
@@ -302,7 +304,7 @@ export default function SurveyPage({ systemType, language, systemUsageDuration, 
           
           <div style={{ flex: 1 }}></div>
           
-          {currentSection < 3 ? (
+          {currentSection < 4 ? (
             <CustomButton
               color="object"
               onClick={handleNextSection}
