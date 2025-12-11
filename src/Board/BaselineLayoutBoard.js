@@ -20,7 +20,7 @@ import CustomButton from "../components/CustomButton";
 import ImageQualityRatingModal from "../components/modal/ImageQualityRatingModal";
 import { logEvent } from "../api/logEvent";
 import { ToolbarButton } from "../components/nodeComponents/NodeToolbarMenu";
-import { Edit2, Trash2, Plus, Image as ImageIcon, Eye, Save, FolderOpen, LayoutGrid } from "lucide-react";
+import { Edit2, Trash2, Plus, Image as ImageIcon, Eye, Save, FolderOpen, LayoutGrid, X } from "lucide-react";
 import {
   LEFT_OFFSET_BASELINE as LEFT_OFFSET,
   TOP_OFFSET,
@@ -45,6 +45,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
   const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
   const [imageBoard, setImageBoard] = useState();
   const [globalCaption, setGlobalCaption] = useState("");
+  const [globalPrompt, setGlobalPrompt] = useState("");
   const [progress, setProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -530,10 +531,16 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
 
       try {
         const userId = sessionStorage.getItem("user_id") || "P1";
+
+        // Include globalPrompt in globalCaption if provided
+        const captionWithPrompt = globalPrompt
+          ? `${globalPrompt}. ${globalCaption}`.trim()
+          : globalCaption;
+
         const response = await generateImageFromInstanceData(
           sentences,
           boxes,
-          globalCaption, // global caption placeholder
+          captionWithPrompt, // global caption placeholder with prompt
           null, // requiredKeywords
           userId
         );
@@ -623,6 +630,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
     const sceneData = {
       image: imageBoard,
       globalCaption,
+      globalPrompt,
       nodes: nodes.map(node => ({
         id: node.id,
         type: node.type,
@@ -663,6 +671,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
     // Load scene data
     setImageBoard(sceneData.image);
     setGlobalCaption(sceneData.globalCaption || "");
+    setGlobalPrompt(sceneData.globalPrompt || "");
 
     // Load nodes
     if (sceneData.nodes) {
@@ -698,6 +707,92 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
         style={{
           position: "absolute",
           bottom: "-40px",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* Global Prompt Input with Clear Button */}
+        <div style={{ position: "relative", display: "inline-block" }}>
+          <input
+            type="text"
+            value={globalPrompt}
+            onChange={(e) => setGlobalPrompt(e.target.value)}
+            placeholder="Global prompt (optional - always included in generation)"
+            style={{
+              width: "450px",
+              padding: "8px 40px 8px 16px",
+              fontSize: "14px",
+              border: "1.5px solid #cbd5e1",
+              borderRadius: "30px",
+              outline: "none",
+              backgroundColor: "#ffffff",
+              color: "#334155",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+              transition: "all 0.2s ease",
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = "#8b5cf6";
+              e.target.style.boxShadow = "0 4px 12px rgba(139, 92, 246, 0.15)";
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "#cbd5e1";
+              e.target.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.06)";
+            }}
+            onMouseEnter={(e) => {
+              if (document.activeElement !== e.target) {
+                e.target.style.borderColor = "#a78bfa";
+                e.target.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.08)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (document.activeElement !== e.target) {
+                e.target.style.borderColor = "#cbd5e1";
+                e.target.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.06)";
+              }
+            }}
+          />
+
+          {/* Clear Button */}
+          {globalPrompt && (
+            <button
+              onClick={() => setGlobalPrompt("")}
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "50%",
+                transition: "background-color 0.2s ease",
+                color: "#94a3b8",
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = "#f1f5f9";
+                e.target.style.color = "#64748b";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = "transparent";
+                e.target.style.color = "#94a3b8";
+              }}
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-80px",
           width: "100%",
           display: "flex",
           alignItems: "center",
@@ -772,13 +867,40 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
           </CustomButton>
         </div> */}
 
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-45px",
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}>
+            <ProgressBar now={progress} errorMessage={errorMessage} />
+            <CustomButton
+              onClick={isTutorial ? handleTutorialClick : handleClick}
+              color="purpleBlue"
+              size="lg"
+              disabled={isGenerating}
+            >
+              {isTutorial ? "GENERATE" : isGenerating ? "Generating" : "Generate"}
+            </CustomButton>
+          </div>
+        </div>
+
         <div style={{
           display: "flex",
           gap: "6px",
           marginTop: "8px",
           justifyContent: "center",
           position: "absolute",
-          bottom: "-190px",
+          bottom: "-150px",
         }}>
           {[1, 2, 3, 4, 5, 6].map((slotNumber) => {
             const hasScene = savedScenes[slotNumber];
@@ -824,29 +946,6 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
               </div>
             );
           })}
-        </div>
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: "-50px",
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            boxSizing: "border-box",
-          }}
-        >
-          <ProgressBar now={progress} errorMessage={errorMessage} />
-
-          <CustomButton
-            onClick={isTutorial ? handleTutorialClick : handleClick}
-            color="purpleBlue"
-            size="lg"
-            disabled={isGenerating}
-          >
-            {isTutorial ? "GENERATE" : isGenerating ? "Generating" : "Generate"}
-          </CustomButton>
         </div>
       </div>
       {ghostNode && (
