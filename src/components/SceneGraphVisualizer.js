@@ -123,22 +123,9 @@ export default function SceneGraphVisualizer({
     setEditingObject(newId);
   };
 
-  // Object 편집 완료 - 임시 object 확정 또는 빈 object 삭제
+  // Object 편집 완료 - 임시 object 확정
   const handleObjectEditComplete = (objectId) => {
-    const obj = safeSceneGraph.objects.find((o) => o.id === objectId);
-
-    // 이름이 비어있거나 공백만 있으면 object 삭제
-    if (obj && (!obj.name || obj.name.trim() === "")) {
-      const updatedGraph = {
-        ...safeSceneGraph,
-        objects: safeSceneGraph.objects.filter((o) => o.id !== objectId),
-        relationships: safeSceneGraph.relationships.filter(
-          (rel) => rel.source !== objectId && rel.target !== objectId
-        ),
-      };
-      onSceneGraphChange(updatedGraph);
-    }
-
+    // onEdit에서 이미 이름을 저장했으므로 여기서는 pending 상태만 해제
     if (pendingObjectId === objectId) {
       setPendingObjectId(null);
     }
@@ -164,6 +151,12 @@ export default function SceneGraphVisualizer({
 
   // Relationship 관련 기능들
   const handleRelationshipEdit = (sourceId, targetId, newRelation) => {
+    // 빈 값이면 relationship 삭제
+    if (!newRelation || newRelation.trim() === "") {
+      handleRelationshipDelete(sourceId, targetId);
+      return;
+    }
+
     const updatedGraph = {
       ...safeSceneGraph,
       relationships: safeSceneGraph.relationships.map((rel) =>
@@ -285,23 +278,9 @@ export default function SceneGraphVisualizer({
     setDragStartPosition({ x: 0, y: 0 });
   };
 
-  // Relationship 편집 완료 - pending 상태 해제 또는 빈 relationship 삭제
+  // Relationship 편집 완료 - pending 상태 해제
   const handleRelationshipEditComplete = (sourceId, targetId) => {
-    const rel = safeSceneGraph.relationships.find(
-      (r) => r.source === sourceId && r.target === targetId
-    );
-
-    // relation이 비어있거나 공백만 있으면 relationship 삭제
-    if (rel && (!rel.relation || rel.relation.trim() === "")) {
-      const updatedGraph = {
-        ...safeSceneGraph,
-        relationships: safeSceneGraph.relationships.filter(
-          (r) => !(r.source === sourceId && r.target === targetId)
-        ),
-      };
-      onSceneGraphChange(updatedGraph);
-    }
-
+    // onEdit에서 이미 relation을 저장했으므로 여기서는 pending 상태만 해제
     const relId = `${sourceId}-${targetId}`;
     if (pendingRelationshipId === relId) {
       setPendingRelationshipId(null);
@@ -629,12 +608,21 @@ export default function SceneGraphVisualizer({
 
           // SVG나 컨테이너 자체를 클릭한 경우
           if (isEditable && (e.target === e.currentTarget || e.target.tagName === 'svg')) {
-            // 이미 임시 object가 있으면 삭제만 하고 새로 만들지 않음
+            // 이미 임시 object가 있으면 완료/취소만 하고 새로 만들지 않음
             if (pendingObjectId) {
-              console.log("Pending object exists, canceling it");
-              handleObjectEditCancel(pendingObjectId);
-              return;
+              const pendingObj = safeSceneGraph.objects.find(o => o.id === pendingObjectId);
+              if (pendingObj && pendingObj.name && pendingObj.name.trim()) {
+                // 이름이 있으면 저장
+                console.log("Pending object has name, saving it");
+                handleObjectEditComplete(pendingObjectId);
+              } else {
+                // 이름이 없으면 취소
+                console.log("Pending object has no name, canceling it");
+                handleObjectEditCancel(pendingObjectId);
+              }
+              return; // 새 object 생성 안 함
             }
+            // pending object가 없을 때만 새로 생성
             handleAddObject();
           }
         }}

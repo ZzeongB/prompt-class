@@ -23,9 +23,8 @@ const EditableLabel = ({
   }, [autoEdit]);
 
   const handleSave = () => {
-    if (temp.trim() !== "") {
-      onSave(temp.trim());
-    }
+    // 항상 onSave 호출 (빈 값이어도), 부모가 처리 결정
+    onSave(temp.trim());
     setEditing(false);
   };
 

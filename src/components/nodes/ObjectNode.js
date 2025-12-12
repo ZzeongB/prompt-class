@@ -50,11 +50,17 @@ const ObjectNode = ({
   const connectionHandleRef = useRef(null);
   const dropTargetRef = useRef(null);
 
+  // 편집 값 추적을 위한 ref
+  const editingValueRef = useRef("");
+  const editingModeRef = useRef(null);
+
   // 편집 관련 함수들
   const startEditing = useCallback((mode, initialValue = "") => {
     console.log("🟢 startEditing called:", mode, initialValue);
     setEditingMode(mode);
     setEditingValue(initialValue);
+    editingModeRef.current = mode;
+    editingValueRef.current = initialValue;
   }, []);
 
   // isPending인 새 object일 때만 자동으로 name 편집 시작
@@ -64,31 +70,57 @@ const ObjectNode = ({
     }
   }, [isEditing, editingMode, isPending, startEditing]);
 
+  // editingValue 변경 시 ref 업데이트
+  useEffect(() => {
+    editingValueRef.current = editingValue;
+  }, [editingValue]);
+
+  // isEditing이 false로 변경되거나 컴포넌트가 unmount될 때 자동 저장
+  useEffect(() => {
+    return () => {
+      // Cleanup 시 편집 중이던 값이 있으면 저장
+      if (editingModeRef.current && editingValueRef.current.trim()) {
+        const mode = editingModeRef.current;
+        const value = editingValueRef.current;
+
+        if (mode === "name") {
+          onEdit?.(object.id, value);
+          if (isPending) {
+            onEditComplete();
+          }
+        } else if (mode === "adding") {
+          if (isClassMode) {
+            const updatedAttributes = [...(object.attributes || []), value];
+            onEdit?.(object.id, object.name, updatedAttributes);
+          } else {
+            onAddAttribute?.(object.id, value);
+          }
+        } else if (mode?.startsWith("attribute-")) {
+          const index = parseInt(mode.replace("attribute-", ""));
+          const updated = [...object.attributes];
+          updated[index] = value;
+          onEdit?.(object.id, object.name, updated);
+        }
+      }
+    };
+  }, [isEditing]);
+
   const cancelEditing = () => {
     // 임시 object이고 이름이 입력되지 않은 경우에만 삭제
     if (isPending && editingMode === "name" && !editingValue.trim()) {
       onEditCancel();
-      return;
-    }
-
-    // 임시 object이지만 이름이 입력된 경우 확정
-    if (isPending && editingMode === "name" && editingValue.trim()) {
-      // 입력된 값으로 저장하고 확정
-      onEdit?.(object.id, editingValue);
-      onEditComplete();
-      setEditingMode(null);
-      setEditingValue("");
-      return;
     }
 
     setEditingMode(null);
     setEditingValue("");
     setNewAttributeValue("");
+    editingModeRef.current = null;
+    editingValueRef.current = "";
   };
 
   const saveEditing = () => {
+    // 이름이 비어있으면 저장하지 않음 (입력창 유지)
     if (!editingValue.trim()) {
-      cancelEditing();
       return;
     }
 
@@ -125,7 +157,12 @@ const ObjectNode = ({
       }
     }
 
-    cancelEditing();
+    // 편집 상태 정리
+    setEditingMode(null);
+    setEditingValue("");
+    setNewAttributeValue("");
+    editingModeRef.current = null;
+    editingValueRef.current = "";
   };
 
   const handleDeleteAttribute = (index) => {
