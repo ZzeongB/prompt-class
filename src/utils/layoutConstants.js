@@ -10,8 +10,8 @@ export const LAYOUT_CONFIG = {
 
 export const UI_CONFIG = {
   GHOST_NODE_OPACITY: 0.9,
-  BOUNDING_BOX_BORDER: "3px solid #ff0000",
-  BOUNDING_BOX_BACKGROUND: "rgba(255, 0, 0, 0.2)",
+  BOUNDING_BOX_BORDER: "2px solid #ff0000",
+  BOUNDING_BOX_BACKGROUND: "rgba(255, 0, 0, 0.05)",
   EDGE_STYLES: {
     DEFAULT: {
       stroke: "#64748b",

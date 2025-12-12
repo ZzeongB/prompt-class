@@ -38,7 +38,7 @@ def fix_base64_padding(base64_string):
 
 # Object detection imports
 try:
-    from ultralytics import YOLO
+    from ultralytics import YOLOWorld
     import cv2
     import numpy as np
     OBJECT_DETECTION_AVAILABLE = True
@@ -114,7 +114,7 @@ width = 512
 yolo_model = None
 if OBJECT_DETECTION_AVAILABLE:
     try:
-        yolo_model = YOLO("yolo11n.pt")  # or yolov8s.pt
+        yolo_model = YOLOWorld("yolov8s-world.pt")  # or yolov8s.pt
         print("YOLO model loaded successfully")
     except Exception as e:
         print(f"Failed to load YOLO model: {e}")
