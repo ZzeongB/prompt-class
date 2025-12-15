@@ -16,19 +16,18 @@ export async function generateImageFromInstanceData(
       has_required_keywords: !!requiredKeywords,
     });
 
-    const { refinedCaptions, globalCaption } = await generateGlobalCaption(
+    // Get only the global caption - user's sentences are used as-is for regions
+    const { globalCaption } = await generateGlobalCaption(
       sentences,
       globalCaption_,
       requiredKeywords || null,
       userId
     );
 
-    if (!refinedCaptions || refinedCaptions.length === 0) {
-      console.warn("No refined captions generated, using original sentences.");
-      logEvent("api.generate_image.caption_fallback", {
-        original_sentences: sentences,
-      });
-    }
+    logEvent("api.generate_image.caption_generated", {
+      global_caption: globalCaption,
+      region_sentences: sentences,
+    });
 
     const response = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}/generate`,
@@ -40,7 +39,7 @@ export async function generateImageFromInstanceData(
         mode: "cors", // CORS 모드 명시
         body: JSON.stringify({
           global_caption: globalCaption,
-          region_caption_list: refinedCaptions || sentences,
+          region_caption_list: sentences, // Use user's original sentences directly
           region_bboxes_list: boxes,
           user_id: userId,
         }),
@@ -60,7 +59,6 @@ export async function generateImageFromInstanceData(
 
     logEvent("api.generate_image.succeeded", {
       global_caption: globalCaption,
-      region_count: (refinedCaptions || sentences)?.length || 0,
       has_image: !!data.image,
       detected_objects_count: data.detectedObjects?.length || 0,
       image_path: data.imagePath,
@@ -71,7 +69,6 @@ export async function generateImageFromInstanceData(
     return {
       image: `data:image/png;base64,${data.image}`,
       globalCaption: globalCaption,
-      refinedCaptions: refinedCaptions || [],
       detectedObjects: data.detectedObjects || [],
     };
   } catch (error) {

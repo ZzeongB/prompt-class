@@ -83,26 +83,27 @@ def encode_image(image):
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
-def safe_split_refined_captions(text, expected_count):
-    # 먼저 1. ... 형태로 나누기
-    matches = re.findall(r"^\d+\.\s(.+)", text, re.MULTILINE)
-
-    # 정확히 기대 개수만큼이면 바로 리턴
-    if len(matches) == expected_count:
-        return matches
-
-    # fallback: 숫자 라벨 없이 줄 단위로 대체
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    fallback_lines = [
-        line
-        for line in lines
-        if not line.lower().startswith("global image description")
-    ]
-
-    # 만약 여전히 길이 다르면, 자르거나 채우기
-    while len(fallback_lines) < expected_count:
-        fallback_lines.append("")  # 비어 있는 문장으로 패딩
-    return fallback_lines[:expected_count]
+# No longer needed - user's original sentences are used directly
+# def safe_split_refined_captions(text, expected_count):
+#     # 먼저 1. ... 형태로 나누기
+#     matches = re.findall(r"^\d+\.\s(.+)", text, re.MULTILINE)
+#
+#     # 정확히 기대 개수만큼이면 바로 리턴
+#     if len(matches) == expected_count:
+#         return matches
+#
+#     # fallback: 숫자 라벨 없이 줄 단위로 대체
+#     lines = [line.strip() for line in text.splitlines() if line.strip()]
+#     fallback_lines = [
+#         line
+#         for line in lines
+#         if not line.lower().startswith("global image description")
+#     ]
+#
+#     # 만약 여전히 길이 다르면, 자르거나 채우기
+#     while len(fallback_lines) < expected_count:
+#         fallback_lines.append("")  # 비어 있는 문장으로 패딩
+#     return fallback_lines[:expected_count]
 
 
 def generate_global_caption_and_refinements(
@@ -111,11 +112,15 @@ def generate_global_caption_and_refinements(
     required_keywords=None,
     max_retries=2
 ):
+    """
+    Generate global image description from region descriptions.
+    Note: Returns user's original sentences unchanged, only generates global caption.
+    """
     required_keywords = required_keywords or []
 
-    def contains_all_required(captions, keywords):
-        full_text = " ".join(captions).lower()
-        return all(k.lower() in full_text for k in keywords)
+    def contains_all_required(text, keywords):
+        text_lower = text.lower()
+        return all(k.lower() in text_lower for k in keywords)
 
     for attempt in range(max_retries):
         has_caption = bool(global_caption)
@@ -129,53 +134,81 @@ def generate_global_caption_and_refinements(
         )
         response_text = response.choices[0].message.content
 
-        region_matches = re.findall(r"^\d+\.\s(.+)", response_text, re.MULTILINE)
+        # Only parse global caption (no region refinements needed)
         global_match = re.search(r"Global image description:\s*([\s\S]+)", response_text)
         global_caption = global_match.group(1).strip() if global_match else ""
 
-        if len(region_matches) != len(sentences):
-            print("⚠️ Warning: caption count mismatch. Fallback parsing triggered.")
-            region_matches = safe_split_refined_captions(response_text, len(sentences))
-
-        if contains_all_required(region_matches, required_keywords):
+        # Check if all required keywords are in the global caption
+        if contains_all_required(global_caption, required_keywords):
             return {
-                "refined_captions": region_matches,
                 "global_caption": global_caption
             }
 
         print(f"🔁 Retry #{attempt + 1} due to missing required keywords: {required_keywords}")
 
+    # Return even if keywords missing after retries
     return {
-        "refined_captions": region_matches,
         "global_caption": global_caption
     }
 
 
-def generate_description(region, global_caption):
-    # OpenAI Vision API 호출 (gpt-4-vision)
-    response = client.responses.create(
+def generate_description(region, detected_label=""):
+    """
+    Generate image classification label, noun phrase, and description for a cropped region.
+    Args:
+        region: PIL Image of the cropped region
+        detected_label: YOLO detected object label (e.g., "person", "car", "dog")
+    Returns: (classification, noun_phrase, description)
+    """
+    # OpenAI Vision API 호출 (올바른 형식)
+    response = client.chat.completions.create(
         model="gpt-4o-mini",
-        input=[
+        messages=[
             {
                 "role": "user",
                 "content": [
                     {
-                        "type": "input_text",
-                        "text": description_prompt(global_caption)
+                        "type": "text",
+                        "text": description_prompt(detected_label)
                     },
                     {
-                        "type": "input_image",
-                        "image_url": "data:image/png;base64," + encode_image(region),
+                        "type": "image_url",
+                        "image_url": {
+                            "url": "data:image/png;base64," + encode_image(region)
+                        }
                     },
                 ],
             }
         ],
+        max_tokens=300,
     )
 
     # 응답 텍스트 추출
-    response_text = response.output_text
-    noun_phrase, description = map(str.strip, response_text.split(":", 1))
-    noun_phrase = noun_phrase.lower()  # 소문자로 변환
-    # 응답에서 설명 추출
-    print("Response from OpenAI:", response_text, noun_phrase, description)
-    return noun_phrase, description
+    response_text = response.choices[0].message.content.strip()
+
+    # 새로운 형식 파싱: classification | noun_phrase | description
+    try:
+        parts = [p.strip() for p in response_text.split("|")]
+        if len(parts) >= 3:
+            classification = parts[0].lower()
+            noun_phrase = parts[1].lower()
+            description = parts[2]
+        else:
+            # Fallback: 이전 형식 (noun_phrase: description)
+            print("⚠️ Warning: Response not in expected format, using fallback parsing")
+            if ":" in response_text:
+                noun_phrase, description = map(str.strip, response_text.split(":", 1))
+                noun_phrase = noun_phrase.lower()
+                classification = "object"  # Default classification
+            else:
+                classification = "object"
+                noun_phrase = response_text.lower()
+                description = response_text
+    except Exception as e:
+        print(f"⚠️ Error parsing response: {e}")
+        classification = "object"
+        noun_phrase = "unknown"
+        description = response_text
+
+    print(f"📊 Description result - Class: {classification}, Noun: {noun_phrase}, Desc: {description}")
+    return classification, noun_phrase, description

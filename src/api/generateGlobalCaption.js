@@ -1,5 +1,5 @@
 export async function generateGlobalCaption(sentences, globalCaption, requiredKeywords, userId = "P1") {
-  const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/generate-caption`,{ 
+  const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/generate-caption`,{
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -13,8 +13,8 @@ export async function generateGlobalCaption(sentences, globalCaption, requiredKe
   }
 
   const data = await response.json();
+  // Note: Backend no longer returns refined_captions, user's original sentences are used as-is
   return {
-    refinedCaptions: data.refined_captions,
     globalCaption: data.global_caption,
   };
 }

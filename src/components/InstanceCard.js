@@ -857,6 +857,7 @@ export default function InstanceCard({
               backgroundColor: "#3b82f6",
               borderRadius: "50%",
               animation: "pulse 2s infinite",
+              zIndex: -1, // in the most back
             }}
           />
           {isEditingText ? "Editing description" : isEditingGraph ? "Editing scene graph" : "Editing label"}

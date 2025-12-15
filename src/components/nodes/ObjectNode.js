@@ -53,6 +53,7 @@ const ObjectNode = ({
   // 편집 값 추적을 위한 ref
   const editingValueRef = useRef("");
   const editingModeRef = useRef(null);
+  const isSavingRef = useRef(false); // 중복 저장 방지
 
   // 편집 관련 함수들
   const startEditing = useCallback((mode, initialValue = "") => {
@@ -75,13 +76,16 @@ const ObjectNode = ({
     editingValueRef.current = editingValue;
   }, [editingValue]);
 
-  // isEditing이 false로 변경되거나 컴포넌트가 unmount될 때 자동 저장
+  // 🔧 컴포넌트가 unmount될 때만 자동 저장 (isEditing dependency 제거)
+  // saveEditing에서 명시적으로 저장하므로, cleanup은 unmount 시에만 필요
   useEffect(() => {
     return () => {
       // Cleanup 시 편집 중이던 값이 있으면 저장
       if (editingModeRef.current && editingValueRef.current.trim()) {
         const mode = editingModeRef.current;
         const value = editingValueRef.current;
+
+        console.log("🔧 Cleanup: saving pending edits", { mode, value, objectId: object.id });
 
         if (mode === "name") {
           onEdit?.(object.id, value);
@@ -103,7 +107,7 @@ const ObjectNode = ({
         }
       }
     };
-  }, [isEditing]);
+  }, []); // 🎯 빈 dependency - unmount 시에만 실행
 
   const cancelEditing = () => {
     // 임시 object이고 이름이 입력되지 않은 경우에만 삭제
@@ -119,35 +123,52 @@ const ObjectNode = ({
   };
 
   const saveEditing = () => {
+    // 🔧 중복 저장 방지 (Enter 후 blur 이벤트로 인한 중복 호출)
+    if (isSavingRef.current) {
+      console.log("⏭️ saveEditing: already saving, skipping");
+      return;
+    }
+
     // 이름이 비어있으면 저장하지 않음 (입력창 유지)
     if (!editingValue.trim()) {
       return;
     }
 
-    if (editingMode === "name") {
+    console.log("💾 saveEditing:", { editingMode, editingValue, objectId: object.id, isPending });
+
+    // 저장 중 플래그 설정
+    isSavingRef.current = true;
+
+    // 🔧 ref를 먼저 정리하여 cleanup에서 중복 저장 방지
+    const modeToSave = editingMode;
+    const valueToSave = editingValue;
+    editingModeRef.current = null;
+    editingValueRef.current = "";
+
+    if (modeToSave === "name") {
       // class mode와 instance mode 동일하게 처리
-      onEdit?.(object.id, editingValue);
+      onEdit?.(object.id, valueToSave);
 
       // 임시 object 확정
       if (isPending) {
         onEditComplete();
       }
-    } else if (editingMode === "adding") {
+    } else if (modeToSave === "adding") {
       if (isClassMode) {
         // class mode: onEdit 사용
         const updatedAttributes = [
           ...(object.attributes || []),
-          editingValue,
+          valueToSave,
         ];
         onEdit?.(object.id, object.name, updatedAttributes);
       } else {
         // instance mode: onAddAttribute 사용
-        onAddAttribute?.(object.id, editingValue);
+        onAddAttribute?.(object.id, valueToSave);
       }
-    } else if (editingMode?.startsWith("attribute-")) {
-      const index = parseInt(editingMode.replace("attribute-", ""));
+    } else if (modeToSave?.startsWith("attribute-")) {
+      const index = parseInt(modeToSave.replace("attribute-", ""));
       const updated = [...object.attributes];
-      updated[index] = editingValue;
+      updated[index] = valueToSave;
 
       if (isClassMode) {
         // class mode에서도 instance mode와 동일하게 처리
@@ -161,8 +182,11 @@ const ObjectNode = ({
     setEditingMode(null);
     setEditingValue("");
     setNewAttributeValue("");
-    editingModeRef.current = null;
-    editingValueRef.current = "";
+
+    // 저장 완료 후 플래그 리셋 (약간의 지연을 두어 blur 이벤트 처리)
+    setTimeout(() => {
+      isSavingRef.current = false;
+    }, 100);
   };
 
   const handleDeleteAttribute = (index) => {

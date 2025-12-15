@@ -350,14 +350,14 @@ def describe_region():
     data = request.get_json()
     base64_image = data.get("image", "")
     crop_box = data.get("crop_box", [])
-    global_caption = data.get("global_caption", "")
+    detected_label = data.get("detected_label", "")
     user_id = data.get("user_id", "unknown")
 
     log_event("describe_requested", {
         "crop_box": crop_box,
-        "global_caption": global_caption
+        "detected_label": detected_label
     }, user_id=user_id)
-    
+
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -370,7 +370,7 @@ def describe_region():
     prompt_path = os.path.join(timestamp_dir, "prompt.json")
     with open(prompt_path, "w") as f:
         json.dump({
-            "global_caption": global_caption,
+            "detected_label": detected_label,
             "crop_box": crop_box
         }, f, indent=2)
 
@@ -385,14 +385,19 @@ def describe_region():
         "region_path": region_path
     }, user_id=user_id)
 
-    noun_phrase, description = generate_description(region, global_caption)
+    classification, noun_phrase, description = generate_description(region, detected_label)
 
     log_event("describe_result", {
+        "classification": classification,
         "noun_phrase": noun_phrase,
         "description": description
     }, user_id=user_id)
 
-    return jsonify({"label": noun_phrase, "description": description})
+    return jsonify({
+        "classification": classification,
+        "label": noun_phrase,
+        "description": description
+    })
 
 @app.route("/detect-objects", methods=["POST"])
 def detect_objects():

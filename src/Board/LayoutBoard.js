@@ -790,7 +790,7 @@ function LayoutBoard({
       const descriptionResult = await generateDescription(
         imageBoard,
         obj.bbox,
-        globalCaption,
+        obj.label, // Use detected label instead of global caption
         userId
       );
 

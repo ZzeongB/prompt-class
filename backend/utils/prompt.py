@@ -5,7 +5,7 @@ def caption_prompt(has_caption=False, region_desc="", caption_block="", required
         keyword_block = f"\n\nRequired keywords:\n{keyword_list}"
 
     return f"""
-You are an AI assistant that converts structured scene descriptions into image generation prompts for a generative model.
+You are an AI assistant that converts structured scene descriptions into a single cohesive image generation prompt for a generative model.
 
 Your role is not to verify whether the description makes sense in reality. Even if the content is bizarre, surreal, or physically impossible, you should still generate a high-quality, vivid prompt suitable for image generation.
 
@@ -20,59 +20,54 @@ Your role is not to verify whether the description makes sense in reality. Even 
 - You may add optional visual modifiers (e.g., lighting, angle, atmosphere) to enrich the prompt, but ONLY IF they do not conflict with the original content.
 
 # Input Example:
-Original region descriptions:
+Region descriptions:
 1. mole head poop on top
 2. pink elephant flying over green river
 3. astronaut drinking coffee inside volcano
 
 # Output Example:
 
-Corrected region descriptions:
-1. a mole with poop on top of its head
-2. a pink elephant flying over a green river
-3. an astronaut drinking coffee inside a volcano
-
 Global image description:
 a scene featuring a mole with poop on its head, a pink elephant flying over a green river, and an astronaut drinking coffee inside a volcano
 
 # Now process the following input:
 
-Original region descriptions:
+Region descriptions:
 {region_desc}{caption_block}{keyword_block}
 
-Please return the result in this format:
-
-Corrected region descriptions:
-1. ...
-2. ...
-...
+Please return ONLY the global image description in this format:
 
 Global image description:
 ...
 """
 
 
-def description_prompt(global_caption):
+def description_prompt(detected_label=""):
+    detected_info = f"\n\nDetected object type: {detected_label}" if detected_label else ""
+
     return f"""Your task is to:
-1. Write a **short, vivid phrase** (not a full sentence) describing the object’s most prominent visual features.
-2. Provide a clear **noun phrase** that represents the object (e.g., "a red balloon", "a plate of sushi").
+1. Classify the object into a **single-word category** (e.g., "animal", "plant", "person", "vehicle", "food", "object")
+2. Provide a clear **noun phrase** that represents the object (e.g., "a red balloon", "a plate of sushi")
+3. Write a **short, vivid phrase** (not a full sentence) describing the object's most prominent visual features
 
 # Guidelines:
-- The description should be a **brief phrase** (e.g., “with glowing blue wings”, “wearing a red hat”) — **not a full sentence**.
-- Focus on color, shape, texture, pose, or material — the most visually distinctive features.
-- Do **not** mention background elements unless essential.
-- You may use the global caption for context, but **do not repeat it**.
+- Classification should be a **single word** representing the broad category
+- The noun phrase should be concise and specific
+- The description should be a **brief phrase** (e.g., "with glowing blue wings", "wearing a red hat") — **not a full sentence**
+- Focus on color, shape, texture, pose, or material — the most visually distinctive features
+- Do **not** mention background elements unless essential
+- If a detected object type is provided, use it as a starting point but refine based on what you see in the image
 
 # Output format:
-- [noun phrase]: [short descriptive phrase]
+- [classification] | [noun phrase] | [short descriptive phrase]
 
 # Example Outputs:
-mole: a mole with poop on its head  
-pink elephant: a pink elephant flying over a green river  
-bouquet of flowers: a bouquet of white flowers in a glass vase  
-
-Global image description (for context only):
-{global_caption}
+animal | mole | a mole with poop on its head
+animal | pink elephant | a pink elephant flying over a green river
+plant | bouquet of flowers | a bouquet of white flowers in a glass vase
+person | astronaut | an astronaut in a white spacesuit
+vehicle | red car | a red sports car with shiny chrome wheels
+food | pizza | a large pepperoni pizza with melted cheese{detected_info}
 
 Please describe the object shown in the image region below:
 """
