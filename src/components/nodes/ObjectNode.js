@@ -71,6 +71,20 @@ const ObjectNode = ({
     }
   }, [isEditing, editingMode, isPending, startEditing]);
 
+  // 🔧 부모가 편집 모드를 종료하면 로컬 편집 상태도 리셋
+  useEffect(() => {
+    console.log("🟣 ObjectNode useEffect triggered:", { isEditing, editingMode, objectId: object.id });
+    if (!isEditing && editingMode !== null) {
+      console.log("🟣 Resetting editing mode:", editingMode);
+      // 편집 상태 직접 리셋 (cancelEditing 호출 시 dependency 이슈 방지)
+      setEditingMode(null);
+      setEditingValue("");
+      setNewAttributeValue("");
+      editingModeRef.current = null;
+      editingValueRef.current = "";
+    }
+  }, [isEditing, editingMode]);
+
   // editingValue 변경 시 ref 업데이트
   useEffect(() => {
     editingValueRef.current = editingValue;
@@ -750,6 +764,7 @@ const ObjectNode = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         startEditing("adding");
+                        setIsEditing(true);
                       }}
                       style={{
                         border: isClassMode ? "2px dashed #93c5fd" : "1px dashed #93c5fd",

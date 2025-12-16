@@ -129,7 +129,7 @@ def generate_global_caption_and_refinements(
         prompt = caption_prompt(has_caption, region_desc, caption_block, required_keywords)
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
         )
         response_text = response.choices[0].message.content
@@ -162,7 +162,7 @@ def generate_description(region, detected_label=""):
     """
     # OpenAI Vision API 호출 (올바른 형식)
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o",
         messages=[
             {
                 "role": "user",

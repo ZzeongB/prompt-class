@@ -1,7 +1,7 @@
 // API 설정
 export const API_CONFIG = {
   endpoint: "https://api.openai.com/v1/chat/completions",
-  model: "gpt-4o-mini",
+  model: "gpt-4o",
   temperature: 0,
   maxRetries: 3,
   retryDelay: 1000,

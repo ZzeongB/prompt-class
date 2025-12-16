@@ -1,5 +1,5 @@
 // InstanceBoard.js - 모든 인스턴스 상세 정보 표시
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import ObjectNode from "./nodes/ObjectNode";
@@ -37,6 +37,10 @@ export default function SceneGraphVisualizer({
   const [dragConnectionSource, setDragConnectionSource] = useState(null);
   const [dragLinePosition, setDragLinePosition] = useState({ x: 0, y: 0 });
   const [dragStartPosition, setDragStartPosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (!isEditable) setEditingObject(null);
+  }, [isEditable]);
 
   // 안전한 데이터 확인 - 하지만 sceneGraph가 있으면 우선 사용
   const safeSceneGraph = sceneGraph || {
@@ -603,8 +607,16 @@ export default function SceneGraphVisualizer({
             currentTarget: e.currentTarget.tagName,
             isEditable,
             isSame: e.target === e.currentTarget,
-            hasPending: !!pendingObjectId
+            hasPending: !!pendingObjectId,
+            editingObject: editingObject
           });
+
+          // 🔧 편집 중인 object가 있고, 그 object를 클릭한 게 아니면 편집 모드 종료
+          if (editingObject && !e.target.closest(`[data-object-id="${editingObject}"]`)) {
+            console.log("🔴 Clearing editingObject (clicked outside):", editingObject);
+            setEditingObject(null);
+            return;
+          }
 
           // SVG나 컨테이너 자체를 클릭한 경우
           if (isEditable && (e.target === e.currentTarget || e.target.tagName === 'svg')) {
@@ -622,6 +634,7 @@ export default function SceneGraphVisualizer({
               }
               return; // 새 object 생성 안 함
             }
+
             // pending object가 없을 때만 새로 생성
             handleAddObject();
           }
