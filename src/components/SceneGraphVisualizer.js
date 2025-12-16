@@ -1,5 +1,5 @@
 // InstanceBoard.js - 모든 인스턴스 상세 정보 표시
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import ObjectNode from "./nodes/ObjectNode";
@@ -22,6 +22,7 @@ export default function SceneGraphVisualizer({
   onNodeHover = () => {},
   onNodeLeave = () => {},
   overrides = {},
+  onBlur = () => {}, // 편집 영역 바깥 클릭 시 호출될 콜백
 }) {
   const [hoveredObject, setHoveredObject] = useState(null);
   const [hoveredRelationship, setHoveredRelationship] = useState(null);
@@ -37,10 +38,27 @@ export default function SceneGraphVisualizer({
   const [dragConnectionSource, setDragConnectionSource] = useState(null);
   const [dragLinePosition, setDragLinePosition] = useState({ x: 0, y: 0 });
   const [dragStartPosition, setDragStartPosition] = useState({ x: 0, y: 0 });
+  const prevEditingObjectRef = useRef(null);
 
+  // isEditable이 false가 되면 편집 종료
   useEffect(() => {
-    if (!isEditable) setEditingObject(null);
+    if (!isEditable) {
+      setEditingObject(null);
+      console.log("🔴 SceneGraphVisualizer: Exiting edit mode due to isEditable=false");
+    }
   }, [isEditable]);
+
+  // editingObject가 null로 변경되면 (편집 완료 후) parent에게 알림
+  useEffect(() => {
+    // 편집 중이던 object가 있었고, 지금 null이 되었으면
+    if (prevEditingObjectRef.current !== null && editingObject === null) {
+      console.log("🟢 SceneGraphVisualizer: Edit completed, calling onBlur");
+      // ObjectNode의 저장이 완료된 후 parent에게 알림
+      onBlur();
+    }
+    // 현재 상태를 ref에 저장
+    prevEditingObjectRef.current = editingObject;
+  }, [editingObject, onBlur]);
 
   // 안전한 데이터 확인 - 하지만 sceneGraph가 있으면 우선 사용
   const safeSceneGraph = sceneGraph || {
@@ -615,6 +633,7 @@ export default function SceneGraphVisualizer({
           if (editingObject && !e.target.closest(`[data-object-id="${editingObject}"]`)) {
             console.log("🔴 Clearing editingObject (clicked outside):", editingObject);
             setEditingObject(null);
+            // onBlur()는 useEffect에서 editingObject가 null로 변경된 후 호출됨
             return;
           }
 

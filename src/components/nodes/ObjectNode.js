@@ -71,19 +71,47 @@ const ObjectNode = ({
     }
   }, [isEditing, editingMode, isPending, startEditing]);
 
-  // 🔧 부모가 편집 모드를 종료하면 로컬 편집 상태도 리셋
+  // 🔧 부모가 편집 모드를 종료하면 로컬 편집 상태도 리셋 (저장 후)
   useEffect(() => {
     console.log("🟣 ObjectNode useEffect triggered:", { isEditing, editingMode, objectId: object.id });
     if (!isEditing && editingMode !== null) {
-      console.log("🟣 Resetting editing mode:", editingMode);
-      // 편집 상태 직접 리셋 (cancelEditing 호출 시 dependency 이슈 방지)
+      console.log("🟣 Saving and resetting editing mode:", editingMode);
+
+      // 먼저 저장 (값이 있는 경우만)
+      const modeToSave = editingModeRef.current;
+      const valueToSave = editingValueRef.current;
+
+      if (valueToSave && valueToSave.trim()) {
+        console.log("💾 Auto-saving on parent edit end:", { modeToSave, valueToSave });
+
+        if (modeToSave === "name") {
+          onEdit?.(object.id, valueToSave);
+          if (isPending) {
+            onEditComplete();
+          }
+        } else if (modeToSave === "adding") {
+          if (isClassMode) {
+            const updatedAttributes = [...(object.attributes || []), valueToSave];
+            onEdit?.(object.id, object.name, updatedAttributes);
+          } else {
+            onAddAttribute?.(object.id, valueToSave);
+          }
+        } else if (modeToSave?.startsWith("attribute-")) {
+          const index = parseInt(modeToSave.replace("attribute-", ""));
+          const updated = [...object.attributes];
+          updated[index] = valueToSave;
+          onEdit?.(object.id, object.name, updated);
+        }
+      }
+
+      // 그 다음 편집 상태 리셋
       setEditingMode(null);
       setEditingValue("");
       setNewAttributeValue("");
       editingModeRef.current = null;
       editingValueRef.current = "";
     }
-  }, [isEditing, editingMode]);
+  }, [isEditing, editingMode, object.id, object.name, object.attributes, isPending, isClassMode, onEdit, onAddAttribute, onEditComplete]);
 
   // editingValue 변경 시 ref 업데이트
   useEffect(() => {

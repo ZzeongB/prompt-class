@@ -705,6 +705,7 @@ export default function InstanceCard({
             onNodeHover={setHighlightedTerm}
             onNodeLeave={() => setHighlightedTerm(null)}
             overrides={instance.overrides}
+            onBlur={handleSave} // 그래프 편집 영역 바깥 클릭 시 자동 저장
           // compact
           />
         </div>
