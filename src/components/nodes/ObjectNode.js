@@ -64,12 +64,12 @@ const ObjectNode = ({
     editingValueRef.current = initialValue;
   }, []);
 
-  // isPending인 새 object일 때만 자동으로 name 편집 시작
+  // isPending인 새 object일 때만 자동으로 name 편집 시작 (이름이 없을 때만)
   useEffect(() => {
-    if (isEditing && editingMode === null && isPending) {
+    if (isEditing && editingMode === null && isPending && !object.name) {
       startEditing("name", ""); // 빈 문자열로 시작
     }
-  }, [isEditing, editingMode, isPending, startEditing]);
+  }, [isEditing, editingMode, isPending, object.name, startEditing]);
 
   // 🔧 부모가 편집 모드를 종료하면 로컬 편집 상태도 리셋 (저장 후)
   useEffect(() => {
@@ -87,7 +87,7 @@ const ObjectNode = ({
         if (modeToSave === "name") {
           onEdit?.(object.id, valueToSave);
           if (isPending) {
-            onEditComplete();
+            onEditComplete(true); // autosave는 편집 종료
           }
         } else if (modeToSave === "adding") {
           if (isClassMode) {
@@ -132,7 +132,7 @@ const ObjectNode = ({
         if (mode === "name") {
           onEdit?.(object.id, value);
           if (isPending) {
-            onEditComplete();
+            onEditComplete(true); // cleanup 시 편집 종료
           }
         } else if (mode === "adding") {
           if (isClassMode) {
@@ -164,7 +164,7 @@ const ObjectNode = ({
     editingValueRef.current = "";
   };
 
-  const saveEditing = () => {
+  const saveEditing = (shouldComplete = true) => {
     // 🔧 중복 저장 방지 (Enter 후 blur 이벤트로 인한 중복 호출)
     if (isSavingRef.current) {
       console.log("⏭️ saveEditing: already saving, skipping");
@@ -176,7 +176,7 @@ const ObjectNode = ({
       return;
     }
 
-    console.log("💾 saveEditing:", { editingMode, editingValue, objectId: object.id, isPending });
+    console.log("💾 saveEditing:", { editingMode, editingValue, objectId: object.id, isPending, shouldComplete });
 
     // 저장 중 플래그 설정
     isSavingRef.current = true;
@@ -191,9 +191,10 @@ const ObjectNode = ({
       // class mode와 instance mode 동일하게 처리
       onEdit?.(object.id, valueToSave);
 
-      // 임시 object 확정
+      // isPending object 확정
       if (isPending) {
-        onEditComplete();
+        // shouldComplete: true = blur (편집 종료), false = enter (편집 유지)
+        onEditComplete(shouldComplete);
       }
     } else if (modeToSave === "adding") {
       if (isClassMode) {
@@ -613,9 +614,12 @@ const ObjectNode = ({
         <input
           value={editingValue}
           onChange={(e) => setEditingValue(e.target.value)}
-          onBlur={saveEditing}
+          onBlur={() => saveEditing(true)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") saveEditing();
+            if (e.key === "Enter") {
+              e.preventDefault();
+              saveEditing(false); // 엔터: 이름만 저장, 편집 상태 유지
+            }
             if (e.key === "Escape") cancelEditing();
           }}
           autoFocus

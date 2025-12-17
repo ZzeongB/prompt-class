@@ -146,12 +146,15 @@ export default function SceneGraphVisualizer({
   };
 
   // Object 편집 완료 - 임시 object 확정
-  const handleObjectEditComplete = (objectId) => {
+  const handleObjectEditComplete = (objectId, shouldExitEditMode = true) => {
     // onEdit에서 이미 이름을 저장했으므로 여기서는 pending 상태만 해제
     if (pendingObjectId === objectId) {
       setPendingObjectId(null);
     }
-    setEditingObject(null);
+    // shouldExitEditMode가 true일 때만 편집 모드 종료
+    if (shouldExitEditMode) {
+      setEditingObject(null);
+    }
   };
 
   // Object 편집 취소 - 임시 object는 삭제
@@ -802,7 +805,7 @@ export default function SceneGraphVisualizer({
                   objectOverrides={overrides?.objects?.[obj.id]}
                   isDraggingConnectionFromThis={isDraggingConnection && dragConnectionSource?.objectId === obj.id}
                   isPending={pendingObjectId === obj.id}
-                  onEditComplete={() => handleObjectEditComplete(obj.id)}
+                  onEditComplete={(shouldExitEditMode) => handleObjectEditComplete(obj.id, shouldExitEditMode)}
                   onEditCancel={() => handleObjectEditCancel(obj.id)}
                 />
               </div>
