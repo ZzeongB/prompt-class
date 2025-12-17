@@ -42,18 +42,22 @@ export const ClassProvider = ({ children }) => {
     return newInstance;
   };
 
-  const updateClass = (classId, updates) => {
+  const updateClass = async (classId, updates) => {
     console.log('[ClassContext] updateClass called:', classId, updates);
-    setClasses((prev) => {
-      const updatedClasses = ClassOps.updateClass(prev, classId, updates);
-      const updatedClass = updatedClasses.find(cls => cls.id === classId);
-      console.log('[ClassContext] Updated class:', updatedClass);
-      if (updatedClass) {
-        console.log('[ClassContext] Calling updateInstancesFromClass');
-        updateInstancesFromClass(updatedClass);
-      }
-      return updatedClasses;
-    });
+
+    // Get current classes to pass to async operation
+    const currentClasses = classes;
+    const updatedClasses = await ClassOps.updateClass(currentClasses, classId, updates);
+    const updatedClass = updatedClasses.find(cls => cls.id === classId);
+
+    console.log('[ClassContext] Updated class:', updatedClass);
+
+    setClasses(updatedClasses);
+
+    if (updatedClass) {
+      console.log('[ClassContext] Calling updateInstancesFromClass');
+      updateInstancesFromClass(updatedClass);
+    }
   };
 
 

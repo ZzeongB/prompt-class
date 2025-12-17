@@ -3,6 +3,7 @@ import { deepCloneSceneGraph } from './SceneGraphUtils';
 import { replaceWithSceneGraphPlaceholders } from './PlaceholderUtils';
 import { generatePlaceholders } from "../api/generatePlaceholders";
 import { logEvent } from "../api/logEvent";
+import { generateSceneGraphToText } from "../api/generateTextToGraph";
 
 export const createClass = async (instanceData) => {
   try {
@@ -96,20 +97,48 @@ const createInstanceFromClassData = (instanceData, classData) => {
   };
 };
 
-export const updateClass = (classes, classId, updates) => {
-  return classes.map((cls) => {
-    if (cls.id === classId) {
-      return {
-        ...cls,
-        ...updates,
-        template: {
-          ...cls.template,
-          ...updates.template,
-        },
-      };
-    }
-    return cls;
-  });
+export const updateClass = async (classes, classId, updates) => {
+  const updatedClasses = await Promise.all(
+    classes.map(async (cls) => {
+      if (cls.id === classId) {
+        let finalUpdates = { ...updates };
+
+        // If scene graph is being updated, regenerate text description
+        if (updates.template?.sceneGraph) {
+          try {
+            const newTextDescription = await generateSceneGraphToText({
+              newSceneGraph: updates.template.sceneGraph,
+              previousSceneGraph: cls.template?.sceneGraph,
+              previousTextDescription: cls.template?.textDescription,
+            });
+
+            finalUpdates = {
+              ...updates,
+              template: {
+                ...updates.template,
+                textDescription: newTextDescription,
+              },
+            };
+          } catch (error) {
+            console.error("Failed to regenerate text description for class:", error);
+            // Continue with original updates if generation fails
+          }
+        }
+
+        return {
+          ...cls,
+          ...finalUpdates,
+          template: {
+            ...cls.template,
+            ...finalUpdates.template,
+          },
+        };
+      }
+      return cls;
+    })
+  );
+
+  return updatedClasses;
 };
 
 export const deleteClass = (classes, instances, classId) => {
