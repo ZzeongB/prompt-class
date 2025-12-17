@@ -302,7 +302,7 @@ export const ClassTreeBoard = ({ onAddInstance, onExpandChange }) => {
                       onMouseLeave={(e) =>
                         (e.currentTarget.style.backgroundColor = "transparent")
                       }
-                      onClick={() => handleClassClick(classData)}
+                      onClick={() => handleClassClick(classData, true)}
                     >
                       {/* Left side - Class info */}
                       <div style={{ flex: 1 }}>

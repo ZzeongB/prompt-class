@@ -600,7 +600,7 @@ export default function InstanceCard({
             />
           ) : (
             <div
-              onClick={(e) => {
+              onDoubleClick={(e) => {
                 e.stopPropagation();
                 handleEdit();
               }}
@@ -669,7 +669,7 @@ export default function InstanceCard({
       {/* Expanded Section */}
       {isExpanded && (
         <div
-          onClick={(e) => {
+          onDoubleClick={(e) => {
             // 편집 모드가 아닐 때만 편집 모드로 전환
             if (!isEditingGraph) {
               e.stopPropagation();
