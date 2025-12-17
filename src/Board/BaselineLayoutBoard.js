@@ -996,6 +996,7 @@ function BaselineLayoutBoard({ onImageGenerated, onNodeSelect, selectedInstanceI
               type="text"
               placeholder="Describe what you want..."
               autoFocus
+              autoComplete="off"
               style={{
                 width: "204px",
                 padding: "8px 12px",
